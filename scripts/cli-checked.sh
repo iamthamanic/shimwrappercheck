@@ -132,6 +132,34 @@ if [[ "$CHECKS_ONLY" != true ]]; then
   fi
 fi
 
+should_run_hooks=false
+hook_list="${SHIM_CLI_HOOK_COMMANDS:-all}"
+if matches_command_list "$hook_list" "$ARGS_TEXT"; then
+  should_run_hooks=true
+fi
+
+resolve_hook_list() {
+  local list="$1"
+  local default_name="$2"
+  local resolved=()
+
+  if [[ -n "$list" ]]; then
+    IFS=',' read -r -a items <<< "$list"
+    for item in "${items[@]}"; do
+      item="$(echo "$item" | xargs)"
+      [[ -z "$item" ]] && continue
+      if [[ "$item" != /* ]]; then
+        item="$PROJECT_ROOT/$item"
+      fi
+      resolved+=("$item")
+    done
+  elif [[ -n "$default_name" ]] && [[ -f "$PROJECT_ROOT/scripts/$default_name" ]]; then
+    resolved+=("$PROJECT_ROOT/scripts/$default_name")
+  fi
+
+  printf '%s\n' "${resolved[@]}"
+}
+
 resolve_checks_script() {
   local script="${SHIM_CLI_CHECKS_SCRIPT:-}"
   if [[ -n "$script" ]]; then
@@ -224,10 +252,42 @@ if [[ -z "$REAL_BIN" ]]; then
   exit 1
 fi
 
+pre_hooks="$(resolve_hook_list "${SHIM_CLI_PRE_HOOKS:-}" "cli-pre-hook.sh")"
+post_hooks="$(resolve_hook_list "${SHIM_CLI_POST_HOOKS:-}" "cli-post-hook.sh")"
+
+if [[ "$should_run_hooks" = true ]] && [[ -n "$pre_hooks" ]]; then
+  while IFS= read -r hook; do
+    [[ -z "$hook" ]] && continue
+    if [[ -f "$hook" ]]; then
+      bash "$hook" "$CLI_NAME" "${CLI_ARGS[@]}"
+    else
+      echo "Pre-hook not found: $hook" >&2
+    fi
+  done <<< "$pre_hooks"
+fi
+
+set +e
 if [[ "$(basename "$REAL_BIN")" == "$CLI_NAME" ]]; then
   "$REAL_BIN" "${CLI_ARGS[@]}"
 else
   "$REAL_BIN" "$CLI_NAME" "${CLI_ARGS[@]}"
+fi
+CLI_RC=$?
+set -e
+
+if [[ $CLI_RC -ne 0 ]]; then
+  exit $CLI_RC
+fi
+
+if [[ "$should_run_hooks" = true ]] && [[ -n "$post_hooks" ]]; then
+  while IFS= read -r hook; do
+    [[ -z "$hook" ]] && continue
+    if [[ -f "$hook" ]]; then
+      bash "$hook" "$CLI_NAME" "${CLI_ARGS[@]}" || true
+    else
+      echo "Post-hook not found: $hook" >&2
+    fi
+  done <<< "$post_hooks"
 fi
 
 if [[ "$RUN_PUSH" = true ]] && command -v git >/dev/null 2>&1; then

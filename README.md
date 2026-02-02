@@ -18,11 +18,34 @@ It is repo-agnostic: you plug in your own `scripts/run-checks.sh` and optional h
 - Auto git push when ahead of upstream (optional)
 - AI review integration (Codex default, Cursor fallback)
 - Interactive setup wizard that scans your repo and configures everything
+- Global installer that drops PATH shims (`supabase`, `git`, `shim`)
+- Generic shim supports pre/post hooks
 
 ## Install
 
 ```bash
 npm i -D shimwrappercheck
+```
+
+## Global install (PATH shims)
+
+This installs small shims into a bin directory (default: `~/.local/bin`) so you can run
+`supabase`, `git`, or `shim` directly without `npx`.
+
+```bash
+npx shimwrappercheck install
+# options
+# --bin-dir <path>   (default: ~/.local/bin)
+# --overwrite
+# --dry-run
+# --no-supabase | --no-git | --no-shim
+# --only supabase,git,shim
+```
+
+If the bin dir is not in PATH, add:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
 ## Quick start
@@ -100,6 +123,14 @@ npm exec --package shimwrappercheck -- shim docker build .
 npm exec --package shimwrappercheck -- shim --cli terraform -- plan
 ```
 
+Generic shim hooks:
+
+```bash
+export SHIM_CLI_PRE_HOOKS="scripts/cli-pre-hook.sh"
+export SHIM_CLI_POST_HOOKS="scripts/cli-post-hook.sh"
+shim docker build .
+```
+
 Tip: Use `--` to separate shim flags from CLI args when needed:
 
 ```bash
@@ -162,6 +193,9 @@ For Git, use `SHIM_GIT_ENFORCE_COMMANDS` (default: `push`). You can include `com
 - `SHIM_CLI_CHECKS_ARGS`        Generic shim: extra args passed to checks script.
 - `SHIM_CLI_REAL_BIN`           Generic shim: absolute path to real CLI binary (avoids recursion).
 - `SHIM_CLI_AUTO_PUSH`          Generic shim: enable git auto-push after command (0/1).
+- `SHIM_CLI_PRE_HOOKS`          Generic shim: comma list of pre-hook scripts to run.
+- `SHIM_CLI_POST_HOOKS`         Generic shim: comma list of post-hook scripts to run.
+- `SHIM_CLI_HOOK_COMMANDS`      Generic shim: comma list for which subcommands hooks should run.
 
 Network retry (Supabase CLI):
 
@@ -210,6 +244,7 @@ Note: `.shimwrappercheckrc` is sourced as a shell file.
 - If no real CLI is found, it runs `npx --package supabase supabase ...`.
 - The git wrapper should be invoked via `npx git` or `npm run git:checked` to avoid shadowing your system git.
 - Hooks are resolved from your repo first (`scripts/ping-edge-health.sh`, `scripts/fetch-edge-logs.sh`) and fall back to the package scripts.
+- Generic shim hooks default to `scripts/cli-pre-hook.sh` and `scripts/cli-post-hook.sh` if present.
 
 ## License
 

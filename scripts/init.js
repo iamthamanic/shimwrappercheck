@@ -322,6 +322,7 @@ async function main() {
   if (enableGitWrapper) {
     console.log('- nutze: npx git <args> oder npm run git:checked -- <args>');
   }
+  console.log('- optional: npx shimwrappercheck install (globale PATH-Shims)');
   if (enableAiReview) {
     console.log('- optional: RUN_CURSOR_REVIEW=1 fuer zweiten Review-Durchlauf');
   }
