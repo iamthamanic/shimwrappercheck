@@ -103,11 +103,21 @@ async function main() {
   console.log('shimwrappercheck init');
   console.log('Projekt:', projectRoot);
   console.log('Gefundene Signale:');
+  let repoType = 'unbekannt';
+  if (hasSupabase && hasSrc) {
+    repoType = 'mixed (frontend + backend)';
+  } else if (hasSupabase) {
+    repoType = hasSupabaseFunctions ? 'backend (supabase functions)' : 'backend (supabase)';
+  } else if (hasSrc) {
+    repoType = 'frontend';
+  }
+
   console.log(`- Supabase: ${formatBool(hasSupabase)}${hasSupabaseFunctions ? ' (functions)' : ''}`);
   console.log(`- Frontend (src/): ${formatBool(hasSrc)}`);
   console.log(`- Git Repo: ${formatBool(hasGit)}`);
   console.log(`- package.json: ${formatBool(hasPackageJson)}`);
   console.log(`- Husky: ${formatBool(hasHusky)}`);
+  console.log(`- Repo-Typ: ${repoType}`);
   console.log('');
 
   const enableSupabase = await askYesNo(
@@ -117,24 +127,34 @@ async function main() {
 
   let enforceCommands = 'all';
   let hookCommands = 'functions,db,migration';
-  let defaultFunction = 'server';
-  let autoPush = true;
+  let defaultFunction = hasSupabaseFunctions ? 'server' : '';
+  let autoPush = hasGit;
   let disableAiByDefault = false;
 
   if (enableSupabase) {
-    const defaultEnforce = hasSupabase ? 'functions,db,migration' : 'all';
+    let defaultEnforce = 'all';
+    if (hasSupabaseFunctions) {
+      defaultEnforce = 'functions,db,migration';
+    } else if (hasSupabase) {
+      defaultEnforce = 'db,migration';
+    }
     enforceCommands = (await askInput(
       'Welche Supabase-Befehle sollen Checks erzwingen? (all | none | functions,db,migration)',
       defaultEnforce
     )).toLowerCase().replace(/\s+/g, '');
 
+    const defaultHooks = hasSupabaseFunctions ? 'functions,db,migration' : 'none';
     hookCommands = (await askInput(
       'Welche Befehle sollen Post-Deploy Hooks triggern? (functions,db,migration | all | none)',
-      'functions,db,migration'
+      defaultHooks
     )).toLowerCase().replace(/\s+/g, '');
 
-    defaultFunction = await askInput('Default Function fuer Health/Logs', 'server');
-    autoPush = await askYesNo('Nach erfolgreichem CLI-Lauf automatisch git push?', true);
+    if (hasSupabaseFunctions) {
+      defaultFunction = await askInput('Default Function fuer Health/Logs', defaultFunction || 'server');
+    } else {
+      defaultFunction = '';
+    }
+    autoPush = await askYesNo('Nach erfolgreichem CLI-Lauf automatisch git push?', hasGit);
   }
 
   const enableAiReview = await askYesNo(
@@ -255,7 +275,9 @@ async function main() {
       if (enableSupabase) {
         lines.push(`SHIM_ENFORCE_COMMANDS="${enforceCommands}"`);
         lines.push(`SHIM_HOOK_COMMANDS="${hookCommands}"`);
-        lines.push(`SHIM_DEFAULT_FUNCTION="${defaultFunction}"`);
+        if (defaultFunction) {
+          lines.push(`SHIM_DEFAULT_FUNCTION="${defaultFunction}"`);
+        }
         lines.push(`SHIM_AUTO_PUSH=${autoPush ? 1 : 0}`);
       }
       if (disableAiByDefault) {

@@ -54,7 +54,7 @@ npx shimwrappercheck init
 npm exec shimwrappercheck init
 ```
 
-The wizard can:
+The wizard can (defaults are tuned based on repo type):
 
 - detect Supabase and Git usage
 - ask which commands should trigger checks
