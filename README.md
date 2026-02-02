@@ -1,18 +1,21 @@
 # shimwrappercheck
 
-Supabase CLI shim wrapper that runs project checks before deploy/push, then calls the real Supabase CLI.
+CLI shim wrapper that enforces project checks before running a real CLI command.
+
+Out of the box, this package ships a **Supabase CLI wrapper** (`supabase` bin), but the pattern is generic:
+you can reuse the scripts for other CLIs by copying/adapting them in your repo.
 
 This package provides a `supabase` bin that you can use via `npx supabase ...` or `npm run supabase:checked -- ...`.
-It is designed to be repo-agnostic: you plug in your own `scripts/run-checks.sh` and optional hooks.
+It is repo-agnostic: you plug in your own `scripts/run-checks.sh` and optional hooks.
 
 ## Features
 
-- Wraps Supabase CLI and enforces checks before deploy/push
+- Wraps a CLI command and enforces checks before deploy/push (Supabase wrapper included)
 - Diff-aware checks (frontend/backend) based on staged/unstaged changes
 - Command filtering (only run checks/hooks for specific Supabase commands)
 - Network retry for flaky Supabase CLI calls
 - Post-deploy hooks: health ping + logs
-- Auto git push when ahead of upstream
+- Auto git push when ahead of upstream (optional)
 - AI review integration (Codex default, Cursor fallback)
 - Interactive setup wizard that scans your repo and configures everything
 
@@ -79,7 +82,8 @@ The wizard can (defaults are tuned based on repo type):
 - The shim runs your checks script first (default: `scripts/run-checks.sh`).
 - If checks pass, it calls the real Supabase CLI.
 - Optional hooks run after deploy to ping health and fetch logs.
-- Optional git auto-push can be enabled.
+- Optional git auto-push can be enabled (this is **not** a git wrapper; it runs after the CLI succeeds).
+- Git push checks are enforced via pre-push hooks (template provided).
 
 ## Usage
 
@@ -115,6 +119,8 @@ You can control for which Supabase commands checks and hooks should run:
 - Use `all` or `none` to enable/disable completely
 
 Commands are matched by token (e.g. `functions`, `db`, `migration`).
+
+Note: If you want checks for `supabase push`, add `push` to `SHIM_ENFORCE_COMMANDS`.
 
 ## Environment variables
 
