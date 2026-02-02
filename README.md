@@ -36,13 +36,16 @@ This installs small shims into a bin directory (default: `~/.local/bin`) so you 
 npx shimwrappercheck install
 # options
 # --bin-dir <path>   (default: ~/.local/bin)
+# --interactive      (default when no flags)
+# --no-interactive
+# --add-path         (auto-append PATH in shell config)
 # --overwrite
 # --dry-run
 # --no-supabase | --no-git | --no-shim
 # --only supabase,git,shim
 ```
 
-If the bin dir is not in PATH, add:
+If the bin dir is not in PATH, add (or use `--add-path` to append automatically):
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"

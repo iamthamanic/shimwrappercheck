@@ -12,6 +12,8 @@ const options = {
   installShim: true,
   overwrite: false,
   dryRun: false,
+  interactive: args.length === 0,
+  addPath: false,
 };
 
 function consumeValue(flag, idx) {
@@ -27,6 +29,18 @@ for (let i = 0; i < args.length; i += 1) {
   if (arg === '--bin-dir') {
     options.binDir = consumeValue(arg, i);
     i += 1;
+    continue;
+  }
+  if (arg === '--interactive') {
+    options.interactive = true;
+    continue;
+  }
+  if (arg === '--no-interactive') {
+    options.interactive = false;
+    continue;
+  }
+  if (arg === '--add-path') {
+    options.addPath = true;
     continue;
   }
   if (arg === '--overwrite') {
@@ -73,6 +87,9 @@ function printHelp() {
   console.log('');
   console.log('Options:');
   console.log('  --bin-dir <path>   Install path (default: ~/.local/bin)');
+  console.log('  --interactive      Ask questions (default when no flags)');
+  console.log('  --no-interactive   Disable prompts');
+  console.log('  --add-path         Add bin dir to shell config');
   console.log('  --overwrite        Overwrite existing shims');
   console.log('  --dry-run          Show actions without writing');
   console.log('  --no-supabase       Skip supabase shim');
@@ -90,6 +107,78 @@ function ensureDir(dirPath) {
 function isInPath(binDir) {
   const pathEntries = (process.env.PATH || '').split(path.delimiter);
   return pathEntries.includes(binDir);
+}
+
+function detectShellConfig() {
+  const shell = process.env.SHELL || '';
+  const home = os.homedir();
+  if (shell.includes('zsh')) {
+    return path.join(home, '.zshrc');
+  }
+  if (shell.includes('bash')) {
+    return path.join(home, '.bashrc');
+  }
+  return path.join(home, '.profile');
+}
+
+function readFileSafe(filePath) {
+  try {
+    return fs.readFileSync(filePath, 'utf8');
+  } catch {
+    return '';
+  }
+}
+
+function appendPathExport(filePath, binDir, dryRun) {
+  const marker = '# shimwrappercheck PATH';
+  const line = `export PATH="${binDir}:$PATH"`;
+  const content = readFileSafe(filePath);
+  if (content.includes(line) || content.includes(marker)) {
+    console.log(`PATH already configured in ${filePath}`);
+    return;
+  }
+  if (dryRun) {
+    console.log(`[dry-run] append PATH to ${filePath}`);
+    return;
+  }
+  const payload = `\n${marker}\n${line}\n`;
+  fs.appendFileSync(filePath, payload);
+  console.log(`Added PATH entry to ${filePath}`);
+}
+
+async function runInteractive() {
+  const readline = require('readline');
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const ask = (question) => new Promise((resolve) => rl.question(question, resolve));
+  const askYesNo = async (question, defaultYes) => {
+    const hint = defaultYes ? 'J/n' : 'j/N';
+    const answer = (await ask(`${question} [${hint}] `)).trim().toLowerCase();
+    if (!answer) return defaultYes;
+    return ['j', 'ja', 'y', 'yes'].includes(answer);
+  };
+  const askInput = async (question, def) => {
+    const answer = (await ask(`${question} [${def}] `)).trim();
+    return answer || def;
+  };
+
+  options.binDir = await askInput('Bin-Verzeichnis?', options.binDir);
+
+  const installSupabase = await askYesNo('Shim fuer supabase installieren?', options.installSupabase);
+  const installGit = await askYesNo('Shim fuer git installieren?', options.installGit);
+  const installShim = await askYesNo('Generischen shim installieren?', options.installShim);
+
+  options.installSupabase = installSupabase;
+  options.installGit = installGit;
+  options.installShim = installShim;
+
+  options.overwrite = await askYesNo('Vorhandene Dateien ueberschreiben?', options.overwrite);
+  options.dryRun = await askYesNo('Dry-run?', options.dryRun);
+
+  if (!isInPath(options.binDir)) {
+    options.addPath = await askYesNo('PATH automatisch erweitern?', false);
+  }
+
+  rl.close();
 }
 
 function writeShim(name, content) {
@@ -147,13 +236,29 @@ function genericShim() {
   ].join('\n');
 }
 
-ensureDir(options.binDir);
+async function main() {
+  if (options.interactive) {
+    await runInteractive();
+  }
 
-if (options.installSupabase) writeShim('supabase', supabaseShim());
-if (options.installGit) writeShim('git', gitShim());
-if (options.installShim) writeShim('shim', genericShim());
+  ensureDir(options.binDir);
 
-if (!isInPath(options.binDir)) {
-  console.log('');
-  console.log(`Add to PATH: export PATH="${options.binDir}:$PATH"`);
+  if (options.installSupabase) writeShim('supabase', supabaseShim());
+  if (options.installGit) writeShim('git', gitShim());
+  if (options.installShim) writeShim('shim', genericShim());
+
+  if (!isInPath(options.binDir)) {
+    console.log('');
+    console.log(`Add to PATH: export PATH="${options.binDir}:$PATH"`);
+    if (options.addPath) {
+      const shellConfig = detectShellConfig();
+      appendPathExport(shellConfig, options.binDir, options.dryRun);
+      console.log('Reload your shell or source the config file.');
+    }
+  }
 }
+
+main().catch((err) => {
+  console.error('Install failed:', err);
+  process.exit(1);
+});
