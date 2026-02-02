@@ -44,6 +44,24 @@ npm run supabase:checked -- functions deploy <function-name>
 npx supabase functions deploy <function-name>
 ```
 
+## Setup wizard (recommended)
+
+Run the interactive init to scan your codebase and configure the shim:
+
+```bash
+npx shimwrappercheck init
+# or
+npm exec shimwrappercheck init
+```
+
+The wizard can:
+
+- detect Supabase and Git usage
+- ask which commands should trigger checks
+- install pre-push hooks
+- enable AI review and guide you through login
+- create a `.shimwrappercheckrc` config
+
 ## How it works
 
 - The shim determines which checks to run based on git changes (e.g. `src/` vs `supabase/functions/`).
@@ -62,16 +80,20 @@ These flags are consumed by the shim and are not passed to the Supabase CLI:
 - `--no-push`      Skip auto git push.
 - `--no-ai-review` Passed through to the checks script (template supports it).
 - `--with-frontend` Force frontend checks even if no `src/` changes are detected.
+- `--ai-review`    Passed through to the checks script (template supports it).
 
 ## Environment variables
 
 - `SHIM_PROJECT_ROOT`           Override project root detection.
 - `SHIM_CHECKS_SCRIPT`          Path to your checks script (relative to project root or absolute).
 - `SHIM_CHECKS_ARGS`            Extra args passed to checks script.
+- `SHIM_CONFIG_FILE`            Custom path to config file (default: `.shimwrappercheckrc`).
 - `SHIM_DISABLE_CHECKS=1`       Disable checks (same as `--no-checks`).
 - `SHIM_DISABLE_HOOKS=1`        Disable hooks (same as `--no-hooks`).
 - `SHIM_AUTO_PUSH=1|0`          Enable/disable auto git push after success (default: on).
 - `SHIM_DEFAULT_FUNCTION`       Default function name for health/log hooks (default: `server`).
+- `SHIM_ENFORCE_COMMANDS`       Comma list for which CLI commands checks should run (`all`, `none`, or e.g. `functions,db,migration`).
+- `SHIM_HOOK_COMMANDS`          Comma list for which CLI commands hooks should run (same format).
 
 Network retry (Supabase CLI):
 
@@ -92,6 +114,18 @@ Post-deploy hooks:
 - `SHIM_LOG_LIMIT`              Log lines to fetch (default: 30).
 - `SUPABASE_PROJECT_REF`        Project ref for health ping (or `supabase/project-ref`).
 - `SHIM_HEALTH_PATHS`           Comma-separated URL paths with `{fn}` placeholder.
+
+## Config file (optional)
+
+Create `.shimwrappercheckrc` in your project root to persist settings:
+
+```bash
+SHIM_ENFORCE_COMMANDS="functions,db,migration"
+SHIM_HOOK_COMMANDS="functions,db,migration"
+SHIM_DEFAULT_FUNCTION="server"
+SHIM_AUTO_PUSH=1
+SHIM_CHECKS_ARGS="--no-ai-review"
+```
 
 ## Templates
 

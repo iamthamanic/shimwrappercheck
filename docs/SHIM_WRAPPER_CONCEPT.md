@@ -21,6 +21,16 @@ A shim wrapper ensures checks run even when developers or agents use the CLI dir
 5) Run optional post-deploy hooks (health ping, logs).
 6) Optionally push commits if ahead of upstream.
 
+## Command filtering
+
+You can limit which Supabase commands trigger checks and hooks:
+
+- `SHIM_ENFORCE_COMMANDS="functions,db,migration"` to run checks only for these commands.
+- `SHIM_HOOK_COMMANDS="functions,db,migration"` to run hooks only for these commands.
+- Use `all` or `none` to enable/disable completely.
+
+Persist these settings in `.shimwrappercheckrc` (or set `SHIM_CONFIG_FILE`).
+
 ## Avoiding recursion
 
 When the wrapper is called via `npx` or local `node_modules/.bin`, it must not call itself.

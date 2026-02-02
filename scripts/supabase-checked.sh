@@ -23,6 +23,12 @@ resolve_project_root() {
 PROJECT_ROOT="$(resolve_project_root)"
 cd "$PROJECT_ROOT"
 
+CONFIG_FILE="${SHIM_CONFIG_FILE:-$PROJECT_ROOT/.shimwrappercheckrc}"
+if [[ -f "$CONFIG_FILE" ]]; then
+  # shellcheck disable=SC1090
+  source "$CONFIG_FILE"
+fi
+
 ARGS_IN=("$@")
 ARGS_TEXT_RAW=" ${*:-} "
 SUPABASE_ARGS=()
@@ -33,6 +39,31 @@ CHECKS_ONLY=false
 RUN_HOOKS=true
 RUN_PUSH=true
 FORCE_FRONTEND=false
+
+matches_command_list() {
+  local list="$1"
+  local text="$2"
+
+  list="$(echo "$list" | tr '[:upper:]' '[:lower:]')"
+  text="$(echo "$text" | tr '[:upper:]' '[:lower:]')"
+
+  if [[ -z "$list" ]] || [[ "$list" == "all" ]]; then
+    return 0
+  fi
+  if [[ "$list" == "none" ]]; then
+    return 1
+  fi
+
+  IFS=',' read -r -a items <<< "$list"
+  for item in "${items[@]}"; do
+    item="$(echo "$item" | xargs)"
+    [[ -z "$item" ]] && continue
+    if [[ "$text" == *" $item "* ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
 
 for arg in "${ARGS_IN[@]}"; do
   case "$arg" in
@@ -60,6 +91,14 @@ if [[ "${#SUPABASE_ARGS[@]}" -eq 0 ]] && [[ "$CHECKS_ONLY" != true ]]; then
   echo "No Supabase command provided. Usage: supabase [shim flags] <supabase args>" >&2
   echo "Shim flags: --no-checks --checks-only --no-hooks --no-push --no-ai-review" >&2
   exit 1
+fi
+
+ARGS_TEXT=" ${SUPABASE_ARGS[*]:-} "
+if [[ "$CHECKS_ONLY" != true ]]; then
+  enforce_list="${SHIM_ENFORCE_COMMANDS:-all}"
+  if ! matches_command_list "$enforce_list" "$ARGS_TEXT"; then
+    RUN_CHECKS=false
+  fi
 fi
 
 resolve_checks_script() {
@@ -234,7 +273,8 @@ done
 
 should_run_hooks=false
 ARGS_TEXT=" ${SUPABASE_ARGS[*]:-} "
-if [[ "$ARGS_TEXT" == *" functions "* ]] || [[ "$ARGS_TEXT" == *" db "* ]] || [[ "$ARGS_TEXT" == *" migration "* ]]; then
+hook_list="${SHIM_HOOK_COMMANDS:-functions,db,migration}"
+if matches_command_list "$hook_list" "$ARGS_TEXT"; then
   should_run_hooks=true
 fi
 
