@@ -113,10 +113,18 @@ function detectShellConfig() {
   const shell = process.env.SHELL || '';
   const home = os.homedir();
   if (shell.includes('zsh')) {
-    return path.join(home, '.zshrc');
+    const zshrc = path.join(home, '.zshrc');
+    const zprofile = path.join(home, '.zprofile');
+    if (fs.existsSync(zshrc)) return zshrc;
+    if (fs.existsSync(zprofile)) return zprofile;
+    return zshrc;
   }
   if (shell.includes('bash')) {
-    return path.join(home, '.bashrc');
+    const bashrc = path.join(home, '.bashrc');
+    const bashProfile = path.join(home, '.bash_profile');
+    if (fs.existsSync(bashrc)) return bashrc;
+    if (fs.existsSync(bashProfile)) return bashProfile;
+    return bashrc;
   }
   return path.join(home, '.profile');
 }
@@ -176,6 +184,37 @@ async function runInteractive() {
 
   if (!isInPath(options.binDir)) {
     options.addPath = await askYesNo('PATH automatisch erweitern?', false);
+    if (options.addPath) {
+      const shellConfig = detectShellConfig();
+      const home = os.homedir();
+      const shell = process.env.SHELL || '';
+      const candidates = [];
+
+      if (shell.includes('zsh')) {
+        candidates.push(path.join(home, '.zshrc'));
+        candidates.push(path.join(home, '.zprofile'));
+      } else if (shell.includes('bash')) {
+        candidates.push(path.join(home, '.bashrc'));
+        candidates.push(path.join(home, '.bash_profile'));
+      } else {
+        candidates.push(path.join(home, '.profile'));
+      }
+
+      const existing = candidates.filter((file) => fs.existsSync(file));
+      if (existing.length > 1) {
+        console.log('Mehrere Shell-Configs gefunden:');
+        existing.forEach((file, idx) => {
+          console.log(`  [${idx + 1}] ${file}`);
+        });
+        const selection = await askInput('Welche Datei soll geaendert werden?', String(existing.indexOf(shellConfig) + 1 || 1));
+        const selectedIdx = Math.max(1, Math.min(existing.length, Number(selection))) - 1;
+        options.shellConfigOverride = existing[selectedIdx];
+      } else if (existing.length === 1) {
+        options.shellConfigOverride = existing[0];
+      } else {
+        options.shellConfigOverride = shellConfig;
+      }
+    }
   }
 
   rl.close();
@@ -251,7 +290,7 @@ async function main() {
     console.log('');
     console.log(`Add to PATH: export PATH="${options.binDir}:$PATH"`);
     if (options.addPath) {
-      const shellConfig = detectShellConfig();
+      const shellConfig = options.shellConfigOverride || detectShellConfig();
       appendPathExport(shellConfig, options.binDir, options.dryRun);
       console.log('Reload your shell or source the config file.');
     }

@@ -51,6 +51,8 @@ If the bin dir is not in PATH, add (or use `--add-path` to append automatically)
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
+When multiple shell configs exist (e.g. `.zshrc` + `.zprofile`), the installer asks which file to update.
+
 ## Quick start
 
 1) Add a checks script in your repo (example template below).
