@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
-. "$(dirname "$0")/_/husky.sh"
-
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+# Same checks as supabase-checked wrapper (scripts/run-checks.sh).
+# Runs on every git push to GitHub so checks are always enforced.
+set -e
 
 if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
   RANGE="@{u}...HEAD"
@@ -32,10 +32,13 @@ CHECK_ARGS=""
 [ "$run_frontend" = true ] && CHECK_ARGS="--frontend"
 [ "$run_backend" = true ] && CHECK_ARGS="${CHECK_ARGS:+$CHECK_ARGS }--backend"
 [ -n "${SKIP_AI_REVIEW:-}" ] && CHECK_ARGS="${CHECK_ARGS:+$CHECK_ARGS }--no-ai-review"
+bash scripts/run-checks.sh $CHECK_ARGS
 
-if [ -x "$ROOT_DIR/scripts/run-checks.sh" ]; then
-  bash "$ROOT_DIR/scripts/run-checks.sh" $CHECK_ARGS
-else
-  echo "run-checks.sh not found. Create scripts/run-checks.sh or update this hook." >&2
-  exit 1
+# Update README (e.g. "Last updated" line) so it stays in sync on push
+if [ -f scripts/update-readme-on-push.sh ]; then
+  bash scripts/update-readme-on-push.sh
+  if ! git diff --quiet README.md 2>/dev/null; then
+    git add README.md
+    git commit -m "docs: update README (auto on push)"
+  fi
 fi
