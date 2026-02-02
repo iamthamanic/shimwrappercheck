@@ -5,6 +5,17 @@ Supabase CLI shim wrapper that runs project checks before deploy/push, then call
 This package provides a `supabase` bin that you can use via `npx supabase ...` or `npm run supabase:checked -- ...`.
 It is designed to be repo-agnostic: you plug in your own `scripts/run-checks.sh` and optional hooks.
 
+## Features
+
+- Wraps Supabase CLI and enforces checks before deploy/push
+- Diff-aware checks (frontend/backend) based on staged/unstaged changes
+- Command filtering (only run checks/hooks for specific Supabase commands)
+- Network retry for flaky Supabase CLI calls
+- Post-deploy hooks: health ping + logs
+- Auto git push when ahead of upstream
+- AI review integration (Codex default, Cursor fallback)
+- Interactive setup wizard that scans your repo and configures everything
+
 ## Install
 
 ```bash
@@ -57,7 +68,7 @@ npm exec shimwrappercheck init
 The wizard can (defaults are tuned based on repo type):
 
 - detect Supabase and Git usage
-- ask which commands should trigger checks
+- ask which commands should trigger checks/hooks
 - install pre-push hooks
 - enable AI review and guide you through login
 - create a `.shimwrappercheckrc` config
@@ -69,6 +80,19 @@ The wizard can (defaults are tuned based on repo type):
 - If checks pass, it calls the real Supabase CLI.
 - Optional hooks run after deploy to ping health and fetch logs.
 - Optional git auto-push can be enabled.
+
+## Usage
+
+```bash
+npx supabase functions deploy <function-name>
+npm run supabase:checked -- db push
+```
+
+You can also run only checks:
+
+```bash
+npx supabase --checks-only functions deploy server
+```
 
 ## Wrapper-only flags
 
@@ -82,6 +106,16 @@ These flags are consumed by the shim and are not passed to the Supabase CLI:
 - `--with-frontend` Force frontend checks even if no `src/` changes are detected.
 - `--ai-review`    Passed through to the checks script (template supports it).
 
+## Command filtering
+
+You can control for which Supabase commands checks and hooks should run:
+
+- `SHIM_ENFORCE_COMMANDS="functions,db,migration"` to run checks only for those commands
+- `SHIM_HOOK_COMMANDS="functions,db,migration"` to run hooks only for those commands
+- Use `all` or `none` to enable/disable completely
+
+Commands are matched by token (e.g. `functions`, `db`, `migration`).
+
 ## Environment variables
 
 - `SHIM_PROJECT_ROOT`           Override project root detection.
@@ -94,6 +128,8 @@ These flags are consumed by the shim and are not passed to the Supabase CLI:
 - `SHIM_DEFAULT_FUNCTION`       Default function name for health/log hooks (default: `server`).
 - `SHIM_ENFORCE_COMMANDS`       Comma list for which CLI commands checks should run (`all`, `none`, or e.g. `functions,db,migration`).
 - `SHIM_HOOK_COMMANDS`          Comma list for which CLI commands hooks should run (same format).
+- `SHIM_PING_SCRIPT`            Override path to health ping script.
+- `SHIM_LOG_SCRIPT`             Override path to logs script.
 
 Network retry (Supabase CLI):
 
@@ -127,6 +163,8 @@ SHIM_AUTO_PUSH=1
 SHIM_CHECKS_ARGS="--no-ai-review"
 ```
 
+Note: `.shimwrappercheckrc` is sourced as a shell file.
+
 ## Templates
 
 - `templates/run-checks.sh`     Minimal checks runner; customize for your repo.
@@ -138,6 +176,7 @@ SHIM_CHECKS_ARGS="--no-ai-review"
 
 - If the shim is installed locally, it avoids recursion by resolving the real Supabase CLI.
 - If no real CLI is found, it runs `npx --package supabase supabase ...`.
+- Hooks are resolved from your repo first (`scripts/ping-edge-health.sh`, `scripts/fetch-edge-logs.sh`) and fall back to the package scripts.
 
 ## License
 
