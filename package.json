@@ -1,0 +1,19 @@
+{
+  "name": "shimwrappercheck",
+  "version": "0.1.0",
+  "description": "Supabase CLI shim wrapper that enforces checks before deploy/push.",
+  "license": "UNLICENSED",
+  "bin": {
+    "supabase": "bin/supabase"
+  },
+  "files": [
+    "bin",
+    "scripts",
+    "templates",
+    "docs",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

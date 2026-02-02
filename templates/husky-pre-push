@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+. "$(dirname "$0")/_/husky.sh"
+
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+if [ -x "$ROOT_DIR/scripts/run-checks.sh" ]; then
+  bash "$ROOT_DIR/scripts/run-checks.sh"
+else
+  echo "run-checks.sh not found. Create scripts/run-checks.sh or update this hook." >&2
+  exit 1
+fi
