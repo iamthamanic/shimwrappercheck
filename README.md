@@ -2,7 +2,7 @@
 
 CLI shim wrapper that enforces project checks before running a real CLI command.
 
-Out of the box, this package ships **Supabase** and **Git** CLI wrappers (`supabase`, `git` bins), but the pattern is generic:
+Out of the box, this package ships **Supabase**, **Git**, and a **generic shim** (`supabase`, `git`, `shim` bins), but the pattern is generic:
 you can reuse the scripts for other CLIs by copying/adapting them in your repo.
 
 This package provides a `supabase` bin that you can use via `npx supabase ...` or `npm run supabase:checked -- ...`.
@@ -10,7 +10,7 @@ It is repo-agnostic: you plug in your own `scripts/run-checks.sh` and optional h
 
 ## Features
 
-- Wraps a CLI command and enforces checks before deploy/push (Supabase + Git wrappers included)
+- Wraps a CLI command and enforces checks before deploy/push (Supabase + Git wrappers included, generic shim for anything else)
 - Diff-aware checks (frontend/backend) based on staged/unstaged changes
 - Command filtering (only run checks/hooks for specific Supabase commands)
 - Network retry for flaky Supabase CLI calls
@@ -94,6 +94,16 @@ npm run supabase:checked -- db push
 # git wrapper
 npx git push
 npm run git:checked -- push
+
+# generic shim (any CLI)
+npm exec --package shimwrappercheck -- shim docker build .
+npm exec --package shimwrappercheck -- shim --cli terraform -- plan
+```
+
+Tip: Use `--` to separate shim flags from CLI args when needed:
+
+```bash
+npm exec --package shimwrappercheck -- shim --cli docker -- build .
 ```
 
 You can also run only checks:
@@ -104,7 +114,7 @@ npx supabase --checks-only functions deploy server
 
 ## Wrapper-only flags
 
-These flags are consumed by the shim and are not passed to the Supabase CLI:
+These flags are consumed by the shim and are not passed to the wrapped CLI:
 
 - `--no-checks`    Skip checks for this invocation.
 - `--checks-only`  Run checks and exit without running Supabase.
@@ -113,6 +123,7 @@ These flags are consumed by the shim and are not passed to the Supabase CLI:
 - `--no-ai-review` Passed through to the checks script (template supports it).
 - `--with-frontend` Force frontend checks even if no `src/` changes are detected.
 - `--ai-review`    Passed through to the checks script (template supports it).
+- `--auto-push`    Generic shim: enable git auto-push after command.
 
 ## Command filtering
 
@@ -126,7 +137,7 @@ Commands are matched by token (e.g. `functions`, `db`, `migration`).
 
 Note: If you want checks for `supabase push`, add `push` to `SHIM_ENFORCE_COMMANDS`.
 
-For Git, use `SHIM_GIT_ENFORCE_COMMANDS` (default: `push`).
+For Git, use `SHIM_GIT_ENFORCE_COMMANDS` (default: `push`). You can include `commit,merge,rebase` etc.
 
 ## Environment variables
 
@@ -146,6 +157,11 @@ For Git, use `SHIM_GIT_ENFORCE_COMMANDS` (default: `push`).
 - `SHIM_GIT_CHECKS_SCRIPT`      Override checks script for git wrapper.
 - `SHIM_GIT_CHECKS_ARGS`        Extra args passed to checks script (git wrapper only).
 - `SHIM_GIT_REAL_BIN`           Absolute path to the real git binary (avoids recursion).
+- `SHIM_CLI_ENFORCE_COMMANDS`   Generic shim: comma list for which subcommands checks should run.
+- `SHIM_CLI_CHECKS_SCRIPT`      Generic shim: override checks script.
+- `SHIM_CLI_CHECKS_ARGS`        Generic shim: extra args passed to checks script.
+- `SHIM_CLI_REAL_BIN`           Generic shim: absolute path to real CLI binary (avoids recursion).
+- `SHIM_CLI_AUTO_PUSH`          Generic shim: enable git auto-push after command (0/1).
 
 Network retry (Supabase CLI):
 
@@ -192,6 +208,7 @@ Note: `.shimwrappercheckrc` is sourced as a shell file.
 
 - If the shim is installed locally, it avoids recursion by resolving the real Supabase CLI.
 - If no real CLI is found, it runs `npx --package supabase supabase ...`.
+- The git wrapper should be invoked via `npx git` or `npm run git:checked` to avoid shadowing your system git.
 - Hooks are resolved from your repo first (`scripts/ping-edge-health.sh`, `scripts/fetch-edge-logs.sh`) and fall back to the package scripts.
 
 ## License

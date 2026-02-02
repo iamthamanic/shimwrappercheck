@@ -165,7 +165,7 @@ async function main() {
 
   if (enableGitWrapper) {
     gitEnforceCommands = (await askInput(
-      'Welche Git-Befehle sollen Checks erzwingen? (push | all | none)',
+      'Welche Git-Befehle sollen Checks erzwingen? (push,commit,merge,rebase,all,none)',
       'push'
     )).toLowerCase().replace(/\\s+/g, '');
   }
