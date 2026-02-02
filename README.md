@@ -2,7 +2,7 @@
 
 CLI shim wrapper that enforces project checks before running a real CLI command.
 
-Out of the box, this package ships a **Supabase CLI wrapper** (`supabase` bin), but the pattern is generic:
+Out of the box, this package ships **Supabase** and **Git** CLI wrappers (`supabase`, `git` bins), but the pattern is generic:
 you can reuse the scripts for other CLIs by copying/adapting them in your repo.
 
 This package provides a `supabase` bin that you can use via `npx supabase ...` or `npm run supabase:checked -- ...`.
@@ -10,7 +10,7 @@ It is repo-agnostic: you plug in your own `scripts/run-checks.sh` and optional h
 
 ## Features
 
-- Wraps a CLI command and enforces checks before deploy/push (Supabase wrapper included)
+- Wraps a CLI command and enforces checks before deploy/push (Supabase + Git wrappers included)
 - Diff-aware checks (frontend/backend) based on staged/unstaged changes
 - Command filtering (only run checks/hooks for specific Supabase commands)
 - Network retry for flaky Supabase CLI calls
@@ -90,6 +90,10 @@ The wizard can (defaults are tuned based on repo type):
 ```bash
 npx supabase functions deploy <function-name>
 npm run supabase:checked -- db push
+
+# git wrapper
+npx git push
+npm run git:checked -- push
 ```
 
 You can also run only checks:
@@ -122,6 +126,8 @@ Commands are matched by token (e.g. `functions`, `db`, `migration`).
 
 Note: If you want checks for `supabase push`, add `push` to `SHIM_ENFORCE_COMMANDS`.
 
+For Git, use `SHIM_GIT_ENFORCE_COMMANDS` (default: `push`).
+
 ## Environment variables
 
 - `SHIM_PROJECT_ROOT`           Override project root detection.
@@ -136,6 +142,10 @@ Note: If you want checks for `supabase push`, add `push` to `SHIM_ENFORCE_COMMAN
 - `SHIM_HOOK_COMMANDS`          Comma list for which CLI commands hooks should run (same format).
 - `SHIM_PING_SCRIPT`            Override path to health ping script.
 - `SHIM_LOG_SCRIPT`             Override path to logs script.
+- `SHIM_GIT_ENFORCE_COMMANDS`   Comma list for which git commands checks should run (`push`, `all`, `none`).
+- `SHIM_GIT_CHECKS_SCRIPT`      Override checks script for git wrapper.
+- `SHIM_GIT_CHECKS_ARGS`        Extra args passed to checks script (git wrapper only).
+- `SHIM_GIT_REAL_BIN`           Absolute path to the real git binary (avoids recursion).
 
 Network retry (Supabase CLI):
 

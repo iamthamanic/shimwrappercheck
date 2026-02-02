@@ -125,10 +125,16 @@ async function main() {
     hasSupabase
   );
 
+  const enableGitWrapper = await askYesNo(
+    'Git-Wrapper aktivieren (Checks vor git push)?',
+    hasGit
+  );
+
   let enforceCommands = 'all';
   let hookCommands = 'functions,db,migration';
   let defaultFunction = hasSupabaseFunctions ? 'server' : '';
   let autoPush = hasGit;
+  let gitEnforceCommands = 'push';
   let disableAiByDefault = false;
 
   if (enableSupabase) {
@@ -155,6 +161,13 @@ async function main() {
       defaultFunction = '';
     }
     autoPush = await askYesNo('Nach erfolgreichem CLI-Lauf automatisch git push?', hasGit);
+  }
+
+  if (enableGitWrapper) {
+    gitEnforceCommands = (await askInput(
+      'Welche Git-Befehle sollen Checks erzwingen? (push | all | none)',
+      'push'
+    )).toLowerCase().replace(/\\s+/g, '');
   }
 
   const enableAiReview = await askYesNo(
@@ -256,11 +269,22 @@ async function main() {
       }
       fs.writeFileSync(packagePath, JSON.stringify(projectPackage, null, 2) + '\n');
     }
+
+    if (enableGitWrapper) {
+      const addGitScript = await askYesNo('package.json: Script "git:checked" eintragen?', true);
+      if (addGitScript) {
+        projectPackage.scripts = projectPackage.scripts || {};
+        if (!projectPackage.scripts['git:checked']) {
+          projectPackage.scripts['git:checked'] = 'git';
+        }
+        fs.writeFileSync(packagePath, JSON.stringify(projectPackage, null, 2) + '\n');
+      }
+    }
   } else {
     console.log('package.json nicht gefunden; Scripts wurden nicht angepasst.');
   }
 
-  if (enableSupabase || disableAiByDefault) {
+  if (enableSupabase || enableGitWrapper || disableAiByDefault) {
     const configPath = path.join(projectRoot, '.shimwrappercheckrc');
     let writeConfig = true;
     if (exists(configPath)) {
@@ -280,6 +304,9 @@ async function main() {
         }
         lines.push(`SHIM_AUTO_PUSH=${autoPush ? 1 : 0}`);
       }
+      if (enableGitWrapper) {
+        lines.push(`SHIM_GIT_ENFORCE_COMMANDS="${gitEnforceCommands}"`);
+      }
       if (disableAiByDefault) {
         lines.push('SHIM_CHECKS_ARGS="--no-ai-review"');
       }
@@ -291,6 +318,9 @@ async function main() {
   console.log('Setup abgeschlossen. Naechste Schritte:');
   if (enableSupabase) {
     console.log('- nutze: npx supabase <args> oder npm run supabase:checked -- <args>');
+  }
+  if (enableGitWrapper) {
+    console.log('- nutze: npx git <args> oder npm run git:checked -- <args>');
   }
   if (enableAiReview) {
     console.log('- optional: RUN_CURSOR_REVIEW=1 fuer zweiten Review-Durchlauf');

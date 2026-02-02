@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+WRAPPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec "$WRAPPER_DIR/scripts/git-checked.sh" "$@"

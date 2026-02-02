@@ -1,11 +1,12 @@
 {
   "name": "shimwrappercheck",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Supabase CLI shim wrapper that enforces checks before deploy/push.",
   "license": "UNLICENSED",
   "bin": {
     "supabase": "bin/supabase",
-    "shimwrappercheck": "bin/shimwrappercheck"
+    "shimwrappercheck": "bin/shimwrappercheck",
+    "git": "bin/git"
   },
   "files": [
     "bin",
