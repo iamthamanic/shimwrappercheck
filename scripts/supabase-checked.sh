@@ -24,6 +24,7 @@ PROJECT_ROOT="$(resolve_project_root)"
 cd "$PROJECT_ROOT"
 
 ARGS_IN=("$@")
+ARGS_TEXT_RAW=" ${*:-} "
 SUPABASE_ARGS=()
 CHECKS_PASSTHROUGH=()
 
@@ -31,6 +32,7 @@ RUN_CHECKS=true
 CHECKS_ONLY=false
 RUN_HOOKS=true
 RUN_PUSH=true
+FORCE_FRONTEND=false
 
 for arg in "${ARGS_IN[@]}"; do
   case "$arg" in
@@ -38,7 +40,9 @@ for arg in "${ARGS_IN[@]}"; do
     --checks-only) CHECKS_ONLY=true ;;
     --no-hooks) RUN_HOOKS=false ;;
     --no-push) RUN_PUSH=false ;;
-    --no-ai-review|--with-frontend) CHECKS_PASSTHROUGH+=("$arg") ;;
+    --with-frontend) FORCE_FRONTEND=true ;;
+    --no-ai-review) CHECKS_PASSTHROUGH+=("$arg") ;;
+    --ai-review) CHECKS_PASSTHROUGH+=("$arg") ;;
     *) SUPABASE_ARGS+=("$arg") ;;
   esac
 done
@@ -78,16 +82,53 @@ resolve_checks_script() {
 }
 
 if [[ "$RUN_CHECKS" = true ]]; then
-  CHECKS_SCRIPT="$(resolve_checks_script)"
-  if [[ -n "$CHECKS_SCRIPT" ]]; then
-    CHECKS_ARGS=()
-    if [[ -n "${SHIM_CHECKS_ARGS:-}" ]]; then
-      read -r -a CHECKS_ARGS <<< "${SHIM_CHECKS_ARGS}"
+  run_frontend=false
+  run_backend=false
+  run_ai_review=true
+
+  changed_files=""
+  if command -v git >/dev/null 2>&1; then
+    unstaged=$(git diff --name-only --diff-filter=ACMR || true)
+    staged=$(git diff --name-only --cached --diff-filter=ACMR || true)
+    changed_files=$(printf "%s\n%s\n" "$unstaged" "$staged")
+  fi
+
+  if [[ -n "$changed_files" ]]; then
+    echo "$changed_files" | grep -q '^src/' && run_frontend=true
+    echo "$changed_files" | grep -q '^supabase/functions/' && run_backend=true
+  fi
+
+  ARGS_TEXT=" ${SUPABASE_ARGS[*]:-} "
+  if [[ "$ARGS_TEXT" == *" functions "* ]]; then
+    run_backend=true
+  fi
+
+  if [[ "$FORCE_FRONTEND" = true ]] || [[ "$ARGS_TEXT_RAW" == *" --with-frontend "* ]]; then
+    run_frontend=true
+  fi
+
+  if [[ "$ARGS_TEXT_RAW" == *" --no-ai-review "* ]]; then
+    run_ai_review=false
+  fi
+  if [[ -n "${SKIP_AI_REVIEW:-}" ]]; then
+    run_ai_review=false
+  fi
+
+  if [[ "$run_frontend" = true ]] || [[ "$run_backend" = true ]]; then
+    CHECKS_SCRIPT="$(resolve_checks_script)"
+    if [[ -n "$CHECKS_SCRIPT" ]]; then
+      CHECKS_ARGS=()
+      if [[ -n "${SHIM_CHECKS_ARGS:-}" ]]; then
+        read -r -a CHECKS_ARGS <<< "${SHIM_CHECKS_ARGS}"
+      fi
+      [[ "$run_frontend" = true ]] && CHECKS_ARGS+=(--frontend)
+      [[ "$run_backend" = true ]] && CHECKS_ARGS+=(--backend)
+      [[ "$run_ai_review" = false ]] && CHECKS_ARGS+=(--no-ai-review)
+      CHECKS_ARGS+=("${CHECKS_PASSTHROUGH[@]}")
+      bash "$CHECKS_SCRIPT" "${CHECKS_ARGS[@]}"
+    else
+      echo "Shim checks: no checks script found; skipping." >&2
     fi
-    CHECKS_ARGS+=("${CHECKS_PASSTHROUGH[@]}")
-    bash "$CHECKS_SCRIPT" "${CHECKS_ARGS[@]}"
-  else
-    echo "Shim checks: no checks script found; skipping." >&2
   fi
 fi
 

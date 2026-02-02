@@ -55,8 +55,17 @@ if [[ -n "${SHIM_LOG_FUNCTIONS:-}" ]]; then
 fi
 
 if [[ "${#function_names[@]}" -eq 0 ]]; then
-  echo "Edge logs: skipped (no function name detected; set SHIM_LOG_FUNCTIONS)"
-  exit 0
+  if [[ -z "${SHIM_DEFAULT_FUNCTION+x}" ]]; then
+    default_fn="server"
+  else
+    default_fn="${SHIM_DEFAULT_FUNCTION}"
+  fi
+  if [[ -n "$default_fn" ]]; then
+    function_names+=("$default_fn")
+  else
+    echo "Edge logs: skipped (no function name detected; set SHIM_LOG_FUNCTIONS)"
+    exit 0
+  fi
 fi
 
 REAL_BIN="${SHIM_SUPABASE_BIN:-${SUPABASE_REAL_BIN:-}}"

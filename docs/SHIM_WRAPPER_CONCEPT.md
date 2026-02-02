@@ -15,10 +15,11 @@ A shim wrapper ensures checks run even when developers or agents use the CLI dir
 ## Wrapper design
 
 1) Resolve the project root.
-2) Run a checks script (repo-specific).
-3) Call the real CLI (not the wrapper).
-4) Run optional post-deploy hooks (health ping, logs).
-5) Optionally push commits if ahead of upstream.
+2) Detect which checks to run based on changed files (e.g. `src/` vs `supabase/functions/`).
+3) Run a checks script (repo-specific).
+4) Call the real CLI (not the wrapper).
+5) Run optional post-deploy hooks (health ping, logs).
+6) Optionally push commits if ahead of upstream.
 
 ## Avoiding recursion
 
@@ -60,4 +61,3 @@ To avoid recursion:
 2) Use shim wrapper instead of raw CLI.
 3) Add a pre-push hook for redundancy.
 4) Validate PATH (or use `npx supabase`).
-

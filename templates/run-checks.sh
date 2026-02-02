@@ -18,8 +18,9 @@ else
     case "$arg" in
       --frontend) run_frontend=true ;;
       --backend) run_backend=true ;;
+      --ai-review) run_ai_review=true ;;
       --no-ai-review) run_ai_review=false ;;
-      *) echo "Unknown option: $arg. Use --frontend, --backend, and/or --no-ai-review." >&2; exit 1 ;;
+      *) echo "Unknown option: $arg. Use --frontend, --backend, --ai-review, and/or --no-ai-review." >&2; exit 1 ;;
     esac
   done
 fi

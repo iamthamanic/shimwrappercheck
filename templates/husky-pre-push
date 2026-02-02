@@ -3,8 +3,38 @@
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
+if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+  RANGE="@{u}...HEAD"
+  CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR "$RANGE")
+else
+  if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+    CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR HEAD~1...HEAD)
+  else
+    CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR --root HEAD)
+  fi
+fi
+
+if [ -z "$CHANGED_FILES" ]; then
+  exit 0
+fi
+
+run_frontend=false
+run_backend=false
+
+printf "%s\n" "$CHANGED_FILES" | grep -q '^src/' && run_frontend=true
+printf "%s\n" "$CHANGED_FILES" | grep -q '^supabase/functions/' && run_backend=true
+
+if [ "$run_frontend" = false ] && [ "$run_backend" = false ]; then
+  exit 0
+fi
+
+CHECK_ARGS=""
+[ "$run_frontend" = true ] && CHECK_ARGS="--frontend"
+[ "$run_backend" = true ] && CHECK_ARGS="${CHECK_ARGS:+$CHECK_ARGS }--backend"
+[ -n "${SKIP_AI_REVIEW:-}" ] && CHECK_ARGS="${CHECK_ARGS:+$CHECK_ARGS }--no-ai-review"
+
 if [ -x "$ROOT_DIR/scripts/run-checks.sh" ]; then
-  bash "$ROOT_DIR/scripts/run-checks.sh"
+  bash "$ROOT_DIR/scripts/run-checks.sh" $CHECK_ARGS
 else
   echo "run-checks.sh not found. Create scripts/run-checks.sh or update this hook." >&2
   exit 1

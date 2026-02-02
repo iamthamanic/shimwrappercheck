@@ -46,6 +46,7 @@ npx supabase functions deploy <function-name>
 
 ## How it works
 
+- The shim determines which checks to run based on git changes (e.g. `src/` vs `supabase/functions/`).
 - The shim runs your checks script first (default: `scripts/run-checks.sh`).
 - If checks pass, it calls the real Supabase CLI.
 - Optional hooks run after deploy to ping health and fetch logs.
@@ -60,6 +61,7 @@ These flags are consumed by the shim and are not passed to the Supabase CLI:
 - `--no-hooks`     Skip post-deploy hooks (health/logs).
 - `--no-push`      Skip auto git push.
 - `--no-ai-review` Passed through to the checks script (template supports it).
+- `--with-frontend` Force frontend checks even if no `src/` changes are detected.
 
 ## Environment variables
 
@@ -69,6 +71,13 @@ These flags are consumed by the shim and are not passed to the Supabase CLI:
 - `SHIM_DISABLE_CHECKS=1`       Disable checks (same as `--no-checks`).
 - `SHIM_DISABLE_HOOKS=1`        Disable hooks (same as `--no-hooks`).
 - `SHIM_AUTO_PUSH=1|0`          Enable/disable auto git push after success (default: on).
+- `SHIM_DEFAULT_FUNCTION`       Default function name for health/log hooks (default: `server`).
+
+Network retry (Supabase CLI):
+
+- `SUPABASE_RETRY_MAX`                 Number of retries on network errors (default: 1).
+- `SUPABASE_RETRY_BACKOFF_SECONDS`     Comma-separated backoff seconds (default: `5,15`).
+- `SUPABASE_RETRY_EXTRA_ARGS`          Extra args added only on retry attempts.
 
 Supabase CLI resolution:
 
