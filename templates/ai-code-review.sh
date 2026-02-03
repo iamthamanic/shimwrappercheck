@@ -153,11 +153,11 @@ if [[ -n "$RESULT_TEXT" ]]; then
   [[ "$REVIEW_RATING" -lt 0 ]] 2>/dev/null && REVIEW_RATING=0
   [[ "$REVIEW_RATING" -gt 100 ]] 2>/dev/null && REVIEW_RATING=100
 
-  # Sections: content from label line (after colon) until next label
-  REVIEW_POSITIVE=$(echo "$RESULT_TEXT" | sed -n '/^POSITIVE:/,/^WARNINGS:/p' | tail -n +1 | head -n -1 | sed 's/^POSITIVE:[[:space:]]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  REVIEW_WARNINGS=$(echo "$RESULT_TEXT" | sed -n '/^WARNINGS:/,/^ERRORS:/p' | tail -n +1 | head -n -1 | sed 's/^WARNINGS:[[:space:]]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  REVIEW_ERRORS=$(echo "$RESULT_TEXT" | sed -n '/^ERRORS:/,/^RECOMMENDATIONS:/p' | tail -n +1 | head -n -1 | sed 's/^ERRORS:[[:space:]]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  REVIEW_RECOMMENDATIONS=$(echo "$RESULT_TEXT" | sed -n '/^RECOMMENDATIONS:/,/^VERDICT:/p' | tail -n +1 | head -n -1 | sed 's/^RECOMMENDATIONS:[[:space:]]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  # Sections: content from label line (after colon) until next label (sed '$d' = drop last line, macOS-compatible)
+  REVIEW_POSITIVE=$(echo "$RESULT_TEXT" | sed -n '/^POSITIVE:/,/^WARNINGS:/p' | tail -n +1 | sed '$d' | sed 's/^POSITIVE:[[:space:]]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  REVIEW_WARNINGS=$(echo "$RESULT_TEXT" | sed -n '/^WARNINGS:/,/^ERRORS:/p' | tail -n +1 | sed '$d' | sed 's/^WARNINGS:[[:space:]]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  REVIEW_ERRORS=$(echo "$RESULT_TEXT" | sed -n '/^ERRORS:/,/^RECOMMENDATIONS:/p' | tail -n +1 | sed '$d' | sed 's/^ERRORS:[[:space:]]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  REVIEW_RECOMMENDATIONS=$(echo "$RESULT_TEXT" | sed -n '/^RECOMMENDATIONS:/,/^VERDICT:/p' | tail -n +1 | sed '$d' | sed 's/^RECOMMENDATIONS:[[:space:]]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
   # has_warnings/has_errors: 0 only if content is empty or "None" (case-insensitive)
   WNORM=$(echo "$REVIEW_WARNINGS" | tr -d '\r' | tr '[:upper:]' '[:lower:]' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
