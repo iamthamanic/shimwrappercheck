@@ -180,6 +180,28 @@ else
   echo "Token usage: not reported by Codex CLI" >&2
 fi
 
+# Save review to .shimwrapper/reviews/ as markdown (always, pass or fail)
+REVIEWS_DIR="$ROOT_DIR/.shimwrapper/reviews"
+mkdir -p "$REVIEWS_DIR"
+REVIEW_FILE="$REVIEWS_DIR/review-$(date +%Y%m%d-%H%M%S).md"
+BRANCH=""
+[[ -n "${GIT_BRANCH:-}" ]] && BRANCH="$GIT_BRANCH" || BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")"
+{
+  echo "# AI Code Review — $(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')"
+  echo ""
+  echo "- **Branch:** $BRANCH"
+  echo "- **Verdict:** $([ "$PASS" -eq 1 ] && echo "PASS" || echo "FAIL")"
+  echo "- **Rating:** ${REVIEW_RATING}%"
+  echo "- **Tokens:** ${INPUT_T:-?} input, ${OUTPUT_T:-?} output"
+  echo ""
+  echo "## Structured review"
+  echo ""
+  echo '```'
+  [[ -n "$RESULT_TEXT" ]] && echo "$RESULT_TEXT" || echo "(no review text)"
+  echo '```'
+} >> "$REVIEW_FILE"
+echo "Review saved: $REVIEW_FILE" >&2
+
 # Always print review result and full structured review
 if [[ $PASS -eq 1 ]]; then
   echo "Codex AI review: PASS" >&2
