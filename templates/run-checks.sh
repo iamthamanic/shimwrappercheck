@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Shared checks for pre-push (GitHub) and supabase-checked (Supabase deploy).
-# Usage: run-checks.sh [--frontend] [--backend] [--no-ai-review]
+# Usage: run-checks.sh [--frontend] [--backend] [--no-frontend] [--no-backend] [--no-ai-review]
 #   With no args: run frontend and backend checks (same as --frontend --backend).
-#   With args: run only the requested checks.
+#   With args: set what runs (e.g. --no-frontend --no-ai-review to run only backend, no AI review).
 #   AI review runs by default after frontend/backend checks; use --no-ai-review to disable (or SKIP_AI_REVIEW=1).
 # Includes security: npm audit (frontend), deno audit (backend). Optional: Snyk (frontend, skip with SKIP_SNYK=1).
 set -euo pipefail
@@ -22,8 +22,10 @@ else
     case "$arg" in
       --frontend) run_frontend=true ;;
       --backend) run_backend=true ;;
+      --no-frontend) run_frontend=false ;;
+      --no-backend) run_backend=false ;;
       --no-ai-review) run_ai_review=false ;;
-      *) echo "Unknown option: $arg. Use --frontend, --backend, and/or --no-ai-review." >&2; exit 1 ;;
+      *) echo "Unknown option: $arg. Use --frontend, --backend, --no-frontend, --no-backend, and/or --no-ai-review." >&2; exit 1 ;;
     esac
   done
 fi

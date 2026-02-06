@@ -65,9 +65,15 @@ To avoid recursion:
 - Wrapper runs backend checks for deploy
 - Hook runs path-specific checks for push
 
+## Dashboard and AGENTS.md
+
+- The **dashboard** (`dashboard/`) is a Next.js Web UI: status, run checks, edit `.shimwrappercheckrc`, and edit **AGENTS.md**.
+- **AGENTS.md** at project root is read by AI agents (Cursor, Codex). It can be edited via the dashboard so agents and humans share one source of truth; agents should respect its content.
+
 ## Setup checklist
 
 1) Add checks script (repo-specific).
 2) Use shim wrapper instead of raw CLI.
 3) Add a pre-push hook for redundancy.
 4) Validate PATH (or use `npx supabase`).
+5) Optionally run the dashboard to manage config and AGENTS.md.

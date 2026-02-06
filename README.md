@@ -20,6 +20,36 @@ It is repo-agnostic: you plug in your own `scripts/run-checks.sh` and optional h
 - Interactive setup wizard that scans your repo and configures everything
 - Global installer that drops PATH shims (`supabase`, `git`, `shim`)
 - Generic shim supports pre/post hooks
+- **Dashboard**: Web UI to view status, run checks, **Presets & check toggles** (Einstellungen), edit `.shimwrappercheckrc`, and **edit AGENTS.md**
+- **Presets**: default "Vibe Code" (GitHub + Supabase, all commands); custom presets with provider toggles; check toggles (frontend, backend, AI review)
+
+## Setup (one command)
+
+Run the full setup in one go (installs package if needed, then runs the wizard):
+
+```bash
+npx shimwrappercheck setup
+```
+
+This installs `shimwrappercheck` as a devDependency if missing, then runs the init wizard (Supabase/Git shims, which commands, AI review, hooks, run-checks.sh, etc.). At the end you get a link to start the dashboard to change settings later.
+
+## Dashboard (Web UI)
+
+A Next.js dashboard lets you manage presets, checks, config, and AGENTS.md:
+
+```bash
+cd node_modules/shimwrappercheck/dashboard && npm install && npm run dev
+```
+
+Then open http://localhost:3000. You can:
+
+- **Einstellungen**: Presets (Vibe Code default, custom presets), Supabase/Git command toggles (which commands run checks/hooks), check toggles (frontend, backend, AI review)
+- View status (config, presets file, AGENTS.md, run-checks script, hooks)
+- Run checks only (button)
+- Edit `.shimwrappercheckrc` (Config, raw)
+- Edit **AGENTS.md** (agent instructions for Cursor/Codex; changes apply immediately)
+
+**AGENTS.md** is used by AI agents; editing it in the dashboard keeps agent instructions in sync. Set `SHIM_PROJECT_ROOT` when deploying the dashboard (e.g. on Vercel) to the repo root path where `.shimwrappercheckrc` and `AGENTS.md` live.
 
 ## Install
 
@@ -86,9 +116,9 @@ npm run supabase:checked -- functions deploy <function-name>
 npx supabase functions deploy <function-name>
 ```
 
-## Setup wizard (recommended)
+## Setup wizard (init)
 
-Run the interactive init to scan your codebase and configure the shim:
+Run the interactive init to scan your codebase and configure the shim (or use `npx shimwrappercheck setup` to install + init in one step):
 
 ```bash
 npx shimwrappercheck init

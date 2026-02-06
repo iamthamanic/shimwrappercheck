@@ -1,0 +1,6 @@
+# Don't pack dashboard build artifacts and deps
+dashboard/node_modules
+dashboard/.next
+dashboard/out
+*.log
+.DS_Store

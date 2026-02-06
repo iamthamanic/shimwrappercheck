@@ -327,6 +327,10 @@ async function main() {
     console.log('- optional: RUN_CURSOR_REVIEW=1 fuer zweiten Review-Durchlauf');
   }
   console.log('- pruefe ggf. scripts/run-checks.sh und passe die Checks an');
+  console.log('');
+  console.log('Einstellungen spaeter aendern: Dashboard starten mit');
+  console.log('  cd node_modules/shimwrappercheck/dashboard && npm install && npm run dev');
+  console.log('  dann http://localhost:3000 oeffnen (Presets, Checks, AGENTS.md).');
 
   rl.close();
 }
