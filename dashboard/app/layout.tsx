@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Nav from "@/components/Nav";
+import Header from "@/components/Header";
+import LayoutContent from "@/components/LayoutContent";
 
 export const metadata: Metadata = {
   title: "shimwrappercheck Dashboard",
@@ -13,10 +14,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" data-theme="light">
-      <body className="min-h-screen bg-base-200">
-        <Nav />
-        <main className="container mx-auto px-4 py-6">{children}</main>
+    <html lang="de" data-theme="dark">
+      <body className="min-h-screen flex flex-col bg-[#0f0f0f] text-white">
+        <Header />
+        <div className="flex flex-1 min-h-0 flex-col w-full">
+          <LayoutContent>{children}</LayoutContent>
+        </div>
       </body>
     </html>
   );

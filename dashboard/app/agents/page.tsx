@@ -56,18 +56,18 @@ export default function AgentsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-white">
       <h1 className="text-3xl font-bold">AGENTS.md</h1>
-      <p className="text-base-content/80">
+      <p className="text-neutral-300">
         Agent-Anweisungen für Cursor/Codex. Wird von Agents gelesen; hier bearbeitbar. Änderungen gelten sofort.
       </p>
       {!exists && (
-        <div className="alert alert-info">
+        <div className="alert bg-neutral-800 border-neutral-600 text-neutral-300">
           <span>AGENTS.md existiert noch nicht. Beim Speichern wird sie im Projekt-Root angelegt.</span>
         </div>
       )}
       <textarea
-        className="textarea textarea-bordered w-full font-mono text-sm min-h-[400px]"
+        className="textarea w-full font-mono text-sm min-h-[400px] bg-neutral-800 border-neutral-600 text-white"
         value={raw}
         onChange={(e) => setRaw(e.target.value)}
         placeholder="# Agent instructions..."

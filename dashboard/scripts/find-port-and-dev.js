@@ -1,30 +1,62 @@
 #!/usr/bin/env node
 /**
- * Finds first free port from 3000 upward, then runs next dev on that port.
- * So the dashboard always uses a free port when run via npm run dev.
+ * Starts Next dev: uses .shimwrappercheck-ui.json (portAuto/port) if present,
+ * otherwise finds first free port from 3000 upward.
  */
-const path = require('path');
-const { spawn } = require('child_process');
-const net = require('net');
+const path = require("path");
+const fs = require("fs");
+const { spawn } = require("child_process");
+const net = require("net");
 
-const startPort = parseInt(process.env.PORT || '3000', 10);
+function getProjectRoot() {
+  const cwd = process.cwd();
+  const name = path.basename(cwd);
+  if (name === "dashboard") return path.resolve(cwd, "..");
+  return cwd;
+}
+
+function readUiConfig() {
+  try {
+    const root = getProjectRoot();
+    const p = path.join(root, ".shimwrappercheck-ui.json");
+    if (fs.existsSync(p)) {
+      const data = JSON.parse(fs.readFileSync(p, "utf8"));
+      return {
+        portAuto: data.portAuto !== false,
+        port: typeof data.port === "number" && data.port > 0 ? data.port : 3000,
+      };
+    }
+  } catch (e) {
+    // ignore
+  }
+  return { portAuto: true, port: 3000 };
+}
+
+const uiConfig = readUiConfig();
+const startPort = parseInt(process.env.PORT || String(uiConfig.port || 3000), 10);
 
 function tryPort(port, cb) {
   const server = net.createServer();
-  server.once('error', () => tryPort(port + 1, cb));
-  server.once('listening', () => {
+  server.once("error", () => tryPort(port + 1, cb));
+  server.once("listening", () => {
     server.close(() => cb(port));
   });
   server.listen(port);
 }
 
-tryPort(startPort, (port) => {
+function runDev(port) {
   const url = `http://localhost:${port}`;
-  console.log('Dashboard:', url);
-  const child = spawn('npx', ['next', 'dev', '-p', String(port)], {
-    cwd: path.join(__dirname, '..'),
-    stdio: 'inherit',
+  console.log("Dashboard:", url);
+  const child = spawn("npx", ["next", "dev", "-p", String(port)], {
+    cwd: path.join(__dirname, ".."),
+    stdio: "inherit",
     shell: true,
   });
-  child.on('exit', (code) => process.exit(code || 0));
-});
+  child.on("exit", (code) => process.exit(code || 0));
+}
+
+if (uiConfig.portAuto) {
+  tryPort(startPort, runDev);
+} else {
+  runDev(startPort);
+}

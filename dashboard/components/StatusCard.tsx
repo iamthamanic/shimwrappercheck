@@ -14,13 +14,13 @@ export default function StatusCard({
   detail?: string;
 }) {
   return (
-    <div className="card bg-base-100 shadow-md">
+    <div className="card bg-neutral-800 border border-neutral-600 shadow-md">
       <div className="card-body p-4">
-        <h3 className="card-title text-sm">{label}</h3>
-        <p className={ok ? "text-success" : "text-warning"}>
+        <h3 className="card-title text-sm text-white">{label}</h3>
+        <p className={ok ? "text-green-400" : "text-amber-400"}>
           {ok ? "✓ Vorhanden" : "— Nicht gefunden"}
         </p>
-        {detail && <p className="text-xs opacity-80">{detail}</p>}
+        {detail && <p className="text-xs text-neutral-400">{detail}</p>}
       </div>
     </div>
   );

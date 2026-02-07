@@ -50,13 +50,13 @@ export default function ConfigPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-white">
       <h1 className="text-3xl font-bold">Config (.shimwrappercheckrc)</h1>
-      <p className="text-base-content/80">
+      <p className="text-neutral-300">
         Shell-Variablen und Kommentare. Wird beim nächsten Aufruf des Shims verwendet.
       </p>
       <textarea
-        className="textarea textarea-bordered w-full font-mono text-sm min-h-[320px]"
+        className="textarea w-full font-mono text-sm min-h-[320px] bg-neutral-800 border-neutral-600 text-white"
         value={raw}
         onChange={(e) => setRaw(e.target.value)}
         placeholder="# shimwrappercheck config\nSHIM_ENFORCE_COMMANDS=\"functions,db,migration\"\n..."

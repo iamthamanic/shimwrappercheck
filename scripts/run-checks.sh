@@ -43,7 +43,7 @@ run_deno_fmt="${SHIM_RUN_DENO_FMT:-1}"
 run_deno_lint="${SHIM_RUN_DENO_LINT:-1}"
 run_deno_audit="${SHIM_RUN_DENO_AUDIT:-1}"
 
-# Wenn SHIM_CHECK_ORDER gesetzt: Checks in dieser Reihenfolge ausführen (wie in My Checks).
+# Wenn SHIM_CHECK_ORDER gesetzt ist: Checks genau in dieser Reihenfolge ausführen (wie in My Checks).
 run_one() {
   local id="$1"
   case "$id" in
@@ -102,8 +102,8 @@ else
       (cd supabase/functions/server && deno audit)
     fi
   fi
+fi
 
-  if [[ "$run_ai_review" = true ]] && { [[ "$run_frontend" = true ]] || [[ "$run_backend" = true ]]; }; then
-    bash "$ROOT_DIR/scripts/ai-code-review.sh"
-  fi
+if [[ "$run_ai_review" = true ]] && { [[ "$run_frontend" = true ]] || [[ "$run_backend" = true ]]; }; then
+  bash "$ROOT_DIR/scripts/ai-code-review.sh"
 fi

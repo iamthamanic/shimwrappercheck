@@ -1,25 +1,53 @@
 /**
- * Settings page: presets (Vibe Code + custom), Supabase/Git command toggles, check toggles.
+ * Settings page: Tabs "Templates" (Presets, Befehle, Checks) und "Information" (Port, Version, Status, Aktionen).
  * Location: app/settings/page.tsx
  */
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import type { SettingsData, Preset, ProviderId, SupabaseCommandId, GitCommandId } from "@/lib/presets";
-import {
-  DEFAULT_VIBE_CODE_PRESET,
-  DEFAULT_CHECK_TOGGLES,
-  SUPABASE_COMMAND_IDS,
-  GIT_COMMAND_IDS,
-} from "@/lib/presets";
+import Link from "next/link";
+import type { SettingsData, Preset, ProviderId } from "@/lib/presets";
+import { DEFAULT_VIBE_CODE_PRESET, DEFAULT_CHECK_TOGGLES, SUPABASE_COMMAND_IDS } from "@/lib/presets";
+import StatusCard from "@/components/StatusCard";
+import TriggerCommandos from "@/components/TriggerCommandos";
+import MyShimChecks from "@/components/MyShimChecks";
+
+type SettingsTab = "templates" | "information";
+
+type Status = {
+  projectRoot?: string;
+  config?: boolean;
+  presetsFile?: boolean;
+  agentsMd?: boolean;
+  runChecksScript?: boolean;
+  shimRunner?: boolean;
+  prePushHusky?: boolean;
+  prePushGit?: boolean;
+  supabase?: boolean;
+  lastError?: { check?: string; message?: string; suggestion?: string; timestamp?: string } | null;
+};
 
 export default function SettingsPage() {
+  const [tab, setTab] = useState<SettingsTab>("templates");
   const [settings, setSettings] = useState<SettingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [newPresetName, setNewPresetName] = useState("");
   const [showNewPreset, setShowNewPreset] = useState(false);
+  const [info, setInfo] = useState<{ version: string; lastUpdated: string | null } | null>(null);
+  const [uiConfig, setUiConfig] = useState<{ portAuto: boolean; port: number } | null>(null);
+  const [uiConfigSaving, setUiConfigSaving] = useState(false);
+  const [status, setStatus] = useState<Status | null>(null);
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [running, setRunning] = useState(false);
+  const [runResult, setRunResult] = useState<{ stdout: string; stderr: string; code: number } | null>(null);
+  const [templatesLastUpdated, setTemplatesLastUpdated] = useState<Date | null>(null);
+  const [presetMenuOpen, setPresetMenuOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportFileName, setExportFileName] = useState("");
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
 
   const load = useCallback(() => {
     fetch("/api/settings")
@@ -35,6 +63,42 @@ export default function SettingsPage() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    fetch("/api/info")
+      .then((r) => r.json())
+      .then((data) => setInfo({ version: data.version ?? "–", lastUpdated: data.lastUpdated ?? null }))
+      .catch(() => setInfo({ version: "–", lastUpdated: null }));
+    fetch("/api/ui-config")
+      .then((r) => r.json())
+      .then((data) => setUiConfig({ portAuto: data.portAuto !== false, port: data.port ?? 3000 }))
+      .catch(() => setUiConfig({ portAuto: true, port: 3000 }));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/status")
+      .then((r) => r.json())
+      .then((data) => {
+        setStatus(data);
+        setStatusLoading(false);
+      })
+      .catch(() => setStatusLoading(false));
+  }, []);
+
+  const runChecks = () => {
+    setRunning(true);
+    setRunResult(null);
+    fetch("/api/run-checks", { method: "POST" })
+      .then((r) => r.json())
+      .then((data) => {
+        setRunResult({ stdout: data.stdout ?? "", stderr: data.stderr ?? "", code: data.code ?? 1 });
+        setRunning(false);
+      })
+      .catch(() => {
+        setRunResult({ stdout: "", stderr: "Request failed", code: 1 });
+        setRunning(false);
+      });
+  };
+
   const save = () => {
     if (!settings) return;
     setSaving(true);
@@ -48,7 +112,10 @@ export default function SettingsPage() {
       .then((data) => {
         setSaving(false);
         if (data.error) setMessage({ type: "error", text: data.error });
-        else setMessage({ type: "success", text: "Einstellungen gespeichert." });
+        else {
+          setMessage({ type: "success", text: "Einstellungen gespeichert." });
+          setTemplatesLastUpdated(new Date());
+        }
       })
       .catch(() => {
         setSaving(false);
@@ -56,81 +123,30 @@ export default function SettingsPage() {
       });
   };
 
+  const saveSettingsFromTemplates = (next: SettingsData) => {
+    setSettings(next);
+    setMessage(null);
+    fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(next),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) setMessage({ type: "error", text: data.error });
+        else {
+          setMessage({ type: "success", text: "Gespeichert." });
+          setTemplatesLastUpdated(new Date());
+        }
+      })
+      .catch(() => setMessage({ type: "error", text: "Speichern fehlgeschlagen." }));
+  };
+
   const activePreset = settings?.presets?.find((p) => p.id === settings.activePresetId) ?? DEFAULT_VIBE_CODE_PRESET;
 
   const setActivePresetId = (id: string) => {
     if (!settings) return;
     setSettings({ ...settings, activePresetId: id });
-  };
-
-  const toggleSupabaseEnforce = (cmd: SupabaseCommandId) => {
-    if (!settings || !activePreset.supabase) return;
-    const presets = settings.presets.map((p) =>
-      p.id === activePreset.id
-        ? {
-            ...p,
-            supabase: {
-              ...p.supabase!,
-              enforce: p.supabase!.enforce.includes(cmd)
-                ? p.supabase!.enforce.filter((c) => c !== cmd)
-                : [...p.supabase!.enforce, cmd],
-            },
-          }
-        : p
-    );
-    setSettings({ ...settings, presets });
-  };
-
-  const toggleSupabaseHook = (cmd: SupabaseCommandId) => {
-    if (!settings || !activePreset.supabase) return;
-    const presets = settings.presets.map((p) =>
-      p.id === activePreset.id
-        ? {
-            ...p,
-            supabase: {
-              ...p.supabase!,
-              hook: p.supabase!.hook.includes(cmd)
-                ? p.supabase!.hook.filter((c) => c !== cmd)
-                : [...p.supabase!.hook, cmd],
-            },
-          }
-        : p
-    );
-    setSettings({ ...settings, presets });
-  };
-
-  const toggleGitEnforce = (cmd: GitCommandId) => {
-    if (!settings || !activePreset.git) return;
-    const presets = settings.presets.map((p) =>
-      p.id === activePreset.id
-        ? {
-            ...p,
-            git: {
-              ...p.git!,
-              enforce: p.git!.enforce.includes(cmd)
-                ? p.git!.enforce.filter((c) => c !== cmd)
-                : [...p.git!.enforce, cmd],
-            },
-          }
-        : p
-    );
-    setSettings({ ...settings, presets });
-  };
-
-  const setAutoPush = (v: boolean) => {
-    if (!settings) return;
-    const presets = settings.presets.map((p) =>
-      p.id === activePreset.id ? { ...p, autoPush: v } : p
-    );
-    setSettings({ ...settings, presets });
-  };
-
-  const setCheckToggles = (key: keyof typeof DEFAULT_CHECK_TOGGLES, value: boolean) => {
-    if (!settings) return;
-    setSettings({
-      ...settings,
-      checkToggles: { ...settings.checkToggles, [key]: value },
-    });
   };
 
   const addCustomPreset = () => {
@@ -194,6 +210,76 @@ export default function SettingsPage() {
     });
   };
 
+  const renamePreset = () => {
+    if (!settings || !renameValue.trim()) return;
+    const presets = settings.presets.map((p) =>
+      p.id === settings.activePresetId ? { ...p, name: renameValue.trim() } : p
+    );
+    const next = { ...settings, presets };
+    setSettings(next);
+    setRenameDialogOpen(false);
+    setRenameValue("");
+    fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(next),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) setMessage({ type: "error", text: data.error });
+        else {
+          setMessage({ type: "success", text: "Preset umbenannt." });
+          setTemplatesLastUpdated(new Date());
+        }
+      })
+      .catch(() => setMessage({ type: "error", text: "Speichern fehlgeschlagen." }));
+  };
+
+  const doExport = () => {
+    if (!settings || !exportFileName.trim()) return;
+    const name = exportFileName.trim().replace(/\.json$/i, "") + ".json";
+    const exportObj = {
+      preset: activePreset,
+      checkToggles: settings.checkToggles,
+      checkOrder: settings.checkOrder ?? [],
+      checkSettings: settings.checkSettings ?? {},
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    setExportDialogOpen(false);
+    setExportFileName("");
+  };
+
+  const openExportDialog = () => {
+    setPresetMenuOpen(false);
+    setExportFileName(activePreset.name + "-preset.json");
+    setExportDialogOpen(true);
+  };
+
+  const openRenameDialog = () => {
+    setPresetMenuOpen(false);
+    setRenameValue(activePreset.name);
+    setRenameDialogOpen(true);
+  };
+
+  const saveUiConfig = () => {
+    if (!uiConfig) return;
+    setUiConfigSaving(true);
+    fetch("/api/ui-config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(uiConfig),
+    })
+      .then((r) => r.json())
+      .then(() => setUiConfigSaving(false))
+      .catch(() => setUiConfigSaving(false));
+  };
+
   if (loading || !settings) {
     return (
       <div className="flex justify-center py-12">
@@ -203,16 +289,161 @@ export default function SettingsPage() {
   }
 
   return (
+    <div className="space-y-6 text-white">
+      <div className="flex gap-0 border border-white/80 rounded overflow-hidden w-fit">
+        <button
+          type="button"
+          className={`px-4 py-2 text-sm font-medium ${tab === "templates" ? "bg-white text-black" : "bg-transparent text-white hover:bg-white/10"}`}
+          onClick={() => setTab("templates")}
+        >
+          Templates
+        </button>
+        <button
+          type="button"
+          className={`px-4 py-2 text-sm font-medium ${tab === "information" ? "bg-white text-black" : "bg-transparent text-white hover:bg-white/10"}`}
+          onClick={() => setTab("information")}
+        >
+          Information
+        </button>
+      </div>
+
+      {tab === "information" && (
+        <div className="space-y-6 max-w-xl">
+          <h2 className="text-xl font-semibold">Information</h2>
+          <div className="card bg-neutral-800 border border-neutral-600 shadow-md">
+            <div className="card-body">
+              <h3 className="card-title text-white text-base">Grafische UI – Port</h3>
+              <p className="text-sm text-neutral-400">
+                Auf welchem Port die UI starten soll oder ob automatisch ein freier Port gewählt wird.
+              </p>
+              <div className="space-y-3 mt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="portMode"
+                    className="radio radio-sm"
+                    checked={uiConfig?.portAuto ?? true}
+                    onChange={() => setUiConfig((c) => (c ? { ...c, portAuto: true } : { portAuto: true, port: 3000 }))}
+                  />
+                  <span>Automatisch einen freien Port wählen</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="portMode"
+                    className="radio radio-sm"
+                    checked={uiConfig && !uiConfig.portAuto}
+                    onChange={() => setUiConfig((c) => (c ? { ...c, portAuto: false } : { portAuto: false, port: 3000 }))}
+                  />
+                  <span>Fester Port:</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={65535}
+                    className="input input-sm input-bordered w-24 bg-neutral-800 border-neutral-600 text-white"
+                    value={uiConfig?.port ?? 3000}
+                    onChange={(e) =>
+                      setUiConfig((c) => (c ? { ...c, port: Math.max(1, Math.min(65535, parseInt(e.target.value, 10) || 3000)) } : { portAuto: false, port: 3000 }))
+                    }
+                    disabled={uiConfig?.portAuto ?? true}
+                  />
+                </label>
+              </div>
+              <button type="button" className="btn btn-sm btn-primary mt-2" onClick={saveUiConfig} disabled={uiConfigSaving}>
+                {uiConfigSaving ? "Speichern…" : "Port-Einstellung speichern"}
+              </button>
+            </div>
+          </div>
+          <div className="card bg-neutral-800 border border-neutral-600 shadow-md">
+            <div className="card-body">
+              <h3 className="card-title text-white text-base">shimwrappercheck</h3>
+              <dl className="text-sm space-y-1 mt-2">
+                <div className="flex gap-2">
+                  <dt className="text-neutral-400">Version:</dt>
+                  <dd>{info?.version ?? "–"}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="text-neutral-400">Zuletzt aktualisiert:</dt>
+                  <dd>{info?.lastUpdated ?? "–"}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          <h2 className="text-xl font-semibold mt-8">Status</h2>
+          {statusLoading || !status ? (
+            <p className="text-neutral-400">Laden…</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <StatusCard label=".shimwrappercheckrc" ok={!!status.config} />
+                <StatusCard label="Presets (.shimwrappercheck-presets.json)" ok={!!status.presetsFile} detail="Presets & Check-Toggles (Einstellungen)" />
+                <StatusCard label="AGENTS.md" ok={!!status.agentsMd} detail="Agent-Anweisungen (über GUI bearbeitbar)" />
+                <StatusCard label="scripts/run-checks.sh" ok={!!status.runChecksScript} />
+                <StatusCard label="Shim Runner" ok={!!status.shimRunner} detail="Node orchestrator (npx shimwrappercheck run)" />
+                <StatusCard label="Husky pre-push" ok={!!status.prePushHusky} />
+                <StatusCard label="Git pre-push Hook" ok={!!status.prePushGit} />
+                <StatusCard label="Supabase" ok={!!status.supabase} />
+              </div>
+              {status?.projectRoot && (
+                <p className="mt-2 text-sm text-neutral-400">Projekt-Root: {status.projectRoot}</p>
+              )}
+              {status?.lastError && (
+                <div className="mt-4 alert alert-warning shadow-lg">
+                  <div>
+                    <h3 className="font-bold">Letzter Check-Fehler (.shim/last_error.json)</h3>
+                    <p className="text-sm">{status.lastError.check}: {status.lastError.message}</p>
+                    {status.lastError.suggestion && <p className="text-sm opacity-90">Vorschlag: {status.lastError.suggestion}</p>}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          <h2 className="text-xl font-semibold mt-8">Aktionen</h2>
+          <div className="flex flex-wrap gap-4">
+            <button
+              type="button"
+              className="btn btn-primary bg-primary text-primary-content"
+              onClick={runChecks}
+              disabled={running || (status && !status.runChecksScript && !status.shimRunner)}
+            >
+              {running ? "Läuft…" : "Nur Checks ausführen"}
+            </button>
+            <Link href="/config" className="btn btn-outline border-neutral-600 text-neutral-300">
+              Config (Raw)
+            </Link>
+            <Link href="/agents" className="btn btn-outline border-neutral-600 text-neutral-300">
+              AGENTS.md bearbeiten
+            </Link>
+          </div>
+
+          {runResult && (
+            <div className="card bg-neutral-800 border border-neutral-600 shadow-md">
+              <div className="card-body">
+                <h3 className="card-title text-white">
+                  Letzte Check-Ausgabe {runResult.code === 0 ? "(OK)" : "(Fehler)"}
+                </h3>
+                <pre className="bg-neutral-900 p-4 rounded-lg text-sm overflow-auto max-h-64 whitespace-pre-wrap text-neutral-300">
+                  {runResult.stdout || "(keine Ausgabe)"}
+                  {runResult.stderr ? `\n${runResult.stderr}` : ""}
+                </pre>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "templates" && (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold">Einstellungen</h1>
-      <p className="text-base-content/80">
-        Preset wählen, Befehle (Supabase / GitHub) und Checks ein-/ausschalten. Speichern schreibt .shimwrappercheckrc.
+      <p className="text-neutral-300">
+        Preset wählen und Checks ein-/ausschalten. Trigger-Befehle (Supabase/Git) legst du in My Shim fest. Speichern schreibt .shimwrappercheckrc.
       </p>
 
       {/* Preset selector */}
-      <div className="card bg-base-100 shadow-md">
+      <div className="card bg-neutral-800 border border-neutral-600 shadow-md">
         <div className="card-body">
-          <h2 className="card-title">Preset</h2>
+          <h2 className="card-title text-white">Preset</h2>
           <div className="flex flex-wrap gap-2 items-center">
             {settings.presets.map((p) => (
               <div key={p.id} className="flex items-center gap-1">
@@ -235,6 +466,33 @@ export default function SettingsPage() {
                 )}
               </div>
             ))}
+            <div className={`dropdown dropdown-end ${presetMenuOpen ? "dropdown-open" : ""}`}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-square"
+                tabIndex={0}
+                onClick={(e) => { e.stopPropagation(); setPresetMenuOpen((o) => !o); }}
+                title="Optionen für aktives Preset"
+                aria-label="Preset-Optionen"
+              >
+                ⋮
+              </button>
+              <ul
+                className="dropdown-content menu p-2 shadow-lg bg-neutral-800 border border-neutral-600 rounded-box w-52 z-50 mt-1"
+                tabIndex={0}
+              >
+                <li>
+                  <button type="button" onClick={openExportDialog}>
+                    Export
+                  </button>
+                </li>
+                <li>
+                  <button type="button" onClick={openRenameDialog}>
+                    Umbenennen
+                  </button>
+                </li>
+              </ul>
+            </div>
             {!showNewPreset ? (
               <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowNewPreset(true)}>
                 + Neues Preset
@@ -260,13 +518,69 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Export dialog */}
+      {exportDialogOpen && (
+        <dialog open className="modal modal-open">
+          <div className="modal-box bg-neutral-800 border border-neutral-600">
+            <h3 className="font-bold text-white">Preset exportieren</h3>
+            <p className="text-sm text-neutral-400 py-2">Dateiname (wird als .json heruntergeladen):</p>
+            <input
+              type="text"
+              className="input input-bordered w-full bg-neutral-900 border-neutral-600 text-white"
+              value={exportFileName}
+              onChange={(e) => setExportFileName(e.target.value)}
+              placeholder="mein-preset.json"
+            />
+            <div className="modal-action">
+              <button type="button" className="btn btn-ghost" onClick={() => { setExportDialogOpen(false); setExportFileName(""); }}>
+                Abbrechen
+              </button>
+              <button type="button" className="btn btn-primary" onClick={doExport} disabled={!exportFileName.trim()}>
+                Exportieren
+              </button>
+            </div>
+          </div>
+          <form method="dialog" className="modal-backdrop" onClick={() => { setExportDialogOpen(false); setExportFileName(""); }}>
+            <button type="button">schließen</button>
+          </form>
+        </dialog>
+      )}
+
+      {/* Rename dialog */}
+      {renameDialogOpen && (
+        <dialog open className="modal modal-open">
+          <div className="modal-box bg-neutral-800 border border-neutral-600">
+            <h3 className="font-bold text-white">Preset umbenennen</h3>
+            <p className="text-sm text-neutral-400 py-2">Neuer Name (wird auch in My Shim angezeigt):</p>
+            <input
+              type="text"
+              className="input input-bordered w-full bg-neutral-900 border-neutral-600 text-white"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              placeholder={activePreset.name}
+            />
+            <div className="modal-action">
+              <button type="button" className="btn btn-ghost" onClick={() => { setRenameDialogOpen(false); setRenameValue(""); }}>
+                Abbrechen
+              </button>
+              <button type="button" className="btn btn-primary" onClick={renamePreset} disabled={!renameValue.trim()}>
+                Umbenennen
+              </button>
+            </div>
+          </div>
+          <form method="dialog" className="modal-backdrop" onClick={() => { setRenameDialogOpen(false); setRenameValue(""); }}>
+            <button type="button">schließen</button>
+          </form>
+        </dialog>
+      )}
+
       {/* Active preset: providers (for custom) + command toggles */}
       <div className="space-y-6">
         {activePreset.id !== DEFAULT_VIBE_CODE_PRESET.id && (
-          <div className="card bg-base-100 shadow-md">
+          <div className="card bg-neutral-800 border border-neutral-600 shadow-md">
             <div className="card-body">
-              <h2 className="card-title">Provider in diesem Preset</h2>
-              <p className="text-sm text-base-content/70">Provider hinzufügen (z. B. GitHub, Supabase).</p>
+              <h2 className="card-title text-white">Provider in diesem Preset</h2>
+              <p className="text-sm text-neutral-400">Provider hinzufügen (z. B. GitHub, Supabase).</p>
               <div className="flex gap-2 flex-wrap">
                 {(["supabase", "git"] as const).map((prov) => (
                   <div key={prov} className="flex items-center gap-1">
@@ -293,166 +607,23 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* Supabase */}
-        {activePreset.providers.includes("supabase") && (
-          <div className="card bg-base-100 shadow-md">
-            <div className="card-body">
-              <h2 className="card-title">Supabase</h2>
-              <p className="text-sm text-base-content/70">Für welche Befehle Checks und Hooks laufen.</p>
-              <div className="overflow-x-auto">
-                <table className="table table-sm">
-                  <thead>
-                    <tr>
-                      <th>Befehl</th>
-                      <th>Checks</th>
-                      <th>Hooks (nach Deploy)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {SUPABASE_COMMAND_IDS.map((cmd) => (
-                      <tr key={cmd}>
-                        <td>{cmd}</td>
-                        <td>
-                          <input
-                            type="checkbox"
-                            className="toggle toggle-sm"
-                            checked={activePreset.supabase?.enforce.includes(cmd) ?? false}
-                            onChange={() => toggleSupabaseEnforce(cmd)}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="checkbox"
-                            className="toggle toggle-sm"
-                            checked={activePreset.supabase?.hook.includes(cmd) ?? false}
-                            onChange={() => toggleSupabaseHook(cmd)}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="form-control">
-                <label className="label cursor-pointer justify-start gap-2">
-                  <input
-                    type="checkbox"
-                    className="checkbox checkbox-sm"
-                    checked={activePreset.autoPush}
-                    onChange={(e) => setAutoPush(e.target.checked)}
-                  />
-                  <span className="label-text">Nach Erfolg automatisch git push</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Git */}
-        {activePreset.providers.includes("git") && (
-          <div className="card bg-base-100 shadow-md">
-            <div className="card-body">
-              <h2 className="card-title">GitHub (Git)</h2>
-              <p className="text-sm text-base-content/70">Für welche Git-Befehle Checks laufen.</p>
-              <div className="flex flex-wrap gap-4">
-                {GIT_COMMAND_IDS.map((cmd) => (
-                  <label key={cmd} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="toggle toggle-sm"
-                      checked={activePreset.git?.enforce.includes(cmd) ?? false}
-                      onChange={() => toggleGitEnforce(cmd)}
-                    />
-                    <span>{cmd}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Check toggles */}
-      <div className="card bg-base-100 shadow-md">
-        <div className="card-body">
-          <h2 className="card-title">Checks (Shim Runner / run-checks.sh)</h2>
-          <p className="text-sm text-base-content/70">Welche Schritte beim Check-Lauf ausgeführt werden.</p>
-          <div className="flex flex-wrap gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="toggle toggle-sm"
-                checked={settings.checkToggles.frontend}
-                onChange={(e) => setCheckToggles("frontend", e.target.checked)}
-              />
-              <span>Frontend (Lint, Build, Test, npm audit)</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="toggle toggle-sm"
-                checked={settings.checkToggles.backend}
-                onChange={(e) => setCheckToggles("backend", e.target.checked)}
-              />
-              <span>Backend (deno fmt/lint/audit)</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="toggle toggle-sm"
-                checked={settings.checkToggles.sast}
-                onChange={(e) => setCheckToggles("sast", e.target.checked)}
-              />
-              <span>SAST (semgrep)</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="toggle toggle-sm"
-                checked={settings.checkToggles.architecture}
-                onChange={(e) => setCheckToggles("architecture", e.target.checked)}
-              />
-              <span>Architektur (dependency-cruiser)</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="toggle toggle-sm"
-                checked={settings.checkToggles.complexity}
-                onChange={(e) => setCheckToggles("complexity", e.target.checked)}
-              />
-              <span>Komplexität (max 10)</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="toggle toggle-sm"
-                checked={settings.checkToggles.mutation}
-                onChange={(e) => setCheckToggles("mutation", e.target.checked)}
-              />
-              <span>Mutation (Stryker ≥80%)</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="toggle toggle-sm"
-                checked={settings.checkToggles.e2e}
-                onChange={(e) => setCheckToggles("e2e", e.target.checked)}
-              />
-              <span>E2E (Playwright)</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="toggle toggle-sm"
-                checked={settings.checkToggles.aiReview}
-                onChange={(e) => setCheckToggles("aiReview", e.target.checked)}
-              />
-              <span>AI Review (Deductive 95%)</span>
-            </label>
-          </div>
+      {/* My Shim 1:1 – Trigger Commandos & My Checks (wie in der Sidebar) */}
+      {settings && (
+        <div className="space-y-6">
+          <TriggerCommandos
+            settings={settings}
+            onSave={saveSettingsFromTemplates}
+            lastUpdated={templatesLastUpdated}
+          />
+          <MyShimChecks
+            settings={settings}
+            onSave={saveSettingsFromTemplates}
+            lastUpdated={templatesLastUpdated}
+          />
         </div>
-      </div>
+      )}
 
       <div className="flex gap-4 items-center">
         <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>
@@ -462,6 +633,8 @@ export default function SettingsPage() {
           <span className={message.type === "success" ? "text-success" : "text-error"}>{message.text}</span>
         )}
       </div>
+    </div>
+      )}
     </div>
   );
 }

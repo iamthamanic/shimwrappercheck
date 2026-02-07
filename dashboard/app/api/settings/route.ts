@@ -9,6 +9,7 @@ import { getProjectRoot } from "@/lib/projectRoot";
 import {
   type SettingsData,
   type Preset,
+  type CheckToggles,
   DEFAULT_SETTINGS,
   DEFAULT_VIBE_CODE_PRESET,
   DEFAULT_CHECK_TOGGLES,
@@ -32,8 +33,18 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
   const argsMatch = rawRc.match(/SHIM_CHECKS_ARGS="([^"]*)"/);
   if (argsMatch) {
     const args = argsMatch[1];
-    if (args.includes("--no-frontend")) checkToggles.frontend = false;
-    if (args.includes("--no-backend")) checkToggles.backend = false;
+    if (args.includes("--no-frontend")) {
+      checkToggles.lint = false;
+      checkToggles.checkMockData = false;
+      checkToggles.testRun = false;
+      checkToggles.npmAudit = false;
+      checkToggles.snyk = false;
+    }
+    if (args.includes("--no-backend")) {
+      checkToggles.denoFmt = false;
+      checkToggles.denoLint = false;
+      checkToggles.denoAudit = false;
+    }
     if (args.includes("--no-ai-review")) checkToggles.aiReview = false;
     if (args.includes("--no-sast")) checkToggles.sast = false;
     if (args.includes("--no-architecture")) checkToggles.architecture = false;
@@ -41,6 +52,19 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
     if (args.includes("--no-mutation")) checkToggles.mutation = false;
     if (args.includes("--no-e2e")) checkToggles.e2e = false;
   }
+  const readEnv = (key: string): boolean | undefined => {
+    const m = rawRc.match(new RegExp(`${key}=(\\d+)`));
+    return m ? m[1] === "1" : undefined;
+  };
+  if (readEnv("SHIM_RUN_LINT") !== undefined) checkToggles.lint = readEnv("SHIM_RUN_LINT")!;
+  if (readEnv("SHIM_RUN_CHECK_MOCK_DATA") !== undefined) checkToggles.checkMockData = readEnv("SHIM_RUN_CHECK_MOCK_DATA")!;
+  if (readEnv("SHIM_RUN_TEST_RUN") !== undefined) checkToggles.testRun = readEnv("SHIM_RUN_TEST_RUN")!;
+  if (readEnv("SHIM_RUN_NPM_AUDIT") !== undefined) checkToggles.npmAudit = readEnv("SHIM_RUN_NPM_AUDIT")!;
+  if (readEnv("SHIM_RUN_SNYK") !== undefined) checkToggles.snyk = readEnv("SHIM_RUN_SNYK")!;
+  if (readEnv("SHIM_RUN_DENO_FMT") !== undefined) checkToggles.denoFmt = readEnv("SHIM_RUN_DENO_FMT")!;
+  if (readEnv("SHIM_RUN_DENO_LINT") !== undefined) checkToggles.denoLint = readEnv("SHIM_RUN_DENO_LINT")!;
+  if (readEnv("SHIM_RUN_DENO_AUDIT") !== undefined) checkToggles.denoAudit = readEnv("SHIM_RUN_DENO_AUDIT")!;
+
   const enforceMatch = rawRc.match(/SHIM_ENFORCE_COMMANDS="([^"]*)"/);
   const hookMatch = rawRc.match(/SHIM_HOOK_COMMANDS="([^"]*)"/);
   const gitMatch = rawRc.match(/SHIM_GIT_ENFORCE_COMMANDS="([^"]*)"/);
@@ -76,7 +100,27 @@ export async function GET() {
         const parsed = JSON.parse(raw) as SettingsData;
         if (parsed.presets?.length) settings.presets = parsed.presets;
         if (parsed.activePresetId) settings.activePresetId = parsed.activePresetId;
-        if (parsed.checkToggles) settings.checkToggles = { ...DEFAULT_SETTINGS.checkToggles, ...parsed.checkToggles };
+        if (parsed.checkToggles) {
+          const raw = { ...DEFAULT_SETTINGS.checkToggles, ...parsed.checkToggles } as CheckToggles & { frontend?: boolean; backend?: boolean };
+          const migrated: CheckToggles = { ...raw };
+          if ("frontend" in raw && typeof raw.frontend === "boolean") {
+            migrated.lint = migrated.checkMockData = migrated.testRun = migrated.npmAudit = migrated.snyk = raw.frontend;
+            delete (migrated as Record<string, unknown>).frontend;
+          }
+          if ("backend" in raw && typeof raw.backend === "boolean") {
+            migrated.denoFmt = migrated.denoLint = migrated.denoAudit = raw.backend;
+            delete (migrated as Record<string, unknown>).backend;
+          }
+          settings.checkToggles = migrated;
+        }
+        if (parsed.checkSettings) {
+          const cs = parsed.checkSettings as Record<string, unknown> & { frontend?: { auditLevel?: string }; npmAudit?: { auditLevel?: string } };
+          settings.checkSettings = { ...parsed.checkSettings };
+          if (cs?.frontend?.auditLevel && !settings.checkSettings?.npmAudit?.auditLevel) {
+            settings.checkSettings = { ...settings.checkSettings, npmAudit: { ...settings.checkSettings?.npmAudit, auditLevel: cs.frontend.auditLevel } };
+          }
+        }
+        if (Array.isArray(parsed.checkOrder)) settings.checkOrder = parsed.checkOrder;
       } catch {
         // use defaults
       }
@@ -111,6 +155,8 @@ export async function POST(request: NextRequest) {
       presets: body.presets,
       activePresetId: body.activePresetId ?? DEFAULT_SETTINGS.activePresetId,
       checkToggles: { ...DEFAULT_SETTINGS.checkToggles, ...body.checkToggles },
+      checkSettings: body.checkSettings ?? undefined,
+      checkOrder: Array.isArray(body.checkOrder) ? body.checkOrder : undefined,
     };
 
     const root = getProjectRoot();

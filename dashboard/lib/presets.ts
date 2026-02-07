@@ -2,6 +2,7 @@
  * Presets data model and default "Vibe Code" preset.
  * Maps to .shimwrappercheckrc (SHIM_ENFORCE_COMMANDS, SHIM_HOOK_COMMANDS, etc.).
  */
+import { getCheckRole } from "./checks";
 
 export type ProviderId = "supabase" | "git";
 
@@ -34,8 +35,14 @@ export interface Preset {
 }
 
 export interface CheckToggles {
-  frontend: boolean;
-  backend: boolean;
+  lint: boolean;
+  checkMockData: boolean;
+  testRun: boolean;
+  npmAudit: boolean;
+  snyk: boolean;
+  denoFmt: boolean;
+  denoLint: boolean;
+  denoAudit: boolean;
   aiReview: boolean;
   sast: boolean;
   architecture: boolean;
@@ -44,23 +51,40 @@ export interface CheckToggles {
   e2e: boolean;
 }
 
+/** Per-check options (persisted in presets JSON and written to rc as env where supported) */
+export interface CheckSettings {
+  npmAudit?: { auditLevel?: string };
+  aiReview?: { timeoutSec?: number; diffLimitBytes?: number; minRating?: number; reviewDir?: string };
+  healthPing?: { defaultFunction?: string; healthFunctions?: string; healthPaths?: string; projectRef?: string };
+  edgeLogs?: { defaultFunction?: string; logFunctions?: string; logLimit?: number };
+}
+
 export interface SettingsData {
   presets: Preset[];
   activePresetId: string;
   checkToggles: CheckToggles;
+  checkSettings?: CheckSettings;
+  checkOrder?: string[];
 }
 
 const VIBE_CODE_ID = "vibe-code";
 
+/** By default no check runs; user adds checks to My Shim to enable them. */
 export const DEFAULT_CHECK_TOGGLES: CheckToggles = {
-  frontend: true,
-  backend: true,
-  aiReview: true,
-  sast: true,
-  architecture: true,
-  complexity: true,
-  mutation: true,
-  e2e: true,
+  lint: false,
+  checkMockData: false,
+  testRun: false,
+  npmAudit: false,
+  snyk: false,
+  denoFmt: false,
+  denoLint: false,
+  denoAudit: false,
+  aiReview: false,
+  sast: false,
+  architecture: false,
+  complexity: false,
+  mutation: false,
+  e2e: false,
 };
 
 export const DEFAULT_VIBE_CODE_PRESET: Preset = {
@@ -77,10 +101,12 @@ export const DEFAULT_VIBE_CODE_PRESET: Preset = {
   autoPush: true,
 };
 
+/** Default: no checks in My Shim (all in Check Library). */
 export const DEFAULT_SETTINGS: SettingsData = {
   presets: [DEFAULT_VIBE_CODE_PRESET],
   activePresetId: VIBE_CODE_ID,
   checkToggles: DEFAULT_CHECK_TOGGLES,
+  checkOrder: [],
 };
 
 /** Build .shimwrappercheckrc content from active preset + check toggles */
@@ -97,16 +123,50 @@ export function buildRcContent(settings: SettingsData): string {
     lines.push(`SHIM_GIT_ENFORCE_COMMANDS="${preset.git.enforce.join(",")}"`);
   }
 
+  const t = settings.checkToggles;
+  const frontendAllOff = !t.lint && !t.checkMockData && !t.testRun && !t.npmAudit && !t.snyk;
+  const backendAllOff = !t.denoFmt && !t.denoLint && !t.denoAudit;
   const args: string[] = [];
-  if (!settings.checkToggles.frontend) args.push("--no-frontend");
-  if (!settings.checkToggles.backend) args.push("--no-backend");
-  if (!settings.checkToggles.aiReview) args.push("--no-ai-review");
-  if (!settings.checkToggles.sast) args.push("--no-sast");
-  if (!settings.checkToggles.architecture) args.push("--no-architecture");
-  if (!settings.checkToggles.complexity) args.push("--no-complexity");
-  if (!settings.checkToggles.mutation) args.push("--no-mutation");
-  if (!settings.checkToggles.e2e) args.push("--no-e2e");
+  if (frontendAllOff) args.push("--no-frontend");
+  if (backendAllOff) args.push("--no-backend");
+  if (!t.aiReview) args.push("--no-ai-review");
+  if (!t.sast) args.push("--no-sast");
+  if (!t.architecture) args.push("--no-architecture");
+  if (!t.complexity) args.push("--no-complexity");
+  if (!t.mutation) args.push("--no-mutation");
+  if (!t.e2e) args.push("--no-e2e");
   if (args.length) lines.push(`SHIM_CHECKS_ARGS="${args.join(" ")}"`);
+
+  const order = settings.checkOrder ?? [];
+  type CheckId = import("./checks").CheckId;
+  const enforceOrder = order.filter((id) => getCheckRole(id as CheckId) === "enforce");
+  const hookOrder = order.filter((id) => getCheckRole(id as CheckId) === "hook");
+  if (enforceOrder.length) lines.push(`SHIM_CHECK_ORDER="${enforceOrder.join(",")}"`);
+  lines.push(`SHIM_HOOK_CHECK_ORDER="${hookOrder.join(",")}"`);
+
+  lines.push(`SHIM_RUN_LINT=${t.lint ? 1 : 0}`);
+  lines.push(`SHIM_RUN_CHECK_MOCK_DATA=${t.checkMockData ? 1 : 0}`);
+  lines.push(`SHIM_RUN_TEST_RUN=${t.testRun ? 1 : 0}`);
+  lines.push(`SHIM_RUN_NPM_AUDIT=${t.npmAudit ? 1 : 0}`);
+  lines.push(`SHIM_RUN_SNYK=${t.snyk ? 1 : 0}`);
+  lines.push(`SHIM_RUN_DENO_FMT=${t.denoFmt ? 1 : 0}`);
+  lines.push(`SHIM_RUN_DENO_LINT=${t.denoLint ? 1 : 0}`);
+  lines.push(`SHIM_RUN_DENO_AUDIT=${t.denoAudit ? 1 : 0}`);
+
+  const cs = settings.checkSettings;
+  if (!t.snyk) lines.push("SKIP_SNYK=1");
+  if (cs?.npmAudit?.auditLevel) lines.push(`SHIM_AUDIT_LEVEL="${cs.npmAudit.auditLevel}"`);
+  if (cs?.aiReview?.timeoutSec != null) lines.push(`SHIM_AI_TIMEOUT_SEC=${cs.aiReview.timeoutSec}`);
+  if (cs?.aiReview?.diffLimitBytes != null) lines.push(`SHIM_AI_DIFF_LIMIT_BYTES=${cs.aiReview.diffLimitBytes}`);
+  if (cs?.aiReview?.minRating != null) lines.push(`SHIM_AI_MIN_RATING=${cs.aiReview.minRating}`);
+  if (cs?.aiReview?.reviewDir) lines.push(`SHIM_AI_REVIEW_DIR="${cs.aiReview.reviewDir}"`);
+  const defaultFn = cs?.healthPing?.defaultFunction || cs?.edgeLogs?.defaultFunction;
+  if (defaultFn) lines.push(`SHIM_DEFAULT_FUNCTION="${defaultFn}"`);
+  if (cs?.healthPing?.healthFunctions) lines.push(`SHIM_HEALTH_FUNCTIONS="${cs.healthPing.healthFunctions}"`);
+  if (cs?.healthPing?.healthPaths) lines.push(`SHIM_HEALTH_PATHS="${cs.healthPing.healthPaths}"`);
+  if (cs?.healthPing?.projectRef) lines.push(`SUPABASE_PROJECT_REF="${cs.healthPing.projectRef}"`);
+  if (cs?.edgeLogs?.logFunctions) lines.push(`SHIM_LOG_FUNCTIONS="${cs.edgeLogs.logFunctions}"`);
+  if (cs?.edgeLogs?.logLimit != null) lines.push(`SHIM_LOG_LIMIT=${cs.edgeLogs.logLimit}`);
 
   return lines.join("\n") + "\n";
 }

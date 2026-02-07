@@ -3,18 +3,22 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f8fafc;
-  }
+  --background: #0f0f0f;
+  --foreground: #fafafa;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
+  overflow-x: hidden;
+}
+
+/* DaisyUI loading: klein halten, kein großer Bogen */
+.loading.loading-spinner {
+  width: 2rem;
+  height: 2rem;
+}
+.loading.loading-lg {
+  width: 2.5rem;
+  height: 2.5rem;
 }

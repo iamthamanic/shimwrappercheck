@@ -301,15 +301,31 @@ resolve_hook_script() {
   echo ""
 }
 
-if [[ "$RUN_HOOKS" = true ]] && [[ "$should_run_hooks" = true ]]; then
-  PING_SCRIPT="$(resolve_hook_script SHIM_PING_SCRIPT ping-edge-health.sh)"
-  LOG_SCRIPT="$(resolve_hook_script SHIM_LOG_SCRIPT fetch-edge-logs.sh)"
+# SHIM_HOOK_CHECK_ORDER = aktivierte Hook-Checks aus My Checks (z. B. "healthPing,edgeLogs"). Fehlt die Var, laufen alle Hooks wie bisher.
+hook_check_list="${SHIM_HOOK_CHECK_ORDER:-healthPing,edgeLogs}"
+run_health_ping=false
+run_edge_logs=false
+if [[ "$hook_check_list" != "none" ]] && [[ "$hook_check_list" != "" ]]; then
+  case "$hook_check_list" in
+    *healthPing*) run_health_ping=true ;;
+  esac
+  case "$hook_check_list" in
+    *edgeLogs*) run_edge_logs=true ;;
+  esac
+fi
 
-  if [[ -n "$PING_SCRIPT" ]]; then
-    SHIM_PROJECT_ROOT="$PROJECT_ROOT" bash "$PING_SCRIPT" "${SUPABASE_ARGS[@]}" || true
+if [[ "$RUN_HOOKS" = true ]] && [[ "$should_run_hooks" = true ]]; then
+  if [[ "$run_health_ping" = true ]]; then
+    PING_SCRIPT="$(resolve_hook_script SHIM_PING_SCRIPT ping-edge-health.sh)"
+    if [[ -n "$PING_SCRIPT" ]]; then
+      SHIM_PROJECT_ROOT="$PROJECT_ROOT" bash "$PING_SCRIPT" "${SUPABASE_ARGS[@]}" || true
+    fi
   fi
-  if [[ -n "$LOG_SCRIPT" ]]; then
-    SHIM_PROJECT_ROOT="$PROJECT_ROOT" bash "$LOG_SCRIPT" "${SUPABASE_ARGS[@]}" || true
+  if [[ "$run_edge_logs" = true ]]; then
+    LOG_SCRIPT="$(resolve_hook_script SHIM_LOG_SCRIPT fetch-edge-logs.sh)"
+    if [[ -n "$LOG_SCRIPT" ]]; then
+      SHIM_PROJECT_ROOT="$PROJECT_ROOT" bash "$LOG_SCRIPT" "${SUPABASE_ARGS[@]}" || true
+    fi
   fi
 fi
 
