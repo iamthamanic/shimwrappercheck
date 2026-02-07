@@ -1,6 +1,6 @@
 {
   "name": "shimwrappercheck",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Supabase CLI shim wrapper that enforces checks before deploy/push. Dashboard, presets, AGENTS.md.",
   "license": "MIT",
   "bin": {
@@ -14,7 +14,17 @@
     "scripts",
     "templates",
     "docs",
-    "dashboard",
+    "dashboard/app",
+    "dashboard/components",
+    "dashboard/lib",
+    "dashboard/scripts",
+    "dashboard/package.json",
+    "dashboard/next.config.js",
+    "dashboard/postcss.config.js",
+    "dashboard/tailwind.config.js",
+    "dashboard/tsconfig.json",
+    "dashboard/next-env.d.ts",
+    "dashboard/README.md",
     "README.md",
     "AGENTS.md"
   ],
