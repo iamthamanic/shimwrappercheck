@@ -1,6 +1,8 @@
-# Don't pack dashboard build artifacts and deps
-dashboard/node_modules
-dashboard/.next
-dashboard/out
+# Don't pack dashboard build artifacts and deps (prepublishOnly also removes .next/out)
+node_modules
+**/node_modules
+.next
+**/.next
+**/out
 *.log
 .DS_Store

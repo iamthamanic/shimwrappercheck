@@ -146,21 +146,37 @@ if [[ "$RUN_CHECKS" = true ]]; then
   fi
 
   if [[ "$run_frontend" = true ]] || [[ "$run_backend" = true ]]; then
-    CHECKS_SCRIPT="$(resolve_checks_script)"
-    if [[ -n "$CHECKS_SCRIPT" ]]; then
+    RUNNER_FULL=""
+    if [[ "$ARGS_TEXT_RAW" == *" push "* ]]; then
+      RUNNER_FULL="--full"
+    fi
+    HAS_RUNNER=false
+    [[ -f "$PROJECT_ROOT/scripts/shim-runner.js" ]] && HAS_RUNNER=true
+    [[ -f "$PROJECT_ROOT/node_modules/shimwrappercheck/scripts/shim-runner.js" ]] && HAS_RUNNER=true
+    if [[ "$HAS_RUNNER" = true ]] && command -v npx >/dev/null 2>&1; then
       CHECKS_ARGS=()
-      if [[ -n "${SHIM_GIT_CHECKS_ARGS:-}" ]]; then
-        read -r -a CHECKS_ARGS <<< "${SHIM_GIT_CHECKS_ARGS}"
-      elif [[ -n "${SHIM_CHECKS_ARGS:-}" ]]; then
-        read -r -a CHECKS_ARGS <<< "${SHIM_CHECKS_ARGS}"
-      fi
       [[ "$run_frontend" = true ]] && CHECKS_ARGS+=(--frontend)
       [[ "$run_backend" = true ]] && CHECKS_ARGS+=(--backend)
       [[ "$run_ai_review" = false ]] && CHECKS_ARGS+=(--no-ai-review)
       CHECKS_ARGS+=("${CHECKS_PASSTHROUGH[@]}")
-      bash "$CHECKS_SCRIPT" "${CHECKS_ARGS[@]}"
+      npx shimwrappercheck run $RUNNER_FULL "${CHECKS_ARGS[@]}"
     else
-      echo "Git shim checks: no checks script found; skipping." >&2
+      CHECKS_SCRIPT="$(resolve_checks_script)"
+      if [[ -n "$CHECKS_SCRIPT" ]]; then
+        CHECKS_ARGS=()
+        if [[ -n "${SHIM_GIT_CHECKS_ARGS:-}" ]]; then
+          read -r -a CHECKS_ARGS <<< "${SHIM_GIT_CHECKS_ARGS}"
+        elif [[ -n "${SHIM_CHECKS_ARGS:-}" ]]; then
+          read -r -a CHECKS_ARGS <<< "${SHIM_CHECKS_ARGS}"
+        fi
+        [[ "$run_frontend" = true ]] && CHECKS_ARGS+=(--frontend)
+        [[ "$run_backend" = true ]] && CHECKS_ARGS+=(--backend)
+        [[ "$run_ai_review" = false ]] && CHECKS_ARGS+=(--no-ai-review)
+        CHECKS_ARGS+=("${CHECKS_PASSTHROUGH[@]}")
+        bash "$CHECKS_SCRIPT" "${CHECKS_ARGS[@]}"
+      else
+        echo "Git shim checks: no checks script found; skipping." >&2
+      fi
     fi
   fi
 fi

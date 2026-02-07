@@ -1,0 +1,19 @@
+# Example Semgrep config for shimwrappercheck projects.
+# Copy to project root as .semgrep.yml or use: semgrep scan --config auto .
+rules:
+  - id: generic-dangerous-eval
+    pattern: eval($ARG)
+    message: Avoid eval() - security risk
+    severity: ERROR
+  - id: generic-sql-injection
+    pattern: $QUERY + $USER_INPUT
+    message: Possible SQL injection - parameterize queries
+    severity: ERROR
+  - id: generic-hardcoded-secret
+    pattern: (?:api[_-]?key|apikey|secret|password)\s*=\s*["\'][^"\']+["\']
+    message: Possible hardcoded secret - use env vars
+    severity: WARNING
+  - id: js-insecure-random
+    pattern: Math.random()
+    message: Use crypto.getRandomValues() for security-sensitive randomness
+    severity: WARNING

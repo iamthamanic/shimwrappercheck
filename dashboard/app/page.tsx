@@ -14,9 +14,11 @@ type Status = {
   presetsFile?: boolean;
   agentsMd?: boolean;
   runChecksScript?: boolean;
+  shimRunner?: boolean;
   prePushHusky?: boolean;
   prePushGit?: boolean;
   supabase?: boolean;
+  lastError?: { check?: string; message?: string; suggestion?: string; timestamp?: string } | null;
 };
 
 export default function DashboardPage() {
@@ -72,12 +74,22 @@ export default function DashboardPage() {
           <StatusCard label="Presets (.shimwrappercheck-presets.json)" ok={!!status.presetsFile} detail="Presets & Check-Toggles (Einstellungen)" />
           <StatusCard label="AGENTS.md" ok={!!status.agentsMd} detail="Agent-Anweisungen (über GUI bearbeitbar)" />
           <StatusCard label="scripts/run-checks.sh" ok={!!status.runChecksScript} />
+          <StatusCard label="Shim Runner" ok={!!status.shimRunner} detail="Node orchestrator (npx shimwrappercheck run)" />
           <StatusCard label="Husky pre-push" ok={!!status.prePushHusky} />
           <StatusCard label="Git pre-push Hook" ok={!!status.prePushGit} />
           <StatusCard label="Supabase" ok={!!status.supabase} />
         </div>
         {status.projectRoot && (
           <p className="mt-2 text-sm text-base-content/70">Projekt-Root: {status.projectRoot}</p>
+        )}
+        {status.lastError && (
+          <div className="mt-4 alert alert-warning shadow-lg">
+            <div>
+              <h3 className="font-bold">Letzter Check-Fehler (.shim/last_error.json)</h3>
+              <p className="text-sm">{status.lastError.check}: {status.lastError.message}</p>
+              {status.lastError.suggestion && <p className="text-sm opacity-90">Vorschlag: {status.lastError.suggestion}</p>}
+            </div>
+          </div>
         )}
       </div>
 
@@ -88,7 +100,7 @@ export default function DashboardPage() {
             type="button"
             className="btn btn-primary"
             onClick={runChecks}
-            disabled={running || !status.runChecksScript}
+            disabled={running || (!status.runChecksScript && !status.shimRunner)}
           >
             {running ? "Läuft…" : "Nur Checks ausführen"}
           </button>

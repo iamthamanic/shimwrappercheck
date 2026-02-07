@@ -31,17 +31,23 @@ Run the full setup in one go (installs package if needed, then runs the wizard):
 npx shimwrappercheck setup
 ```
 
-This installs `shimwrappercheck` as a devDependency if missing, then runs the init wizard (Supabase/Git shims, which commands, AI review, hooks, run-checks.sh, etc.). At the end you get a link to start the dashboard to change settings later.
+This installs `shimwrappercheck` as a devDependency if missing, then runs the init wizard (Supabase/Git shims, which commands, AI review, hooks, run-checks.sh, etc.). **After the wizard, the dashboard starts automatically and your browser opens at http://localhost:3000.**
 
 ## Dashboard (Web UI)
 
-A Next.js dashboard lets you manage presets, checks, config, and AGENTS.md:
+A Next.js dashboard lets you manage presets, checks, config, and AGENTS.md. When you run `npx shimwrappercheck setup`, it starts automatically at the end and opens in your browser. **A free port is chosen automatically** (3000, 3001, 3002, …) so it never conflicts with other apps. To start it again later:
 
 ```bash
 cd node_modules/shimwrappercheck/dashboard && npm install && npm run dev
 ```
 
-Then open http://localhost:3000. You can:
+Then open the URL shown in the terminal (e.g. http://localhost:3000). **In this repo** you can also run from the project root:
+
+```bash
+npm run dashboard
+```
+
+You can:
 
 - **Einstellungen**: Presets (Vibe Code default, custom presets), Supabase/Git command toggles (which commands run checks/hooks), check toggles (frontend, backend, AI review)
 - View status (config, presets file, AGENTS.md, run-checks script, hooks)
@@ -115,6 +121,17 @@ npm run supabase:checked -- functions deploy <function-name>
 # or
 npx supabase functions deploy <function-name>
 ```
+
+## Hard Rules (optional tools and configs)
+
+For the full check pipeline (SAST, architecture, complexity, mutation testing, E2E, AI deductive review), install in your project:
+
+- **dependency-cruiser**: `npm i -D dependency-cruiser` — enforces no circular deps and layer separation
+- **eslint-plugin-complexity**: `npm i -D eslint-plugin-complexity` — cyclomatic complexity max 10 per function
+- **Stryker**: `npm i -D @stryker-mutator/core` — mutation testing (min 80% score in full mode)
+- **semgrep**: `pip install semgrep` or `brew install semgrep` (or use `npx semgrep`); optional SAST
+
+Config templates are in `templates/`: `.dependency-cruiser.json`, `.semgrep.example.yml`, `stryker.config.json`, `eslint.complexity.json`. Copy into your project root or use the init wizard to optionally install them.
 
 ## Setup wizard (init)
 

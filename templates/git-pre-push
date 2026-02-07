@@ -28,14 +28,18 @@ if [[ "$run_frontend" = false ]] && [[ "$run_backend" = false ]]; then
   exit 0
 fi
 
-CHECK_ARGS=()
-[[ "$run_frontend" = true ]] && CHECK_ARGS+=(--frontend)
-[[ "$run_backend" = true ]] && CHECK_ARGS+=(--backend)
-[[ -n "${SKIP_AI_REVIEW:-}" ]] && CHECK_ARGS+=(--no-ai-review)
-
-if [[ -x "$ROOT_DIR/scripts/run-checks.sh" ]]; then
-  bash "$ROOT_DIR/scripts/run-checks.sh" "${CHECK_ARGS[@]}"
+# Full mode: Node orchestrator if available (E2E + AI deductive review; loads .env for API keys).
+if [[ -f "$ROOT_DIR/node_modules/.bin/shimwrappercheck" ]] || command -v shimwrappercheck >/dev/null 2>&1; then
+  (cd "$ROOT_DIR" && npx shimwrappercheck run --full) || exit 1
 else
-  echo "run-checks.sh not found. Create scripts/run-checks.sh or update this hook." >&2
-  exit 1
+  CHECK_ARGS=()
+  [[ "$run_frontend" = true ]] && CHECK_ARGS+=(--frontend)
+  [[ "$run_backend" = true ]] && CHECK_ARGS+=(--backend)
+  [[ -n "${SKIP_AI_REVIEW:-}" ]] && CHECK_ARGS+=(--no-ai-review)
+  if [[ -x "$ROOT_DIR/scripts/run-checks.sh" ]]; then
+    bash "$ROOT_DIR/scripts/run-checks.sh" "${CHECK_ARGS[@]}"
+  else
+    echo "run-checks.sh not found. Create scripts/run-checks.sh or run: npx shimwrappercheck run --full" >&2
+    exit 1
+  fi
 fi

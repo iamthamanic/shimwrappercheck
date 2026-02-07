@@ -20,5 +20,19 @@
   ],
   "engines": {
     "node": ">=18"
+  },
+  "scripts": {
+    "prepublishOnly": "node scripts/prepublish-clean.js",
+    "dashboard": "npm install --prefix dashboard && npm run dev --prefix dashboard",
+    "setup": "node bin/shimwrappercheck setup",
+    "init": "node bin/shimwrappercheck init",
+    "supabase:checked": "supabase",
+    "git:checked": "git"
+  },
+  "devDependencies": {
+    "shimwrappercheck": "^0.2.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.4"
   }
 }

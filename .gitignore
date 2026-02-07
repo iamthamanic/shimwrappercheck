@@ -1,5 +1,6 @@
 node_modules/
 .DS_Store
+.shim/
 dashboard/node_modules
 dashboard/.next
 dashboard/out

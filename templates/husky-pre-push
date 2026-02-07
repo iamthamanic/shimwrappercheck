@@ -28,13 +28,16 @@ if [ "$run_frontend" = false ] && [ "$run_backend" = false ]; then
   exit 0
 fi
 
-# On push: AI review is mandatory (PASS only if rating >= 95% and no warnings/errors). Do not allow skip.
-CHECK_ARGS=""
-[ "$run_frontend" = true ] && CHECK_ARGS="--frontend"
-[ "$run_backend" = true ] && CHECK_ARGS="${CHECK_ARGS:+$CHECK_ARGS }--backend"
-# Unset so run-checks.sh always runs the AI review; push is only allowed when review passes (95%+).
-unset SKIP_AI_REVIEW
-bash scripts/run-checks.sh $CHECK_ARGS
+# Full mode: Node orchestrator (all checks + Stryker + E2E + AI deductive review). Loads .env for API keys.
+if [ -f "node_modules/.bin/shimwrappercheck" ] || command -v shimwrappercheck >/dev/null 2>&1; then
+  npx shimwrappercheck run --full || exit 1
+else
+  unset SKIP_AI_REVIEW
+  CHECK_ARGS=""
+  [ "$run_frontend" = true ] && CHECK_ARGS="--frontend"
+  [ "$run_backend" = true ] && CHECK_ARGS="${CHECK_ARGS:+$CHECK_ARGS }--backend"
+  bash scripts/run-checks.sh $CHECK_ARGS
+fi
 
 # Update README (e.g. "Last updated" line) so it stays in sync on push
 if [ -f scripts/update-readme-on-push.sh ]; then

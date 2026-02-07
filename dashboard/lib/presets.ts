@@ -37,6 +37,11 @@ export interface CheckToggles {
   frontend: boolean;
   backend: boolean;
   aiReview: boolean;
+  sast: boolean;
+  architecture: boolean;
+  complexity: boolean;
+  mutation: boolean;
+  e2e: boolean;
 }
 
 export interface SettingsData {
@@ -51,6 +56,11 @@ export const DEFAULT_CHECK_TOGGLES: CheckToggles = {
   frontend: true,
   backend: true,
   aiReview: true,
+  sast: true,
+  architecture: true,
+  complexity: true,
+  mutation: true,
+  e2e: true,
 };
 
 export const DEFAULT_VIBE_CODE_PRESET: Preset = {
@@ -91,6 +101,11 @@ export function buildRcContent(settings: SettingsData): string {
   if (!settings.checkToggles.frontend) args.push("--no-frontend");
   if (!settings.checkToggles.backend) args.push("--no-backend");
   if (!settings.checkToggles.aiReview) args.push("--no-ai-review");
+  if (!settings.checkToggles.sast) args.push("--no-sast");
+  if (!settings.checkToggles.architecture) args.push("--no-architecture");
+  if (!settings.checkToggles.complexity) args.push("--no-complexity");
+  if (!settings.checkToggles.mutation) args.push("--no-mutation");
+  if (!settings.checkToggles.e2e) args.push("--no-e2e");
   if (args.length) lines.push(`SHIM_CHECKS_ARGS="${args.join(" ")}"`);
 
   return lines.join("\n") + "\n";

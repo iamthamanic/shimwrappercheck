@@ -1,0 +1,35 @@
+{
+  "$schema": "https://dependency-cruiser.io/schema.json",
+  "forbidden": [
+    {
+      "name": "no-circular",
+      "severity": "error",
+      "from": {},
+      "to": { "circular": true }
+    },
+    {
+      "name": "no-orphans",
+      "severity": "warn",
+      "from": { "orphan": true },
+      "to": {}
+    },
+    {
+      "name": "layer-separation",
+      "comment": "Enforce layer separation: src must not depend on dashboard or scripts",
+      "severity": "error",
+      "from": { "path": "^src" },
+      "to": { "path": "^(dashboard|scripts|templates)" }
+    },
+    {
+      "name": "no-deprecated-core",
+      "severity": "warn",
+      "from": {},
+      "to": { "dependencyTypes": ["core"] }
+    }
+  ],
+  "options": {
+    "doNotFollow": { "path": "node_modules" },
+    "tsPreCompilationDeps": true,
+    "enhancedResolveOptions": { "exportsFields": ["exports"], "conditionNames": ["import", "require"] }
+  }
+}

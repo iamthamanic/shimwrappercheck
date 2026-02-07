@@ -19,3 +19,7 @@ It can be edited via the dashboard (Config → AGENTS.md) so agents and humans s
 
 - Keep checks fast; run lint/type/build in `scripts/run-checks.sh`.
 - When changing shim behavior, update README and docs/SHIM_WRAPPER_CONCEPT.md if needed.
+
+## Hard Rules (optional tools)
+
+For full shim checks (SAST, architecture, complexity, mutation, E2E, AI deductive review), projects can install: `dependency-cruiser`, `eslint-plugin-complexity`, `@stryker-mutator/core`, and optionally `semgrep` (CLI). Config templates live in `templates/` (e.g. `.dependency-cruiser.json`, `.semgrep.example.yml`, `stryker.config.json`, `eslint.complexity.json`). Run `npx shimwrappercheck init` to optionally copy these into the project.

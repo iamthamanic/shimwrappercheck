@@ -375,7 +375,7 @@ export default function SettingsPage() {
       {/* Check toggles */}
       <div className="card bg-base-100 shadow-md">
         <div className="card-body">
-          <h2 className="card-title">Checks (run-checks.sh)</h2>
+          <h2 className="card-title">Checks (Shim Runner / run-checks.sh)</h2>
           <p className="text-sm text-base-content/70">Welche Schritte beim Check-Lauf ausgeführt werden.</p>
           <div className="flex flex-wrap gap-6">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -400,10 +400,55 @@ export default function SettingsPage() {
               <input
                 type="checkbox"
                 className="toggle toggle-sm"
+                checked={settings.checkToggles.sast}
+                onChange={(e) => setCheckToggles("sast", e.target.checked)}
+              />
+              <span>SAST (semgrep)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="toggle toggle-sm"
+                checked={settings.checkToggles.architecture}
+                onChange={(e) => setCheckToggles("architecture", e.target.checked)}
+              />
+              <span>Architektur (dependency-cruiser)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="toggle toggle-sm"
+                checked={settings.checkToggles.complexity}
+                onChange={(e) => setCheckToggles("complexity", e.target.checked)}
+              />
+              <span>Komplexität (max 10)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="toggle toggle-sm"
+                checked={settings.checkToggles.mutation}
+                onChange={(e) => setCheckToggles("mutation", e.target.checked)}
+              />
+              <span>Mutation (Stryker ≥80%)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="toggle toggle-sm"
+                checked={settings.checkToggles.e2e}
+                onChange={(e) => setCheckToggles("e2e", e.target.checked)}
+              />
+              <span>E2E (Playwright)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="toggle toggle-sm"
                 checked={settings.checkToggles.aiReview}
                 onChange={(e) => setCheckToggles("aiReview", e.target.checked)}
               />
-              <span>AI Review (Codex/Cursor)</span>
+              <span>AI Review (Deductive 95%)</span>
             </label>
           </div>
         </div>

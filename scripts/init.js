@@ -221,6 +221,29 @@ async function main() {
     }
   }
 
+  const copyHardRulesTemplates = await askYesNo(
+    'Hard-Rules Config-Templates kopieren (dependency-cruiser, semgrep, stryker, eslint complexity)?',
+    false
+  );
+  if (copyHardRulesTemplates) {
+    const hardRules = [
+      ['.dependency-cruiser.json', '.dependency-cruiser.json'],
+      ['.semgrep.example.yml', '.semgrep.example.yml'],
+      ['stryker.config.json', 'stryker.config.json'],
+      ['eslint.complexity.json', 'eslint.complexity.json'],
+    ];
+    for (const [tpl, destName] of hardRules) {
+      const src = path.join(templatesDir, tpl);
+      if (exists(src)) {
+        const dest = path.join(projectRoot, destName);
+        if (!exists(dest)) {
+          fs.copyFileSync(src, dest);
+          console.log('  angelegt: ' + destName);
+        }
+      }
+    }
+  }
+
   if (hasGit) {
     let hookInstalled = false;
     if (hasHusky) {
@@ -327,12 +350,66 @@ async function main() {
     console.log('- optional: RUN_CURSOR_REVIEW=1 fuer zweiten Review-Durchlauf');
   }
   console.log('- pruefe ggf. scripts/run-checks.sh und passe die Checks an');
-  console.log('');
-  console.log('Einstellungen spaeter aendern: Dashboard starten mit');
-  console.log('  cd node_modules/shimwrappercheck/dashboard && npm install && npm run dev');
-  console.log('  dann http://localhost:3000 oeffnen (Presets, Checks, AGENTS.md).');
+
+  if (process.env.SHIM_LAUNCH_DASHBOARD === '1') {
+    launchDashboard();
+  } else {
+    console.log('');
+    console.log('Einstellungen spaeter aendern: Dashboard starten mit');
+    console.log('  cd node_modules/shimwrappercheck/dashboard && npm install && npm run dev');
+    console.log('  dann http://localhost:3000 oeffnen (Presets, Checks, AGENTS.md).');
+  }
 
   rl.close();
+}
+
+function launchDashboard() {
+  const dashboardPath = path.join(pkgRoot, 'dashboard');
+  if (!exists(dashboardPath)) {
+    console.log('');
+    console.log('Dashboard nicht gefunden. Spaeter: cd node_modules/shimwrappercheck/dashboard && npm run dev');
+    return;
+  }
+  let port = 3000;
+  try {
+    const findPortScript = path.join(__dirname, 'find-free-port.js');
+    port = parseInt(cp.execSync(`node "${findPortScript}" 3000`, { encoding: 'utf8' }).trim(), 10);
+  } catch (e) {
+    // fallback 3000
+  }
+  const url = `http://localhost:${port}`;
+  console.log('');
+  console.log('Starte Dashboard (grafische Oberflaeche) auf Port ' + port + '...');
+  try {
+    cp.execSync('npm install', { cwd: dashboardPath, stdio: 'pipe' });
+  } catch (e) {
+    console.log('npm install im Dashboard-Ordner fehlgeschlagen, starte trotzdem.');
+  }
+  const dev = cp.spawn('npm', ['run', 'dev'], {
+    cwd: dashboardPath,
+    detached: true,
+    stdio: 'ignore',
+    env: { ...process.env, PORT: String(port) },
+  });
+  dev.unref();
+  const delay = 5000;
+  setTimeout(() => {
+    try {
+      if (process.platform === 'darwin') {
+        cp.execSync(`open "${url}"`);
+      } else if (process.platform === 'win32') {
+        cp.execSync(`start "${url}"`);
+      } else {
+        cp.execSync(`xdg-open "${url}"`);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, delay);
+  console.log('');
+  console.log('Dashboard wird gestartet. Browser oeffnet sich in wenigen Sekunden unter ' + url);
+  console.log('Falls nicht: ' + url + ' im Browser oeffnen.');
+  console.log('Zum Beenden des Servers: Prozess "next dev" beenden (Aktivitaetsmonitor / Task-Manager).');
 }
 
 main().catch((err) => {

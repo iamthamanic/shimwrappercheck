@@ -49,6 +49,7 @@ function main() {
     console.log('Kein package.json gefunden. Führe init trotzdem aus (globale Nutzung).');
   }
 
+  process.env.SHIM_LAUNCH_DASHBOARD = '1';
   require(path.join(__dirname, 'init'));
 }
 

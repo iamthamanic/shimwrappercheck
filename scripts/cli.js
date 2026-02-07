@@ -18,6 +18,13 @@ if (cmd === 'install') {
   return;
 }
 
+if (cmd === 'run') {
+  const runArgs = process.argv.slice(3);
+  process.argv = [process.argv[0], path.join(__dirname, 'shim-runner.js'), ...runArgs];
+  require(path.join(__dirname, 'shim-runner.js'));
+  return;
+}
+
 console.error('Unknown command:', cmd);
-console.error('Usage: shimwrappercheck [setup|init|install]');
+console.error('Usage: shimwrappercheck [setup|init|install|run]');
 process.exit(1);

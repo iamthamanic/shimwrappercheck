@@ -11,6 +11,7 @@ import {
   type Preset,
   DEFAULT_SETTINGS,
   DEFAULT_VIBE_CODE_PRESET,
+  DEFAULT_CHECK_TOGGLES,
   buildRcContent,
   SUPABASE_COMMAND_IDS,
   GIT_COMMAND_IDS,
@@ -27,13 +28,18 @@ function getRcPath(): string {
 }
 
 function parseRcToSettings(rawRc: string): Partial<SettingsData> {
-  const checkToggles = { frontend: true, backend: true, aiReview: true };
+  const checkToggles = { ...DEFAULT_CHECK_TOGGLES };
   const argsMatch = rawRc.match(/SHIM_CHECKS_ARGS="([^"]*)"/);
   if (argsMatch) {
     const args = argsMatch[1];
     if (args.includes("--no-frontend")) checkToggles.frontend = false;
     if (args.includes("--no-backend")) checkToggles.backend = false;
     if (args.includes("--no-ai-review")) checkToggles.aiReview = false;
+    if (args.includes("--no-sast")) checkToggles.sast = false;
+    if (args.includes("--no-architecture")) checkToggles.architecture = false;
+    if (args.includes("--no-complexity")) checkToggles.complexity = false;
+    if (args.includes("--no-mutation")) checkToggles.mutation = false;
+    if (args.includes("--no-e2e")) checkToggles.e2e = false;
   }
   const enforceMatch = rawRc.match(/SHIM_ENFORCE_COMMANDS="([^"]*)"/);
   const hookMatch = rawRc.match(/SHIM_HOOK_COMMANDS="([^"]*)"/);
