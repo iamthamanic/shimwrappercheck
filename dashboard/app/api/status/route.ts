@@ -10,6 +10,12 @@ import { getProjectRoot } from "@/lib/projectRoot";
 export async function GET() {
   try {
     const root = getProjectRoot();
+    if (!root || typeof root !== "string") {
+      return NextResponse.json(
+        { projectRoot: "", config: false, presetsFile: false, agentsMd: false, runChecksScript: false, shimRunner: false, prePushHusky: false, prePushGit: false, supabase: false, lastError: null, error: "Project root not available" },
+        { status: 200 }
+      );
+    }
     const hasRc = fs.existsSync(path.join(root, ".shimwrappercheckrc"));
     const hasPresets = fs.existsSync(path.join(root, ".shimwrappercheck-presets.json"));
     const hasAgents = fs.existsSync(path.join(root, "AGENTS.md"));
@@ -45,6 +51,21 @@ export async function GET() {
     });
   } catch (err) {
     console.error("status error:", err);
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
+    return NextResponse.json(
+      {
+        projectRoot: "",
+        config: false,
+        presetsFile: false,
+        agentsMd: false,
+        runChecksScript: false,
+        shimRunner: false,
+        prePushHusky: false,
+        prePushGit: false,
+        supabase: false,
+        lastError: null,
+        error: err instanceof Error ? err.message : "Unknown error",
+      },
+      { status: 200 }
+    );
   }
 }

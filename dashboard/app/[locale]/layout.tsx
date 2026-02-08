@@ -49,22 +49,26 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 export default async function LocaleLayout({ children, params }: Props) {
   let locale: string = routing.defaultLocale;
+  let messages: Record<string, unknown> = {};
   try {
     const resolved = params != null ? await params : null;
     const requested = resolved?.locale;
     if (requested && hasLocale(routing.locales, requested)) {
       locale = requested;
     }
+    const raw = getMessages(locale);
+    messages = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
   } catch (e) {
-    console.error("LocaleLayout params failed:", e);
-    notFound();
+    console.error("LocaleLayout params/messages failed:", e);
+    locale = routing.defaultLocale;
+    messages = {};
   }
-  const messages = getMessages(locale) ?? {};
   // Rounded to full minute so server/client serialization matches (avoids hydration mismatch / "1 Issue")
   const now = new Date(Math.floor(Date.now() / 60_000) * 60_000);
 
-  return (
-    <NextIntlClientProvider messages={messages} locale={locale} timeZone="Europe/Berlin" now={now}>
+  try {
+    return (
+      <NextIntlClientProvider messages={messages} locale={locale} timeZone="Europe/Berlin" now={now}>
       <DevConsoleHint />
       <SetDocumentLang />
       <Header />
@@ -76,5 +80,14 @@ export default async function LocaleLayout({ children, params }: Props) {
         </SettingsSavedProvider>
       </div>
     </NextIntlClientProvider>
-  );
+    );
+  } catch (e) {
+    console.error("LocaleLayout render failed:", e);
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0f0f0f] text-white p-4">
+        <h1 className="text-xl font-semibold mb-2">Dashboard fehlt</h1>
+        <p className="text-neutral-400 text-sm">{e instanceof Error ? e.message : "Unbekannter Fehler"}</p>
+      </div>
+    );
+  }
 }

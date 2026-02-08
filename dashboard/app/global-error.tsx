@@ -3,10 +3,9 @@
 /**
  * Catches errors in the root layout and shows a fallback instead of 500.
  * Root boundary: no NextIntlProvider, so we use static messages (default locale).
+ * No dynamic imports so this boundary never throws.
  * Location: app/global-error.tsx
  */
-import errorEn from "@/messages/en.json";
-
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
@@ -14,10 +13,9 @@ function getErrorMessage(error: unknown): string {
 }
 
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  const err = (errorEn as { error?: { title?: string; fallbackMessage?: string; retry?: string } }).error;
-  const title = err?.title ?? "Error";
-  const fallback = err?.fallbackMessage ?? "An unexpected error occurred.";
-  const retry = err?.retry ?? "Retry";
+  const title = "Error";
+  const fallback = "An unexpected error occurred.";
+  const retry = "Retry";
   const message = getErrorMessage(error);
   return (
     <html lang="en">
