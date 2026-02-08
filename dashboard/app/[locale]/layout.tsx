@@ -4,7 +4,6 @@
  */
 import { NextIntlClientProvider } from "next-intl";
 import { hasLocale } from "next-intl";
-import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import DevConsoleHint from "@/components/DevConsoleHint";
 import Header from "@/components/Header";
@@ -69,17 +68,17 @@ export default async function LocaleLayout({ children, params }: Props) {
   try {
     return (
       <NextIntlClientProvider messages={messages} locale={locale} timeZone="Europe/Berlin" now={now}>
-      <DevConsoleHint />
-      <SetDocumentLang />
-      <Header />
-      <div className="flex flex-1 min-h-0 flex-col w-full min-h-[50vh] bg-[#0f0f0f]">
-        <SettingsSavedProvider>
-          <ShimDndWithNotify>
-            <LayoutContent>{children}</LayoutContent>
-          </ShimDndWithNotify>
-        </SettingsSavedProvider>
-      </div>
-    </NextIntlClientProvider>
+        <DevConsoleHint />
+        <SetDocumentLang />
+        <Header />
+        <div className="flex flex-1 min-h-0 flex-col w-full min-h-[50vh] bg-[#0f0f0f]">
+          <SettingsSavedProvider>
+            <ShimDndWithNotify>
+              <LayoutContent>{children}</LayoutContent>
+            </ShimDndWithNotify>
+          </SettingsSavedProvider>
+        </div>
+      </NextIntlClientProvider>
     );
   } catch (e) {
     console.error("LocaleLayout render failed:", e);

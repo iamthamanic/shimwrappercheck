@@ -309,15 +309,11 @@ export default function ShimDndProvider({ children, onSettingsSaved }: ShimDndPr
           orderChanged && orderBefore.includes(activeIdStr) && (next.checkOrder ?? []).includes(activeIdStr);
         if (wasReorder && typeof window !== "undefined") {
           const newIndex = (next.checkOrder ?? []).indexOf(activeIdStr);
-          window.dispatchEvent(
-            new CustomEvent("my-checks-reordered", { detail: { movedId: activeIdStr, newIndex } })
-          );
+          window.dispatchEvent(new CustomEvent("my-checks-reordered", { detail: { movedId: activeIdStr, newIndex } }));
         }
         if (wasAddToMyChecks && typeof window !== "undefined") {
           const newIndex = (next.checkOrder ?? []).indexOf(activeIdStr);
-          window.dispatchEvent(
-            new CustomEvent("my-checks-reordered", { detail: { movedId: activeIdStr, newIndex } })
-          );
+          window.dispatchEvent(new CustomEvent("my-checks-reordered", { detail: { movedId: activeIdStr, newIndex } }));
           setTimeout(() => {
             window.dispatchEvent(new CustomEvent("check-activated", { detail: { checkId: activeIdStr } }));
           }, 120);

@@ -208,9 +208,7 @@ export default function CheckCard({
         {orderIndex != null && (
           <span
             className={`flex items-center justify-center w-6 h-6 rounded text-white text-xs font-semibold shrink-0 transition-colors duration-300 ${
-              orderBadgeHighlight
-                ? "ring-2 ring-green-400 bg-green-500/90"
-                : "bg-white/20"
+              orderBadgeHighlight ? "ring-2 ring-green-400 bg-green-500/90" : "bg-white/20"
             } ${dragHandle != null ? "ml-2" : ""}`}
             title={`${t("runOrder")}: ${orderIndex}`}
           >

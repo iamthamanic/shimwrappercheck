@@ -12,7 +12,19 @@ export async function GET() {
     const root = getProjectRoot();
     if (!root || typeof root !== "string") {
       return NextResponse.json(
-        { projectRoot: "", config: false, presetsFile: false, agentsMd: false, runChecksScript: false, shimRunner: false, prePushHusky: false, prePushGit: false, supabase: false, lastError: null, error: "Project root not available" },
+        {
+          projectRoot: "",
+          config: false,
+          presetsFile: false,
+          agentsMd: false,
+          runChecksScript: false,
+          shimRunner: false,
+          prePushHusky: false,
+          prePushGit: false,
+          supabase: false,
+          lastError: null,
+          error: "Project root not available",
+        },
         { status: 200 }
       );
     }
