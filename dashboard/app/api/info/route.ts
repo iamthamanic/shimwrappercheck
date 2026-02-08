@@ -17,14 +17,10 @@ export async function GET() {
         // keep default
       }
     }
-    const lastUpdated =
-      process.env.NEXT_PUBLIC_BUILD_TIME ?? null;
+    const lastUpdated = process.env.NEXT_PUBLIC_BUILD_TIME ?? null;
     return NextResponse.json({ version, lastUpdated });
   } catch (err) {
     console.error("info error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unknown error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }

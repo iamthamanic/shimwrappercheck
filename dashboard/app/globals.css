@@ -13,6 +13,21 @@ body {
   overflow-x: hidden;
 }
 
+/* Next.js Dev Portal: 0x0 halten, kein Layout/keine Auswahl; nur Overlay-Inhalt klickbar */
+nextjs-portal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+  z-index: 99999;
+}
+nextjs-portal > * {
+  pointer-events: auto;
+}
+
 /* DaisyUI loading: klein halten, kein großer Bogen */
 .loading.loading-spinner {
   width: 2rem;
@@ -21,4 +36,15 @@ body {
 .loading.loading-lg {
   width: 2.5rem;
   height: 2.5rem;
+}
+
+@keyframes burst {
+  from {
+    transform: scale(0);
+    opacity: 1;
+  }
+  to {
+    transform: scale(2);
+    opacity: 0;
+  }
 }

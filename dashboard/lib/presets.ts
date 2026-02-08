@@ -6,12 +6,7 @@ import { getCheckRole } from "./checks";
 
 export type ProviderId = "supabase" | "git";
 
-export const SUPABASE_COMMAND_IDS = [
-  "functions",
-  "db",
-  "migration",
-  "push",
-] as const;
+export const SUPABASE_COMMAND_IDS = ["functions", "db", "migration", "push"] as const;
 export const GIT_COMMAND_IDS = ["push", "commit", "merge", "rebase"] as const;
 
 export type SupabaseCommandId = (typeof SUPABASE_COMMAND_IDS)[number];
@@ -36,14 +31,19 @@ export interface Preset {
 
 export interface CheckToggles {
   lint: boolean;
+  prettier: boolean;
+  typecheck: boolean;
   checkMockData: boolean;
   testRun: boolean;
+  projectRules: boolean;
   npmAudit: boolean;
+  viteBuild: boolean;
   snyk: boolean;
   denoFmt: boolean;
   denoLint: boolean;
   denoAudit: boolean;
   aiReview: boolean;
+  updateReadme: boolean;
   sast: boolean;
   architecture: boolean;
   complexity: boolean;
@@ -72,14 +72,19 @@ const VIBE_CODE_ID = "vibe-code";
 /** By default no check runs; user adds checks to My Shim to enable them. */
 export const DEFAULT_CHECK_TOGGLES: CheckToggles = {
   lint: false,
+  prettier: false,
+  typecheck: false,
   checkMockData: false,
   testRun: false,
+  projectRules: false,
   npmAudit: false,
+  viteBuild: false,
   snyk: false,
   denoFmt: false,
   denoLint: false,
   denoAudit: false,
   aiReview: false,
+  updateReadme: false,
   sast: false,
   architecture: false,
   complexity: false,
@@ -124,7 +129,17 @@ export function buildRcContent(settings: SettingsData): string {
   }
 
   const t = settings.checkToggles;
-  const frontendAllOff = !t.lint && !t.checkMockData && !t.testRun && !t.npmAudit && !t.snyk;
+  const frontendAllOff =
+    !t.lint &&
+    !t.prettier &&
+    !t.typecheck &&
+    !t.checkMockData &&
+    !t.testRun &&
+    !t.projectRules &&
+    !t.npmAudit &&
+    !t.viteBuild &&
+    !t.snyk &&
+    !t.updateReadme;
   const backendAllOff = !t.denoFmt && !t.denoLint && !t.denoAudit;
   const args: string[] = [];
   if (frontendAllOff) args.push("--no-frontend");
@@ -145,13 +160,18 @@ export function buildRcContent(settings: SettingsData): string {
   lines.push(`SHIM_HOOK_CHECK_ORDER="${hookOrder.join(",")}"`);
 
   lines.push(`SHIM_RUN_LINT=${t.lint ? 1 : 0}`);
+  lines.push(`SHIM_RUN_PRETTIER=${t.prettier ? 1 : 0}`);
+  lines.push(`SHIM_RUN_TYPECHECK=${t.typecheck ? 1 : 0}`);
   lines.push(`SHIM_RUN_CHECK_MOCK_DATA=${t.checkMockData ? 1 : 0}`);
   lines.push(`SHIM_RUN_TEST_RUN=${t.testRun ? 1 : 0}`);
+  lines.push(`SHIM_RUN_PROJECT_RULES=${t.projectRules ? 1 : 0}`);
   lines.push(`SHIM_RUN_NPM_AUDIT=${t.npmAudit ? 1 : 0}`);
+  lines.push(`SHIM_RUN_VITE_BUILD=${t.viteBuild ? 1 : 0}`);
   lines.push(`SHIM_RUN_SNYK=${t.snyk ? 1 : 0}`);
   lines.push(`SHIM_RUN_DENO_FMT=${t.denoFmt ? 1 : 0}`);
   lines.push(`SHIM_RUN_DENO_LINT=${t.denoLint ? 1 : 0}`);
   lines.push(`SHIM_RUN_DENO_AUDIT=${t.denoAudit ? 1 : 0}`);
+  lines.push(`SHIM_RUN_UPDATE_README=${t.updateReadme ? 1 : 0}`);
 
   const cs = settings.checkSettings;
   if (!t.snyk) lines.push("SKIP_SNYK=1");

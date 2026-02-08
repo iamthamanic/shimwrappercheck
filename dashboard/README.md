@@ -11,6 +11,19 @@ npm run dev
 
 Open http://localhost:3000.
 
+## Quality checks
+
+From the `dashboard` folder:
+
+```bash
+npm run check    # Prettier + TypeScript + ESLint
+npm run lint     # ESLint only
+npm run format   # Prettier write
+npm run format:check  # Prettier check
+```
+
+Security: run `npm audit` and optionally `npx snyk test`. If Snyk reports a Next.js vulnerability, consider upgrading Next (see [Next.js upgrade guide](https://nextjs.org/docs/app/guides/upgrading)).
+
 ## Deploy (e.g. Vercel)
 
 - Set **Root Directory** to `dashboard` (or deploy from repo root and build from `dashboard`).

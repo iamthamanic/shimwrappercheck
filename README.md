@@ -32,7 +32,7 @@ CLI-Shim, der Projekt-Checks ausführt, bevor ein echtes CLI-Kommando (z. B. S
 
 ### Checks (Beispiele)
 
-- **Frontend**: Lint, Check Mock Data, Test Run, npm Audit, Snyk.
+- **Frontend**: Lint, Check Mock Data, Test Run, npm Audit, Snyk, **Update README** (Version aus package.json in README syncen).
 - **Backend**: Deno fmt/lint/audit für Supabase Functions.
 - **Beides**: AI Review, SAST, Architecture, Complexity, Mutation, E2E (Templates/geplant).
 - **Hooks**: Post-Deploy Health Ping, Edge Logs.

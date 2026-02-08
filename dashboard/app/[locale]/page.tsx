@@ -13,10 +13,19 @@ export default function DashboardPage() {
   const [settings, setSettings] = useState<SettingsData | null>(null);
 
   const loadData = () => {
-    fetch("/api/settings")
+    const ac = new AbortController();
+    const timeoutId = setTimeout(() => ac.abort(), 8000);
+    fetch("/api/settings", { signal: ac.signal })
       .then((r) => r.json())
-      .then((data) => setSettings(data))
-      .catch(() => setSettings(null));
+      .then((data) => {
+        if (data && Array.isArray(data.presets) && data.checkToggles && typeof data.activePresetId === "string") {
+          setSettings(data as SettingsData);
+        } else {
+          setSettings(null);
+        }
+      })
+      .catch(() => setSettings(null))
+      .finally(() => clearTimeout(timeoutId));
   };
 
   useEffect(() => {
@@ -41,8 +50,13 @@ export default function DashboardPage() {
   const handleDeactivate = saveSettings;
 
   return (
-    <div className="space-y-8 text-white">
-      <AvailableChecks settings={settings} onActivate={handleActivate} onDeactivate={handleDeactivate} onSave={saveSettings} />
+    <div className="flex flex-col flex-1 min-h-0 text-white">
+      <AvailableChecks
+        settings={settings}
+        onActivate={handleActivate}
+        onDeactivate={handleDeactivate}
+        onSave={saveSettings}
+      />
     </div>
   );
 }

@@ -1,0 +1,296 @@
+{
+  "common": {
+    "appName": "shimwrappercheck",
+    "dashboard": "Dashboard",
+    "settings": "Settings",
+    "config": "Config",
+    "agentsMd": "AGENTS.md",
+    "myshim": "myshim",
+    "search": "Search...",
+    "searchFulltext": "Full-text search …",
+    "all": "All",
+    "frontend": "Frontend",
+    "backend": "Backend",
+    "enforce": "Enforce",
+    "hooks": "Hooks",
+    "info": "Info",
+    "settingsLabel": "Settings",
+    "active": "Active",
+    "inactive": "Inactive",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "close": "Close",
+    "closeLower": "close",
+    "remove": "Remove",
+    "save": "Save",
+    "saving": "Saving…",
+    "saveFailed": "Save failed.",
+    "cancel": "Cancel",
+    "name": "Name",
+    "export": "Export",
+    "rename": "Rename",
+    "loading": "Loading…",
+    "preset": "Preset",
+    "templates": "Templates",
+    "information": "Information",
+    "presetsAndSettings": "Templates & Settings",
+    "runOrder": "Run order",
+    "showLarger": "Show larger",
+    "details": "Info & Settings",
+    "expandDetails": "Show info and settings",
+    "collapseDetails": "Hide info and settings",
+    "toolPresent": "present",
+    "toolNotFound": "not found",
+    "toolLabel": "Tool",
+    "statusPresent": "✓ Present",
+    "statusMissing": "— Not found",
+    "noResults": "No results.",
+    "dragToActivate": "Drag to My Shim to activate",
+    "addToMyShim": "Add to My Shim",
+    "matches": "matches",
+    "updated": "updated",
+    "unknownCommands": "Unknown or invalid commands",
+    "clickToEdit": "Click to edit",
+    "enforceHint": "Allowed: git push, supabase functions deploy, supabase db push, supabase migration, supabase push.",
+    "hooksHint": "Supabase only: supabase functions deploy, supabase db push, supabase migration, supabase push.",
+    "hooksOnlySupabase": "Only Supabase commands allowed.",
+    "searchTriggerCommandos": "Full-text search in Trigger Commandos",
+    "commandEnterPlaceholder": "Enter command, Enter for new tag",
+    "commandExampleEnforce": "e.g. git push, Enter for new tag",
+    "commandExampleHooks": "e.g. supabase functions deploy (Supabase only), Enter for new tag",
+    "commandNewTag": "Enter command, Enter for new tag",
+    "dropHereActivate": "Drop here – activate check",
+    "dropHereDeactivate": "Drop here – deactivate check",
+    "insertHere": "Insert here",
+    "noMyChecksYet": "No My Checks yet. Drag from Check Library here.",
+    "dragFromLibrary": "Drag checks from Check Library into the area above to activate them.",
+    "removeFromMyShim": "Remove from My Shim (back to Check Library)",
+    "dragToReorder": "Drag to reorder",
+    "dashboardTitle": "shimwrappercheck Dashboard",
+    "dashboardDescription": "Config & AGENTS.md for shimwrappercheck"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "settings": "Settings",
+    "config": "Config",
+    "agentsMd": "AGENTS.md"
+  },
+  "header": {
+    "settingsAria": "Settings"
+  },
+  "sidebar": {
+    "myActiveShim": "My Active Shim"
+  },
+  "triggerCommandos": {
+    "title": "My Trigger Commandos"
+  },
+  "checkLibrary": {
+    "title": "Check Library"
+  },
+  "myChecks": {
+    "title": "My Checks"
+  },
+  "settings": {
+    "loadError": "Settings could not be loaded.",
+    "timeout": "Timeout. Please try again.",
+    "loadFailed": "Loading failed.",
+    "retry": "Retry",
+    "saved": "Settings saved.",
+    "saveFailed": "Save failed.",
+    "savedShort": "Saved.",
+    "presetRenamed": "Preset renamed.",
+    "uiPortTitle": "UI – Port",
+    "uiPortDesc": "Which port the UI should use or whether a free port is chosen automatically.",
+    "portAuto": "Automatically choose a free port",
+    "portFixed": "Fixed port:",
+    "savePort": "Save port setting",
+    "version": "Version:",
+    "lastUpdated": "Last updated:",
+    "statusTitle": "Status",
+    "projectRoot": "Project root:",
+    "lastCheckError": "Last check error (.shim/last_error.json)",
+    "suggestion": "Suggestion:",
+    "actionsTitle": "Actions",
+    "runChecks": "Run checks only",
+    "running": "Running…",
+    "configRaw": "Config (Raw)",
+    "editAgentsMd": "Edit AGENTS.md",
+    "lastCheckOutput": "Last check output",
+    "ok": "(OK)",
+    "error": "(Error)",
+    "noOutput": "(no output)",
+    "presetIntro": "Choose preset and enable/disable checks. Trigger commands (Supabase/Git) are set in My Shim. Save writes .shimwrappercheckrc.",
+    "presetStorageHint": "Presets are saved in this project. Use Export to reuse in another project.",
+    "presetTitle": "Preset",
+    "presetOptions": "Options for active preset",
+    "presetOptionsAria": "Preset options",
+    "deletePreset": "Delete preset",
+    "newPreset": "New preset",
+    "createPreset": "Create",
+    "exportPreset": "Export preset",
+    "exportFilenameHint": "Filename (will be downloaded as .json):",
+    "exportPlaceholder": "my-preset.json",
+    "renamePreset": "Rename preset",
+    "renamePresetHint": "New name (also shown in My Shim):",
+    "providersTitle": "Providers in this preset",
+    "providersDesc": "Add providers (e.g. GitHub, Supabase).",
+    "github": "GitHub",
+    "supabase": "Supabase",
+    "removeProvider": "remove",
+    "runChecksRequestFailed": "Request failed."
+  },
+  "statusCard": {
+    "configRc": ".shimwrappercheckrc",
+    "presetsFile": "Presets (.shimwrappercheck-presets.json)",
+    "presetsDetail": "Presets & check toggles (settings)",
+    "agentsMd": "AGENTS.md",
+    "agentsMdDetail": "Agent instructions (editable via GUI)",
+    "runChecksScript": "scripts/run-checks.sh",
+    "shimRunner": "Shim Runner",
+    "shimRunnerDetail": "Node orchestrator (npx shimwrappercheck run)",
+    "huskyPrePush": "Husky pre-push",
+    "gitPrePushHook": "Git pre-push Hook",
+    "supabase": "Supabase"
+  },
+  "config": {
+    "title": "Config (.shimwrappercheckrc)",
+    "description": "Shell variables and comments. Used on next shim invocation.",
+    "placeholder": "# shimwrappercheck config\nSHIM_ENFORCE_COMMANDS=\"functions,db,migration\"\n...",
+    "saved": "Config saved."
+  },
+  "agents": {
+    "title": "AGENTS.md",
+    "description": "Agent instructions for Cursor/Codex. Read by agents; editable here. Changes apply immediately.",
+    "notExists": "AGENTS.md does not exist yet. It will be created in the project root when you save.",
+    "placeholder": "# Agent instructions...",
+    "saved": "AGENTS.md saved."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The requested URL does not exist."
+  },
+  "error": {
+    "title": "Error",
+    "fallbackMessage": "An unexpected error occurred.",
+    "retry": "Retry"
+  },
+  "checks": {
+    "lint": {
+      "label": "ESLint",
+      "summary": "Lint (Frontend): Checks code for style issues and common error sources.",
+      "info": "Runs npm run lint (ESLint). Finds e.g. missing semicolons, unused variables, project rule violations."
+    },
+    "prettier": {
+      "label": "Prettier",
+      "summary": "Format: Consistent code formatting before push.",
+      "info": "Runs Prettier (e.g. npm run format or prettier --check). Ensures consistent indentation, quotes, and line breaks."
+    },
+    "typecheck": {
+      "label": "TypeScript Check",
+      "summary": "Typecheck: Verifies TypeScript types before push.",
+      "info": "Runs the TypeScript compiler (e.g. npm run typecheck or tsc --noEmit). Finds type errors without building the app."
+    },
+    "testRun": {
+      "label": "Vitest",
+      "summary": "Tests: Unit and integration tests – only continues if all pass.",
+      "info": "Runs tests (e.g. npm run test or Vitest). Command (e.g. push/deploy) continues only when all tests pass."
+    },
+    "projectRules": {
+      "label": "Project rules",
+      "summary": "Project rules: Runs scripts/checks/project-rules.sh.",
+      "info": "Runs the script scripts/checks/project-rules.sh. Checks project-specific rules (e.g. directory structure, naming, allowed imports)."
+    },
+    "npmAudit": {
+      "label": "npm audit",
+      "summary": "Dependency-Security: Known vulnerabilities in npm packages.",
+      "info": "Runs npm audit. Scans for known security issues in dependencies and warns about outdated versions. Level configurable (critical, high, moderate, low).",
+      "auditLevel": "Audit level"
+    },
+    "viteBuild": {
+      "label": "Vite",
+      "summary": "Build: Ensures the frontend project builds without errors.",
+      "info": "Runs the Vite build (e.g. npm run build). Continues only when the build succeeds – prevents broken deployments."
+    },
+    "snyk": {
+      "label": "Snyk",
+      "summary": "Optional: Additional dependency scan (Snyk).",
+      "info": "Snyk dependency scan. Finds vulnerabilities npm audit may miss. Optional – only when Snyk is installed in the project."
+    },
+    "denoFmt": {
+      "label": "Deno fmt",
+      "summary": "Deno Format (Backend/Functions).",
+      "info": "Deno format check for supabase/functions (deno fmt --check). Ensures consistent formatting of Edge Function code."
+    },
+    "denoLint": {
+      "label": "Deno lint",
+      "summary": "Deno Lint (Backend/Functions).",
+      "info": "Deno linter for supabase/functions (deno lint). Finds errors and bad practice in Deno code."
+    },
+    "denoAudit": {
+      "label": "Deno audit",
+      "summary": "Deno Audit (Backend/Functions).",
+      "info": "Deno security audit for supabase/functions (deno audit). Checks Deno dependencies for known vulnerabilities."
+    },
+    "aiReview": {
+      "label": "Codex",
+      "summary": "AI Code Review (ai-code-review.sh).",
+      "info": "Code review via Codex: Analyzes Git diff (staged/unstaged or push range), rates code quality (Rating, Warnings, Errors). PASS only with sufficient rating and no critical findings. Review saved in .shimwrapper/reviews/.",
+      "timeoutSec": "Timeout (seconds)",
+      "diffLimitBytes": "Max diff size (bytes)",
+      "minRating": "Minimum rating for PASS",
+      "reviewDir": "Review output folder"
+    },
+    "checkMockData": {
+      "label": "Check Mock Data",
+      "summary": "Ensures mock data is consistent and valid.",
+      "info": "Runs check:mock-data – validates mock data."
+    },
+    "updateReadme": {
+      "label": "Update README",
+      "summary": "Updates the README before push (e.g. version from package.json).",
+      "info": "Runs the update-README script. Keeps project documentation up to date."
+    },
+    "sast": {
+      "label": "SAST",
+      "summary": "Static analysis: looks for typical security issues in code (planned).",
+      "info": "Planned / in config. Not yet implemented in run-checks.sh template."
+    },
+    "architecture": {
+      "label": "Architecture",
+      "summary": "Checks that project architecture follows rules (planned).",
+      "info": "Planned / in config. Not yet implemented in run-checks.sh template."
+    },
+    "complexity": {
+      "label": "Complexity",
+      "summary": "Warns about overly complex code – e.g. deeply nested functions (planned).",
+      "info": "Planned / in config. Not yet implemented in run-checks.sh template."
+    },
+    "mutation": {
+      "label": "Mutation",
+      "summary": "Tests whether your tests actually catch issues – via small code changes (planned).",
+      "info": "Planned / in config. Not yet implemented in run-checks.sh template."
+    },
+    "e2e": {
+      "label": "E2E",
+      "summary": "End-to-end tests: simulates real users and tests the app from start to finish (planned).",
+      "info": "Planned / in config. Not yet implemented in run-checks.sh template."
+    },
+    "healthPing": {
+      "label": "Post-Deploy: Health Ping",
+      "summary": "After deploy, checks that your Supabase Functions are reachable and respond.",
+      "info": "Calls health endpoints of Edge Functions after Supabase deploy (ping-edge-health.sh). Uses Project Ref (SUPABASE_PROJECT_REF or supabase/project-ref) and optional custom paths.",
+      "defaultFunction": "Default function",
+      "healthFunctions": "Additional functions (comma-separated)",
+      "healthPaths": "Health paths (comma-separated, {fn})",
+      "projectRef": "Supabase Project Ref"
+    },
+    "edgeLogs": {
+      "label": "Post-Deploy: Edge Logs",
+      "summary": "Fetches the latest Edge Function logs after deploy – to quickly verify everything ran.",
+      "info": "Fetches latest logs of deployed Edge Function(s) after deploy (fetch-edge-logs.sh).",
+      "defaultFunction": "Default function",
+      "logFunctions": "Functions for logs (comma-separated)",
+      "logLimit": "Number of log lines"
+    }
+  }
+}

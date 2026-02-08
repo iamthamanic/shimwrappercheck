@@ -10,10 +10,15 @@ import { getProjectRoot } from "@/lib/projectRoot";
 
 export type ToolStatus = { installed: boolean; label?: string; command?: string };
 
-function hasDep(pkg: { devDependencies?: Record<string, string>; dependencies?: Record<string, string> }, names: string[]): boolean {
+function hasDep(
+  pkg: { devDependencies?: Record<string, string>; dependencies?: Record<string, string> },
+  names: string[]
+): boolean {
   const dev = { ...pkg.devDependencies, ...pkg.dependencies };
   const keys = Object.keys(dev);
-  return names.some((n) => keys.includes(n) || keys.some((k) => k === n || k.startsWith(n + "/") || k.startsWith("@" + n)));
+  return names.some(
+    (n) => keys.includes(n) || keys.some((k) => k === n || k.startsWith(n + "/") || k.startsWith("@" + n))
+  );
 }
 
 function hasScript(pkg: { scripts?: Record<string, string> }, name: string): boolean {
@@ -24,7 +29,11 @@ export async function GET() {
   try {
     const root = getProjectRoot();
     const pkgPath = path.join(root, "package.json");
-    let pkg: { devDependencies?: Record<string, string>; dependencies?: Record<string, string>; scripts?: Record<string, string> } = {};
+    let pkg: {
+      devDependencies?: Record<string, string>;
+      dependencies?: Record<string, string>;
+      scripts?: Record<string, string>;
+    } = {};
     if (fs.existsSync(pkgPath)) {
       try {
         pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
@@ -49,34 +58,90 @@ export async function GET() {
       ? { installed: true, label: "Linter (z. B. ESLint) erkannt" }
       : { installed: false, label: "Kein Linter gefunden", command: "npm i -D eslint" };
 
+    // prettier
+    const prettierOk = hasDep(pkg, ["prettier"]) || hasScript(pkg, "format");
+    tools.prettier = prettierOk
+      ? { installed: true, label: "Prettier erkannt" }
+      : { installed: false, label: "Prettier nicht gefunden", command: "npm i -D prettier" };
+
+    // typecheck: tsc
+    const typecheckOk = hasDep(pkg, ["typescript"]) && (hasScript(pkg, "typecheck") || hasScript(pkg, "type-check"));
+    tools.typecheck = typecheckOk
+      ? { installed: true, label: "TypeScript Check erkannt" }
+      : { installed: false, label: "TypeScript oder typecheck-Script fehlt", command: "npm i -D typescript" };
+
     // checkMockData: script check:mock-data
     const mockOk = hasScript(pkg, "check:mock-data");
     tools.checkMockData = mockOk
       ? { installed: true, label: "Script check:mock-data vorhanden" }
-      : { installed: false, label: "Script fehlt", command: 'Füge in package.json unter "scripts": "check:mock-data": "..." hinzu' };
+      : {
+          installed: false,
+          label: "Script fehlt",
+          command: 'Füge in package.json unter "scripts": "check:mock-data": "..." hinzu',
+        };
 
     // testRun: jest / vitest / mocha
-    const testOk = hasDep(pkg, ["jest", "vitest", "mocha", "@jest/core"]) || hasScript(pkg, "test") || hasScript(pkg, "test:run");
+    const testOk =
+      hasDep(pkg, ["jest", "vitest", "mocha", "@jest/core"]) || hasScript(pkg, "test") || hasScript(pkg, "test:run");
     tools.testRun = testOk
-      ? { installed: true, label: "Test-Runner erkannt" }
+      ? { installed: true, label: "Test-Runner (z. B. Vitest) erkannt" }
       : { installed: false, label: "Kein Test-Runner gefunden", command: "npm i -D vitest" };
+
+    // projectRules: scripts/checks/project-rules.sh
+    const projectRulesPath = path.join(root, "scripts", "checks", "project-rules.sh");
+    tools.projectRules = fs.existsSync(projectRulesPath)
+      ? { installed: true, label: "scripts/checks/project-rules.sh vorhanden" }
+      : {
+          installed: false,
+          label: "Skript fehlt",
+          command: "Erstelle scripts/checks/project-rules.sh (ausführbar)",
+        };
 
     // npmAudit: built-in
     tools.npmAudit = { installed: true, label: "npm audit (eingebaut)" };
 
+    // viteBuild
+    const viteOk = hasDep(pkg, ["vite"]) || hasScript(pkg, "build");
+    tools.viteBuild = viteOk
+      ? { installed: true, label: "Vite oder build-Script erkannt" }
+      : { installed: false, label: "Vite/build nicht gefunden", command: "npm i -D vite" };
+
     // snyk
     const snykOk = hasDep(pkg, ["snyk"]);
-    tools.snyk = snykOk ? { installed: true, label: "Snyk erkannt" } : { installed: false, label: "Snyk nicht installiert", command: "npm i -D snyk" };
+    tools.snyk = snykOk
+      ? { installed: true, label: "Snyk erkannt" }
+      : { installed: false, label: "Snyk nicht installiert (optional)", command: "npm i -D snyk" };
 
     // deno*
     const denoLabel = denoInPath ? "Deno (PATH) erkannt" : "Deno nicht im PATH";
     const denoCmd = "Installation: https://deno.land";
-    tools.denoFmt = denoInPath ? { installed: true, label: denoLabel } : { installed: false, label: denoLabel, command: denoCmd };
-    tools.denoLint = denoInPath ? { installed: true, label: denoLabel } : { installed: false, label: denoLabel, command: denoCmd };
-    tools.denoAudit = denoInPath ? { installed: true, label: denoLabel } : { installed: false, label: denoLabel, command: denoCmd };
+    tools.denoFmt = denoInPath
+      ? { installed: true, label: denoLabel }
+      : { installed: false, label: denoLabel, command: denoCmd };
+    tools.denoLint = denoInPath
+      ? { installed: true, label: denoLabel }
+      : { installed: false, label: denoLabel, command: denoCmd };
+    tools.denoAudit = denoInPath
+      ? { installed: true, label: denoLabel }
+      : { installed: false, label: denoLabel, command: denoCmd };
 
     // aiReview: no single package; script/Codex
     tools.aiReview = { installed: true, label: "Skript/Codex" };
+
+    // updateReadme: script from package or project
+    const updateReadmeInPkg = fs.existsSync(
+      path.join(root, "node_modules", "shimwrappercheck", "scripts", "update-readme.js")
+    );
+    const updateReadmeInProject = fs.existsSync(path.join(root, "scripts", "update-readme.js"));
+    tools.updateReadme =
+      updateReadmeInPkg || updateReadmeInProject
+        ? { installed: true, label: "Update-README-Skript (Paket oder scripts/update-readme.js)" }
+        : {
+            installed: false,
+            label: "Skript fehlt",
+            command:
+              "Wird von run-checks aus node_modules/shimwrappercheck/scripts/ ausgeführt, wenn das Paket installiert ist",
+          };
 
     // Optional / geplant: SAST, architecture, complexity, mutation, e2e
     tools.sast = { installed: true, label: "Optional (z. B. semgrep)" };
@@ -92,9 +157,6 @@ export async function GET() {
     return NextResponse.json({ tools });
   } catch (err) {
     console.error("check-tools error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unknown error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }

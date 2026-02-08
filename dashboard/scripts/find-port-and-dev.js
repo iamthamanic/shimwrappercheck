@@ -26,7 +26,7 @@ function readUiConfig() {
         port: typeof data.port === "number" && data.port > 0 ? data.port : 3000,
       };
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
   return { portAuto: true, port: 3000 };
@@ -46,11 +46,14 @@ function tryPort(port, cb) {
 
 function runDev(port) {
   const url = `http://localhost:${port}`;
-  console.log("Dashboard:", url);
-  const child = spawn("npx", ["next", "dev", "-p", String(port)], {
-    cwd: path.join(__dirname, ".."),
+  // Dev script: show URL for user (no shell to avoid DEP0190 and proper arg escaping)
+  process.stdout.write(`Dashboard: ${url}\n`);
+  const cwd = path.join(__dirname, "..");
+  const nextBin = path.join(cwd, "node_modules", "next", "dist", "bin", "next");
+  const child = spawn(process.execPath, [nextBin, "dev", "-p", String(port)], {
+    cwd,
     stdio: "inherit",
-    shell: true,
+    env: { ...process.env, PORT: String(port) },
   });
   child.on("exit", (code) => process.exit(code || 0));
 }

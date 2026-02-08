@@ -14,7 +14,8 @@ export async function GET() {
     const hasPresets = fs.existsSync(path.join(root, ".shimwrappercheck-presets.json"));
     const hasAgents = fs.existsSync(path.join(root, "AGENTS.md"));
     const hasRunChecks = fs.existsSync(path.join(root, "scripts", "run-checks.sh"));
-    const hasRunner = fs.existsSync(path.join(root, "scripts", "shim-runner.js")) ||
+    const hasRunner =
+      fs.existsSync(path.join(root, "scripts", "shim-runner.js")) ||
       fs.existsSync(path.join(root, "node_modules", "shimwrappercheck", "scripts", "shim-runner.js"));
     const hasHusky = fs.existsSync(path.join(root, ".husky", "pre-push"));
     const hasGitHook = fs.existsSync(path.join(root, ".git", "hooks", "pre-push"));
@@ -44,9 +45,6 @@ export async function GET() {
     });
   } catch (err) {
     console.error("status error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unknown error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }

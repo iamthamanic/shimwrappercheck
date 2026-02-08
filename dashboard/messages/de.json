@@ -1,0 +1,296 @@
+{
+  "common": {
+    "appName": "shimwrappercheck",
+    "dashboard": "Dashboard",
+    "settings": "Einstellungen",
+    "config": "Config",
+    "agentsMd": "AGENTS.md",
+    "myshim": "myshim",
+    "search": "Suchen...",
+    "searchFulltext": "Volltextsuche …",
+    "all": "Alle",
+    "frontend": "Frontend",
+    "backend": "Backend",
+    "enforce": "Enforce",
+    "hooks": "Hooks",
+    "info": "Info",
+    "settingsLabel": "Settings",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "copy": "Kopieren",
+    "copied": "Kopiert!",
+    "close": "Schließen",
+    "closeLower": "schließen",
+    "remove": "Entfernen",
+    "save": "Speichern",
+    "saving": "Speichern…",
+    "saveFailed": "Speichern fehlgeschlagen.",
+    "cancel": "Abbrechen",
+    "name": "Name",
+    "export": "Export",
+    "rename": "Umbenennen",
+    "loading": "Laden…",
+    "preset": "Preset",
+    "templates": "Templates",
+    "information": "Information",
+    "presetsAndSettings": "Templates & Einstellungen",
+    "runOrder": "Laufreihenfolge",
+    "showLarger": "Größer anzeigen",
+    "details": "Info & Einstellungen",
+    "expandDetails": "Info und Einstellungen einblenden",
+    "collapseDetails": "Info und Einstellungen ausblenden",
+    "toolPresent": "vorhanden",
+    "toolNotFound": "nicht gefunden",
+    "toolLabel": "Tool",
+    "statusPresent": "✓ Vorhanden",
+    "statusMissing": "— Nicht gefunden",
+    "noResults": "Keine Treffer.",
+    "dragToActivate": "Ziehen in My Shim zum Aktivieren",
+    "addToMyShim": "Zu My Shim hinzufügen",
+    "matches": "Treffer",
+    "updated": "aktualisiert",
+    "unknownCommands": "Unbekannte oder ungültige Befehle",
+    "clickToEdit": "Klicken zum Bearbeiten",
+    "enforceHint": "Erlaubt: git push, supabase functions deploy, supabase db push, supabase migration, supabase push.",
+    "hooksHint": "Nur Supabase: supabase functions deploy, supabase db push, supabase migration, supabase push.",
+    "hooksOnlySupabase": "Nur Supabase-Befehle erlaubt.",
+    "searchTriggerCommandos": "Volltextsuche in Trigger Commandos",
+    "commandEnterPlaceholder": "Befehl eingeben, Enter für neues Tag",
+    "commandExampleEnforce": "z.B. git push, Enter für neues Tag",
+    "commandExampleHooks": "z.B. supabase functions deploy (nur Supabase), Enter für neues Tag",
+    "commandNewTag": "Befehl eingeben, Enter für neues Tag",
+    "dropHereActivate": "Hier ablegen – Check aktivieren",
+    "dropHereDeactivate": "Hier ablegen – Check deaktivieren",
+    "insertHere": "Hier einfügen",
+    "noMyChecksYet": "Noch keine My Checks. Aus der Check Library hierher ziehen.",
+    "dragFromLibrary": "Checks aus der Check Library in die Fläche oben ziehen, um sie zu aktivieren.",
+    "removeFromMyShim": "Aus My Shim entfernen (zurück in Check Library)",
+    "dragToReorder": "Ziehen zum Sortieren",
+    "dashboardTitle": "shimwrappercheck Dashboard",
+    "dashboardDescription": "Config & AGENTS.md für shimwrappercheck"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "settings": "Einstellungen",
+    "config": "Config",
+    "agentsMd": "AGENTS.md"
+  },
+  "header": {
+    "settingsAria": "Einstellungen"
+  },
+  "sidebar": {
+    "myActiveShim": "My Active Shim"
+  },
+  "triggerCommandos": {
+    "title": "My Trigger Commandos"
+  },
+  "checkLibrary": {
+    "title": "Check Library"
+  },
+  "myChecks": {
+    "title": "My Checks"
+  },
+  "settings": {
+    "loadError": "Einstellungen konnten nicht geladen werden.",
+    "timeout": "Zeitüberschreitung. Bitte erneut versuchen.",
+    "loadFailed": "Laden fehlgeschlagen.",
+    "retry": "Erneut versuchen",
+    "saved": "Einstellungen gespeichert.",
+    "saveFailed": "Speichern fehlgeschlagen.",
+    "savedShort": "Gespeichert.",
+    "presetRenamed": "Preset umbenannt.",
+    "uiPortTitle": "Grafische UI – Port",
+    "uiPortDesc": "Auf welchem Port die UI starten soll oder ob automatisch ein freier Port gewählt wird.",
+    "portAuto": "Automatisch einen freien Port wählen",
+    "portFixed": "Fester Port:",
+    "savePort": "Port-Einstellung speichern",
+    "version": "Version:",
+    "lastUpdated": "Zuletzt aktualisiert:",
+    "statusTitle": "Status",
+    "projectRoot": "Projekt-Root:",
+    "lastCheckError": "Letzter Check-Fehler (.shim/last_error.json)",
+    "suggestion": "Vorschlag:",
+    "actionsTitle": "Aktionen",
+    "runChecks": "Nur Checks ausführen",
+    "running": "Läuft…",
+    "configRaw": "Config (Raw)",
+    "editAgentsMd": "AGENTS.md bearbeiten",
+    "lastCheckOutput": "Letzte Check-Ausgabe",
+    "ok": "(OK)",
+    "error": "(Fehler)",
+    "noOutput": "(keine Ausgabe)",
+    "presetIntro": "Preset wählen und Checks ein-/ausschalten. Trigger-Befehle (Supabase/Git) legst du in My Shim fest. Speichern schreibt .shimwrappercheckrc.",
+    "presetStorageHint": "Presets werden in diesem Projekt gespeichert. Export nutzen, um sie in einem anderen Projekt wiederzuverwenden.",
+    "presetTitle": "Preset",
+    "presetOptions": "Optionen für aktives Preset",
+    "presetOptionsAria": "Preset-Optionen",
+    "deletePreset": "Preset löschen",
+    "newPreset": "Neues Preset",
+    "createPreset": "Anlegen",
+    "exportPreset": "Preset exportieren",
+    "exportFilenameHint": "Dateiname (wird als .json heruntergeladen):",
+    "exportPlaceholder": "mein-preset.json",
+    "renamePreset": "Preset umbenennen",
+    "renamePresetHint": "Neuer Name (wird auch in My Shim angezeigt):",
+    "providersTitle": "Provider in diesem Preset",
+    "providersDesc": "Provider hinzufügen (z. B. GitHub, Supabase).",
+    "github": "GitHub",
+    "supabase": "Supabase",
+    "removeProvider": "entfernen",
+    "runChecksRequestFailed": "Anfrage fehlgeschlagen."
+  },
+  "statusCard": {
+    "configRc": ".shimwrappercheckrc",
+    "presetsFile": "Presets (.shimwrappercheck-presets.json)",
+    "presetsDetail": "Presets & Check-Toggles (Einstellungen)",
+    "agentsMd": "AGENTS.md",
+    "agentsMdDetail": "Agent-Anweisungen (über GUI bearbeitbar)",
+    "runChecksScript": "scripts/run-checks.sh",
+    "shimRunner": "Shim Runner",
+    "shimRunnerDetail": "Node-Orchestrator (npx shimwrappercheck run)",
+    "huskyPrePush": "Husky pre-push",
+    "gitPrePushHook": "Git pre-push Hook",
+    "supabase": "Supabase"
+  },
+  "config": {
+    "title": "Config (.shimwrappercheckrc)",
+    "description": "Shell-Variablen und Kommentare. Wird beim nächsten Aufruf des Shims verwendet.",
+    "placeholder": "# shimwrappercheck config\nSHIM_ENFORCE_COMMANDS=\"functions,db,migration\"\n...",
+    "saved": "Config gespeichert."
+  },
+  "agents": {
+    "title": "AGENTS.md",
+    "description": "Agent-Anweisungen für Cursor/Codex. Wird von Agents gelesen; hier bearbeitbar. Änderungen gelten sofort.",
+    "notExists": "AGENTS.md existiert noch nicht. Beim Speichern wird sie im Projekt-Root angelegt.",
+    "placeholder": "# Agent instructions...",
+    "saved": "AGENTS.md gespeichert."
+  },
+  "notFound": {
+    "title": "Seite nicht gefunden",
+    "description": "Die angeforderte URL existiert nicht."
+  },
+  "error": {
+    "title": "Fehler",
+    "fallbackMessage": "Ein unerwarteter Fehler ist aufgetreten.",
+    "retry": "Erneut versuchen"
+  },
+  "checks": {
+    "lint": {
+      "label": "ESLint",
+      "summary": "Lint (Frontend): Prüft Code auf Stil-Fehler und typische Fehlerquellen.",
+      "info": "Führt npm run lint aus (ESLint). Findet z. B. fehlende Semikolons, ungenutzte Variablen, Verstöße gegen Projekt-Regeln."
+    },
+    "prettier": {
+      "label": "Prettier",
+      "summary": "Format: Einheitliche Code-Formatierung vor dem Push.",
+      "info": "Führt Prettier aus (z. B. npm run format oder prettier --check). Stellt sicher, dass Einrückung, Anführungszeichen und Zeilenumbrüche einheitlich sind."
+    },
+    "typecheck": {
+      "label": "TypeScript Check",
+      "summary": "Typecheck: Prüft TypeScript-Typen vor dem Push.",
+      "info": "Führt den TypeScript-Compiler aus (z. B. npm run typecheck oder tsc --noEmit). Findet Typfehler ohne die App zu bauen."
+    },
+    "testRun": {
+      "label": "Vitest",
+      "summary": "Tests: Unit- und Integrationstests – nur bei Grün geht es weiter.",
+      "info": "Führt Tests aus (z. B. npm run test oder Vitest). Nur wenn alle Tests bestehen, wird der Befehl (z. B. Push/Deploy) fortgesetzt."
+    },
+    "projectRules": {
+      "label": "Projektregeln",
+      "summary": "Projektregeln: Führt scripts/checks/project-rules.sh aus.",
+      "info": "Führt das Skript scripts/checks/project-rules.sh aus. Prüft projektspezifische Regeln (z. B. Verzeichnisstruktur, Namenskonventionen, erlaubte Imports)."
+    },
+    "npmAudit": {
+      "label": "npm audit",
+      "summary": "Dependency-Security: Bekannte Schwachstellen in npm-Paketen.",
+      "info": "Führt npm audit aus. Sucht nach bekannten Sicherheitslücken in Dependencies und warnt vor veralteten Versionen. Stufe konfigurierbar (critical, high, moderate, low).",
+      "auditLevel": "Audit-Stufe"
+    },
+    "viteBuild": {
+      "label": "Vite",
+      "summary": "Build: Prüft, ob das Frontend-Projekt fehlerfrei baut.",
+      "info": "Führt den Vite-Build aus (z. B. npm run build). Nur wenn der Build durchläuft, geht es weiter – verhindert fehlerhafte Deployments."
+    },
+    "snyk": {
+      "label": "Snyk",
+      "summary": "Optional: Zusätzlicher Dependency-Scan (Snyk).",
+      "info": "Snyk Dependency-Scan. Findet Schwachstellen, die npm audit nicht kennt. Optional – nur wenn Snyk im Projekt installiert ist."
+    },
+    "denoFmt": {
+      "label": "Deno fmt",
+      "summary": "Deno Format (Backend/Functions).",
+      "info": "Deno Format-Check für supabase/functions (deno fmt --check). Stellt einheitliche Formatierung von Edge-Function-Code sicher."
+    },
+    "denoLint": {
+      "label": "Deno lint",
+      "summary": "Deno Lint (Backend/Functions).",
+      "info": "Deno Linter für supabase/functions (deno lint). Findet Fehler und schlechte Praxis in Deno-Code."
+    },
+    "denoAudit": {
+      "label": "Deno audit",
+      "summary": "Deno Audit (Backend/Functions).",
+      "info": "Deno Security-Audit für supabase/functions (deno audit). Prüft Deno-Abhängigkeiten auf bekannte Schwachstellen."
+    },
+    "aiReview": {
+      "label": "Codex",
+      "summary": "AI Code Review (ai-code-review.sh).",
+      "info": "Code-Review per Codex: Analysiert Git-Diff (staged/unstaged oder Push-Range), bewertet Code-Qualität (Rating, Warnings, Errors). PASS nur bei ausreichendem Rating und ohne kritische Findings. Review wird in .shimwrapper/reviews/ gespeichert.",
+      "timeoutSec": "Timeout (Sekunden)",
+      "diffLimitBytes": "Max. Diff-Größe (Bytes)",
+      "minRating": "Mindest-Rating für PASS",
+      "reviewDir": "Ausgabeordner Reviews"
+    },
+    "checkMockData": {
+      "label": "Check Mock Data",
+      "summary": "Stellt sicher, dass Mock-Daten konsistent und gültig sind.",
+      "info": "Führt check:mock-data aus – prüft Mock-Daten."
+    },
+    "updateReadme": {
+      "label": "Update README",
+      "summary": "Aktualisiert die README vor dem Push (z. B. Version aus package.json).",
+      "info": "Führt das Update-README-Skript aus. Hält die Doku im Projekt aktuell."
+    },
+    "sast": {
+      "label": "SAST",
+      "summary": "Statische Analyse: sucht im Code nach typischen Sicherheitslücken (geplant).",
+      "info": "Geplant / in Konfiguration vorhanden. Noch nicht im run-checks.sh Template umgesetzt."
+    },
+    "architecture": {
+      "label": "Architecture",
+      "summary": "Prüft, ob die Projekt-Architektur Regeln einhält (geplant).",
+      "info": "Geplant / in Konfiguration vorhanden. Noch nicht im run-checks.sh Template umgesetzt."
+    },
+    "complexity": {
+      "label": "Complexity",
+      "summary": "Warnt vor zu komplexem Code – z. B. zu tief verschachtelte Funktionen (geplant).",
+      "info": "Geplant / in Konfiguration vorhanden. Noch nicht im run-checks.sh Template umgesetzt."
+    },
+    "mutation": {
+      "label": "Mutation",
+      "summary": "Testet, ob deine Tests wirklich etwas finden – durch kleine Code-Änderungen (geplant).",
+      "info": "Geplant / in Konfiguration vorhanden. Noch nicht im run-checks.sh Template umgesetzt."
+    },
+    "e2e": {
+      "label": "E2E",
+      "summary": "End-to-End-Tests: simuliert echte Nutzer und prüft die App von vorne bis hinten (geplant).",
+      "info": "Geplant / in Konfiguration vorhanden. Noch nicht im run-checks.sh Template umgesetzt."
+    },
+    "healthPing": {
+      "label": "Post-Deploy: Health Ping",
+      "summary": "Nach dem Deploy wird geprüft, ob deine Supabase Functions erreichbar sind und antworten.",
+      "info": "Nach Supabase-Deploy werden Health-Endpoints der Edge Functions aufgerufen (ping-edge-health.sh). Nutzt Project Ref (SUPABASE_PROJECT_REF oder supabase/project-ref) und optional benutzerdefinierte Pfade.",
+      "defaultFunction": "Standard-Funktion",
+      "healthFunctions": "Zusätzliche Funktionen (kommasepariert)",
+      "healthPaths": "Health-Pfade (kommasepariert, {fn})",
+      "projectRef": "Supabase Project Ref"
+    },
+    "edgeLogs": {
+      "label": "Post-Deploy: Edge Logs",
+      "summary": "Lädt nach dem Deploy die neuesten Logs deiner Edge Functions – zum schnellen Prüfen, ob alles lief.",
+      "info": "Holt nach Deploy die letzten Logs der deployten Edge Function(s) (fetch-edge-logs.sh).",
+      "defaultFunction": "Standard-Funktion",
+      "logFunctions": "Funktionen für Logs (kommasepariert)",
+      "logLimit": "Anzahl Log-Zeilen"
+    }
+  }
+}

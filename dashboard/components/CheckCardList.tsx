@@ -4,7 +4,8 @@
  */
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import type { SettingsData } from "@/lib/presets";
 import { CHECK_DEFINITIONS } from "@/lib/checks";
 import CheckCard, { type ToolStatus } from "./CheckCard";
@@ -18,7 +19,7 @@ export default function CheckCardList({
   onSave: (s: SettingsData) => void;
   variant?: "simple" | "full";
 }) {
-  const order = settings?.checkOrder ?? [];
+  const order = useMemo(() => settings?.checkOrder ?? [], [settings?.checkOrder]);
   const [search, setSearch] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
@@ -73,13 +74,16 @@ export default function CheckCardList({
     });
   };
 
+  const t = useTranslations("common");
+  const tChecks = useTranslations("checks");
+
   if (variant === "simple") {
     return (
       <div className="space-y-3">
         <div className="relative shrink-0">
           <input
             type="text"
-            placeholder="Suchen..."
+            placeholder={t("search")}
             className="input w-full input-sm bg-neutral-800 border border-neutral-500 text-white pl-8 rounded-md placeholder-neutral-500"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -90,18 +94,31 @@ export default function CheckCardList({
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
         </div>
         <ul className="space-y-2 list-none p-0 m-0">
-          {filtered.map((def) => (
-            <li
-              key={def.id}
-              className="border border-neutral-500 rounded-md bg-neutral-800 px-3 py-2.5 text-sm text-white"
-            >
-              {def.label}
-            </li>
-          ))}
+          {filtered.map((def) => {
+            let label: string;
+            try {
+              label = tChecks(`${def.id}.label`);
+            } catch {
+              label = def.label;
+            }
+            return (
+              <li
+                key={def.id}
+                className="border border-neutral-500 rounded-md bg-neutral-800 px-3 py-2.5 text-sm text-white"
+              >
+                {label}
+              </li>
+            );
+          })}
         </ul>
       </div>
     );
@@ -137,7 +154,11 @@ export default function CheckCardList({
             onToggle={(v) => handleToggle(def.id, v)}
             checkSettings={(settings?.checkSettings as Record<string, Record<string, unknown>>)?.[def.id]}
             onSettingsChange={(partial) => handleSettingsChange(def.id, partial)}
-            dragHandle={<span className="cursor-grab text-neutral-500 select-none" title="Ziehen zum Sortieren">⋮⋮</span>}
+            dragHandle={
+              <span className="cursor-grab text-neutral-500 select-none" title={t("dragToReorder")}>
+                ⋮⋮
+              </span>
+            }
             toolStatus={toolStatusMap[def.id]}
           />
         </li>

@@ -37,7 +37,8 @@
     "setup": "node bin/shimwrappercheck setup",
     "init": "node bin/shimwrappercheck init",
     "supabase:checked": "supabase",
-    "git:checked": "git"
+    "git:checked": "./bin/git",
+    "dashboard:check": "npm run check --prefix dashboard"
   },
   "dependencies": {
     "dotenv": "^17.2.4"

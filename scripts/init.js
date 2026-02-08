@@ -213,6 +213,18 @@ async function main() {
     }
   }
 
+  const agentsPath = path.join(projectRoot, 'AGENTS.md');
+  if (!exists(agentsPath)) {
+    const createAgents = await askYesNo('AGENTS.md aus Standard-Template anlegen?', true);
+    if (createAgents) {
+      const agentsTpl = path.join(templatesDir, 'AGENTS.md');
+      if (exists(agentsTpl)) {
+        fs.copyFileSync(agentsTpl, agentsPath);
+        console.log('  angelegt: AGENTS.md');
+      }
+    }
+  }
+
   const aiReviewPath = path.join(projectRoot, 'scripts', 'ai-code-review.sh');
   if (enableAiReview && !exists(aiReviewPath)) {
     const createAiReview = await askYesNo('scripts/ai-code-review.sh aus Template anlegen?', true);

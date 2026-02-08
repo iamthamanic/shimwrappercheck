@@ -10,6 +10,8 @@ import {
   type SettingsData,
   type Preset,
   type CheckToggles,
+  type SupabaseCommandId,
+  type GitCommandId,
   DEFAULT_SETTINGS,
   DEFAULT_VIBE_CODE_PRESET,
   DEFAULT_CHECK_TOGGLES,
@@ -35,10 +37,15 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
     const args = argsMatch[1];
     if (args.includes("--no-frontend")) {
       checkToggles.lint = false;
+      checkToggles.prettier = false;
+      checkToggles.typecheck = false;
       checkToggles.checkMockData = false;
       checkToggles.testRun = false;
+      checkToggles.projectRules = false;
       checkToggles.npmAudit = false;
+      checkToggles.viteBuild = false;
       checkToggles.snyk = false;
+      checkToggles.updateReadme = false;
     }
     if (args.includes("--no-backend")) {
       checkToggles.denoFmt = false;
@@ -57,13 +64,19 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
     return m ? m[1] === "1" : undefined;
   };
   if (readEnv("SHIM_RUN_LINT") !== undefined) checkToggles.lint = readEnv("SHIM_RUN_LINT")!;
-  if (readEnv("SHIM_RUN_CHECK_MOCK_DATA") !== undefined) checkToggles.checkMockData = readEnv("SHIM_RUN_CHECK_MOCK_DATA")!;
+  if (readEnv("SHIM_RUN_PRETTIER") !== undefined) checkToggles.prettier = readEnv("SHIM_RUN_PRETTIER")!;
+  if (readEnv("SHIM_RUN_TYPECHECK") !== undefined) checkToggles.typecheck = readEnv("SHIM_RUN_TYPECHECK")!;
+  if (readEnv("SHIM_RUN_CHECK_MOCK_DATA") !== undefined)
+    checkToggles.checkMockData = readEnv("SHIM_RUN_CHECK_MOCK_DATA")!;
   if (readEnv("SHIM_RUN_TEST_RUN") !== undefined) checkToggles.testRun = readEnv("SHIM_RUN_TEST_RUN")!;
+  if (readEnv("SHIM_RUN_PROJECT_RULES") !== undefined) checkToggles.projectRules = readEnv("SHIM_RUN_PROJECT_RULES")!;
   if (readEnv("SHIM_RUN_NPM_AUDIT") !== undefined) checkToggles.npmAudit = readEnv("SHIM_RUN_NPM_AUDIT")!;
+  if (readEnv("SHIM_RUN_VITE_BUILD") !== undefined) checkToggles.viteBuild = readEnv("SHIM_RUN_VITE_BUILD")!;
   if (readEnv("SHIM_RUN_SNYK") !== undefined) checkToggles.snyk = readEnv("SHIM_RUN_SNYK")!;
   if (readEnv("SHIM_RUN_DENO_FMT") !== undefined) checkToggles.denoFmt = readEnv("SHIM_RUN_DENO_FMT")!;
   if (readEnv("SHIM_RUN_DENO_LINT") !== undefined) checkToggles.denoLint = readEnv("SHIM_RUN_DENO_LINT")!;
   if (readEnv("SHIM_RUN_DENO_AUDIT") !== undefined) checkToggles.denoAudit = readEnv("SHIM_RUN_DENO_AUDIT")!;
+  if (readEnv("SHIM_RUN_UPDATE_README") !== undefined) checkToggles.updateReadme = readEnv("SHIM_RUN_UPDATE_README")!;
 
   const enforceMatch = rawRc.match(/SHIM_ENFORCE_COMMANDS="([^"]*)"/);
   const hookMatch = rawRc.match(/SHIM_HOOK_COMMANDS="([^"]*)"/);
@@ -76,8 +89,11 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
   const gitEnforceList = gitEnforce.filter((c) => (GIT_COMMAND_IDS as readonly string[]).includes(c));
   const preset: Preset = {
     ...DEFAULT_VIBE_CODE_PRESET,
-    supabase: { enforce: supabaseEnforce as any, hook: supabaseHook as any },
-    git: { enforce: gitEnforceList as any },
+    supabase: {
+      enforce: supabaseEnforce as SupabaseCommandId[],
+      hook: supabaseHook as SupabaseCommandId[],
+    },
+    git: { enforce: gitEnforceList as GitCommandId[] },
   };
   return {
     presets: [preset],
@@ -88,11 +104,17 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
 
 export async function GET() {
   try {
-    const root = getProjectRoot();
-    const presetsPath = getPresetsPath();
-    const rcPath = getRcPath();
+    let presetsPath: string;
+    let rcPath: string;
+    try {
+      presetsPath = getPresetsPath();
+      rcPath = getRcPath();
+    } catch (pathErr) {
+      console.error("settings GET getPresetsPath/getRcPath:", pathErr);
+      return NextResponse.json({ ...DEFAULT_SETTINGS, error: "Project root not available" }, { status: 200 });
+    }
 
-    let settings: SettingsData = { ...DEFAULT_SETTINGS };
+    const settings: SettingsData = { ...DEFAULT_SETTINGS };
 
     if (fs.existsSync(presetsPath)) {
       try {
@@ -101,23 +123,42 @@ export async function GET() {
         if (parsed.presets?.length) settings.presets = parsed.presets;
         if (parsed.activePresetId) settings.activePresetId = parsed.activePresetId;
         if (parsed.checkToggles) {
-          const raw = { ...DEFAULT_SETTINGS.checkToggles, ...parsed.checkToggles } as CheckToggles & { frontend?: boolean; backend?: boolean };
+          const raw = { ...DEFAULT_SETTINGS.checkToggles, ...parsed.checkToggles } as CheckToggles & {
+            frontend?: boolean;
+            backend?: boolean;
+          };
           const migrated: CheckToggles = { ...raw };
           if ("frontend" in raw && typeof raw.frontend === "boolean") {
-            migrated.lint = migrated.checkMockData = migrated.testRun = migrated.npmAudit = migrated.snyk = raw.frontend;
-            delete (migrated as Record<string, unknown>).frontend;
+            migrated.lint =
+              migrated.prettier =
+              migrated.typecheck =
+              migrated.checkMockData =
+              migrated.testRun =
+              migrated.projectRules =
+              migrated.npmAudit =
+              migrated.viteBuild =
+              migrated.snyk =
+              migrated.updateReadme =
+                raw.frontend;
+            delete (migrated as unknown as Record<string, unknown>).frontend;
           }
           if ("backend" in raw && typeof raw.backend === "boolean") {
             migrated.denoFmt = migrated.denoLint = migrated.denoAudit = raw.backend;
-            delete (migrated as Record<string, unknown>).backend;
+            delete (migrated as unknown as Record<string, unknown>).backend;
           }
           settings.checkToggles = migrated;
         }
         if (parsed.checkSettings) {
-          const cs = parsed.checkSettings as Record<string, unknown> & { frontend?: { auditLevel?: string }; npmAudit?: { auditLevel?: string } };
+          const cs = parsed.checkSettings as Record<string, unknown> & {
+            frontend?: { auditLevel?: string };
+            npmAudit?: { auditLevel?: string };
+          };
           settings.checkSettings = { ...parsed.checkSettings };
           if (cs?.frontend?.auditLevel && !settings.checkSettings?.npmAudit?.auditLevel) {
-            settings.checkSettings = { ...settings.checkSettings, npmAudit: { ...settings.checkSettings?.npmAudit, auditLevel: cs.frontend.auditLevel } };
+            settings.checkSettings = {
+              ...settings.checkSettings,
+              npmAudit: { ...settings.checkSettings?.npmAudit, auditLevel: cs.frontend.auditLevel },
+            };
           }
         }
         if (Array.isArray(parsed.checkOrder)) settings.checkOrder = parsed.checkOrder;
@@ -127,19 +168,23 @@ export async function GET() {
     }
 
     if (fs.existsSync(rcPath) && !fs.existsSync(presetsPath)) {
-      const rawRc = fs.readFileSync(rcPath, "utf8");
-      const fromRc = parseRcToSettings(rawRc);
-      if (fromRc.checkToggles) settings.checkToggles = fromRc.checkToggles;
-      if (fromRc.presets?.length) settings.presets = fromRc.presets;
-      if (fromRc.activePresetId) settings.activePresetId = fromRc.activePresetId;
+      try {
+        const rawRc = fs.readFileSync(rcPath, "utf8");
+        const fromRc = parseRcToSettings(rawRc);
+        if (fromRc.checkToggles) settings.checkToggles = fromRc.checkToggles;
+        if (fromRc.presets?.length) settings.presets = fromRc.presets;
+        if (fromRc.activePresetId) settings.activePresetId = fromRc.activePresetId;
+      } catch {
+        // use defaults
+      }
     }
 
     return NextResponse.json(settings);
   } catch (err) {
     console.error("settings get error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unknown error" },
-      { status: 500 }
+      { ...DEFAULT_SETTINGS, error: err instanceof Error ? err.message : "Unknown error" },
+      { status: 200 }
     );
   }
 }
@@ -170,9 +215,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("settings post error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unknown error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }

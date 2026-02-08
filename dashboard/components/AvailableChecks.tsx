@@ -1,28 +1,89 @@
 /**
  * Rechte Spalte: "Check Library" – alle integrierten Checks.
  * Drag: von hier nach links = aktivieren (active). Drop hier = deaktivieren (inactive).
+ * Uses @dnd-kit: useDraggable per card, useDroppable for library area.
  * Location: /components/AvailableChecks.tsx
  */
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import type { SettingsData, CheckToggles } from "@/lib/presets";
-import { CHECK_DEFINITIONS, CHECK_LIBRARY_LABEL } from "@/lib/checks";
+import { CHECK_DEFINITIONS } from "@/lib/checks";
 import type { CheckDef } from "@/lib/checks";
 import CheckCard, { type ToolStatus } from "./CheckCard";
-
-function isInMyShim(settings: SettingsData | null, id: string): boolean {
-  return (settings?.checkOrder ?? []).includes(id);
-}
+import { CHECK_LIBRARY_DROPPABLE_ID, type CheckDragData } from "./ShimDndProvider";
 
 type FilterState = { frontend: boolean; backend: boolean; enforce: boolean; hooks: boolean };
 
 function matchesFilters(def: CheckDef, f: FilterState): boolean {
   const anyTag = f.frontend || f.backend;
   const anyRole = f.enforce || f.hooks;
-  const tagMatch = !anyTag || (f.frontend && def.tags.includes("frontend")) || (f.backend && def.tags.includes("backend"));
+  const tagMatch =
+    !anyTag || (f.frontend && def.tags.includes("frontend")) || (f.backend && def.tags.includes("backend"));
   const roleMatch = !anyRole || (f.enforce && def.role === "enforce") || (f.hooks && def.role === "hook");
   return tagMatch && roleMatch;
+}
+
+function DraggableLibraryCard({
+  def,
+  dragHandleTitle,
+  checkSettings,
+  onSettingsChange,
+  onToggle,
+  toolStatus,
+}: {
+  def: CheckDef;
+  dragHandleTitle: string;
+  checkSettings?: Record<string, unknown>;
+  onSettingsChange: (partial: Record<string, unknown>) => void;
+  onToggle: (v: boolean) => void;
+  toolStatus?: ToolStatus;
+}) {
+  const dragData: CheckDragData = {
+    orderIndex: null,
+    leftTags: [...def.tags, def.role],
+    statusTag: "inactive",
+  };
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: def.id,
+    data: dragData,
+  });
+  const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`list-none ${isDragging ? "opacity-0 pointer-events-none" : ""}`}
+      data-check-card
+    >
+      <CheckCard
+        def={def}
+        enabled={false}
+        onToggle={onToggle}
+        checkSettings={checkSettings}
+        onSettingsChange={onSettingsChange}
+        dragHandle={
+          <span
+            {...listeners}
+            {...attributes}
+            className="w-6 h-full min-h-6 flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none text-neutral-400 hover:text-white"
+            title={dragHandleTitle}
+          >
+            ⋮⋮
+          </span>
+        }
+        leftTags={[...def.tags, def.role]}
+        statusTag="inactive"
+        hideEnabledToggle
+        inlineStyle
+        toolStatus={toolStatus}
+      />
+    </li>
+  );
 }
 
 export default function AvailableChecks({
@@ -36,10 +97,15 @@ export default function AvailableChecks({
   onDeactivate: (next: SettingsData) => void;
   onSave?: (next: SettingsData) => void;
 }) {
+  const t = useTranslations("common");
+  const tCheckLib = useTranslations("checkLibrary");
   const [search, setSearch] = useState("");
-  const [dropHighlight, setDropHighlight] = useState(false);
+  const [filterAll, setFilterAll] = useState(true);
   const [filter, setFilter] = useState<FilterState>({ frontend: false, backend: false, enforce: false, hooks: false });
   const [toolStatusMap, setToolStatusMap] = useState<Record<string, ToolStatus>>({});
+
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: CHECK_LIBRARY_DROPPABLE_ID });
+  const dropHighlight = isOver;
 
   useEffect(() => {
     fetch("/api/check-tools")
@@ -50,19 +116,22 @@ export default function AvailableChecks({
 
   const order = settings?.checkOrder ?? [];
   const libraryChecks = CHECK_DEFINITIONS.filter((c) => !order.includes(c.id));
-  const byFilter = libraryChecks.filter((c) => matchesFilters(c, filter));
+  const byFilter = filterAll ? libraryChecks : libraryChecks.filter((c) => matchesFilters(c, filter));
   const filtered = search.trim()
     ? byFilter.filter((c) => c.label.toLowerCase().includes(search.trim().toLowerCase()))
     : byFilter;
 
-  const setFilterKey = (key: keyof FilterState, value: boolean) =>
+  const setFilterKey = (key: keyof FilterState, value: boolean) => {
+    setFilterAll(false);
     setFilter((prev) => ({ ...prev, [key]: value }));
+  };
+  const setAll = () => setFilterAll(true);
 
   const activate = (def: CheckDef) => {
     if (!settings) return;
     if (order.includes(def.id)) return;
     const nextToggles: CheckToggles = { ...settings.checkToggles } as CheckToggles;
-    (nextToggles as Record<string, boolean>)[def.id] = true;
+    (nextToggles as unknown as Record<string, boolean>)[def.id] = true;
     onActivate({ ...settings, checkOrder: [...order, def.id], checkToggles: nextToggles });
   };
 
@@ -71,7 +140,7 @@ export default function AvailableChecks({
     const nextOrder = (settings.checkOrder ?? []).filter((x) => x !== id);
     const nextToggles = { ...settings.checkToggles } as Record<string, boolean>;
     nextToggles[id] = false;
-    onDeactivate({ ...settings, checkOrder: nextOrder, checkToggles: nextToggles });
+    onDeactivate({ ...settings, checkOrder: nextOrder, checkToggles: nextToggles as unknown as CheckToggles });
   };
 
   const handleSettingsChange = (checkId: string, partial: Record<string, unknown>) => {
@@ -95,42 +164,19 @@ export default function AvailableChecks({
     }
   };
 
-  const onDragStart = (e: React.DragEvent, def: CheckDef) => {
-    e.dataTransfer.setData("text/plain", def.id);
-    e.dataTransfer.setData("checkId", def.id);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const onDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    setDropHighlight(true);
-  };
-
-  const onDragLeave = () => setDropHighlight(false);
-
-  const onDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDropHighlight(false);
-    const id = e.dataTransfer.getData("checkId");
-    if (id) {
-      if (isInMyShim(settings, id)) {
-        handleDeactivateById(id);
-      } else {
-        const def = CHECK_DEFINITIONS.find((c) => c.id === id);
-        if (def) activate(def);
-      }
-    }
-  };
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <h1 className="text-2xl font-bold text-white">{CHECK_LIBRARY_LABEL}</h1>
+    <div
+      ref={setDropRef}
+      className={`relative flex flex-col flex-1 min-h-0 rounded-xl transition-all duration-150 ${
+        dropHighlight ? "ring-4 ring-red-500 ring-dashed bg-red-500/15" : ""
+      }`}
+    >
+      <div className="flex items-center justify-between gap-4 flex-wrap shrink-0">
+        <h1 className="text-2xl font-bold text-white">{tCheckLib("title")}</h1>
         <div className="relative">
           <input
             type="text"
-            placeholder="Suchen..."
+            placeholder={t("search")}
             className="input input-sm w-56 bg-[#0f0f0f] border border-white/80 text-white pr-8 rounded placeholder-neutral-500"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -141,80 +187,86 @@ export default function AvailableChecks({
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
         </div>
       </div>
-      <div className="flex flex-wrap gap-4 items-center">
+      <div className="flex flex-wrap gap-4 items-center shrink-0 py-3">
         <label className="label cursor-pointer gap-2 p-0">
           <input
             type="checkbox"
             className="checkbox checkbox-sm border-white/60"
-            checked={filter.frontend}
+            checked={filterAll}
+            onChange={(e) => e.target.checked && setAll()}
+          />
+          <span className="text-sm text-white font-medium">{t("all")}</span>
+        </label>
+        <label className="label cursor-pointer gap-2 p-0">
+          <input
+            type="checkbox"
+            className="checkbox checkbox-sm border-white/60"
+            checked={!filterAll && filter.frontend}
             onChange={(e) => setFilterKey("frontend", e.target.checked)}
+            disabled={filterAll}
           />
-          <span className="text-sm text-white">Frontend</span>
+          <span className="text-sm text-white">{t("frontend")}</span>
         </label>
         <label className="label cursor-pointer gap-2 p-0">
           <input
             type="checkbox"
             className="checkbox checkbox-sm border-white/60"
-            checked={filter.backend}
+            checked={!filterAll && filter.backend}
             onChange={(e) => setFilterKey("backend", e.target.checked)}
+            disabled={filterAll}
           />
-          <span className="text-sm text-white">Backend</span>
+          <span className="text-sm text-white">{t("backend")}</span>
         </label>
         <label className="label cursor-pointer gap-2 p-0">
           <input
             type="checkbox"
             className="checkbox checkbox-sm border-white/60"
-            checked={filter.enforce}
+            checked={!filterAll && filter.enforce}
             onChange={(e) => setFilterKey("enforce", e.target.checked)}
+            disabled={filterAll}
           />
-          <span className="text-sm text-white">Enforce</span>
+          <span className="text-sm text-white">{t("enforce")}</span>
         </label>
         <label className="label cursor-pointer gap-2 p-0">
           <input
             type="checkbox"
             className="checkbox checkbox-sm border-white/60"
-            checked={filter.hooks}
+            checked={!filterAll && filter.hooks}
             onChange={(e) => setFilterKey("hooks", e.target.checked)}
+            disabled={filterAll}
           />
-          <span className="text-sm text-white">Hooks</span>
+          <span className="text-sm text-white">{t("hooks")}</span>
         </label>
       </div>
       <div
-        className={`border rounded-lg min-h-[320px] p-4 transition-colors ${
-          dropHighlight ? "border-red-500 bg-red-500/10 border-2" : "border-white/80 bg-[#0f0f0f]"
+        className={`border rounded-lg flex-1 min-h-[280px] flex flex-col p-4 transition-all duration-150 overflow-hidden ${
+          dropHighlight ? "border-red-500 border-2 border-dashed bg-red-500/20" : "border-white/80 bg-[#0f0f0f]"
         }`}
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-        onDrop={onDrop}
       >
+        {dropHighlight && <p className="text-red-300 text-sm font-medium mb-2 shrink-0">↓ {t("dropHereDeactivate")}</p>}
         {filtered.length === 0 ? (
-          <p className="text-neutral-500 text-sm py-4">Keine Treffer.</p>
+          <p className="text-neutral-500 text-sm py-4">{t("noResults")}</p>
         ) : (
-          <ul className="space-y-2 list-none p-0 m-0">
+          <ul className="space-y-2 list-none p-0 m-0 flex-1 min-h-0 overflow-y-auto">
             {filtered.map((def) => (
-              <li
+              <DraggableLibraryCard
                 key={def.id}
-                draggable
-                onDragStart={(e) => onDragStart(e, def)}
-                className="cursor-grab active:cursor-grabbing list-none"
-              >
-                <CheckCard
-                  def={def}
-                  enabled={false}
-                  onToggle={(v) => handleToggle(def.id, v)}
-                  checkSettings={(settings?.checkSettings as Record<string, Record<string, unknown>>)?.[def.id]}
-                  onSettingsChange={(partial) => handleSettingsChange(def.id, partial)}
-                  leftTags={[...def.tags, def.role]}
-                  statusTag="inactive"
-                  hideEnabledToggle
-                  inlineStyle
-                  toolStatus={toolStatusMap[def.id]}
-                />
-              </li>
+                def={def}
+                dragHandleTitle={t("dragToActivate")}
+                checkSettings={(settings?.checkSettings as Record<string, Record<string, unknown>>)?.[def.id]}
+                onSettingsChange={(partial) => handleSettingsChange(def.id, partial)}
+                onToggle={(v) => handleToggle(def.id, v)}
+                toolStatus={toolStatusMap[def.id]}
+              />
             ))}
           </ul>
         )}

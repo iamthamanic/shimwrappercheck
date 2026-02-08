@@ -14,13 +14,20 @@ const execAsync = promisify(exec);
 export async function POST() {
   try {
     const root = getProjectRoot();
-    const opts = { cwd: root, maxBuffer: 4 * 1024 * 1024, shell: "/bin/bash", env: { ...process.env, SHIM_PROJECT_ROOT: root } };
+    const opts = {
+      cwd: root,
+      maxBuffer: 4 * 1024 * 1024,
+      shell: "/bin/bash",
+      env: { ...process.env, SHIM_PROJECT_ROOT: root },
+    };
     let stdout = "";
     let stderr = "";
     let code = 0;
 
     const runnerPath = path.join(root, "scripts", "shim-runner.js");
-    const hasPackageRunner = fs.existsSync(path.join(root, "node_modules", "shimwrappercheck", "scripts", "shim-runner.js"));
+    const hasPackageRunner = fs.existsSync(
+      path.join(root, "node_modules", "shimwrappercheck", "scripts", "shim-runner.js")
+    );
 
     if (fs.existsSync(runnerPath)) {
       try {

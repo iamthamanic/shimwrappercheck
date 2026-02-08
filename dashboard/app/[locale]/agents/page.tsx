@@ -1,21 +1,27 @@
 /**
- * Config page: edit .shimwrappercheckrc (raw text).
- * Location: app/config/page.tsx
+ * AGENTS.md editor: edit agent instructions (used by Cursor/Codex agents).
+ * Location: app/agents/page.tsx
  */
 "use client";
 
 import { useEffect, useState } from "react";
-export default function ConfigPage() {
+import { useTranslations } from "next-intl";
+
+export default function AgentsPage() {
+  const t = useTranslations("common");
+  const tAgents = useTranslations("agents");
   const [raw, setRaw] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [exists, setExists] = useState(false);
 
   useEffect(() => {
-    fetch("/api/config")
+    fetch("/api/agents-md")
       .then((r) => r.json())
       .then((data) => {
         setRaw(data.raw ?? "");
+        setExists(data.exists ?? false);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -24,7 +30,7 @@ export default function ConfigPage() {
   const save = () => {
     setSaving(true);
     setMessage(null);
-    fetch("/api/config", {
+    fetch("/api/agents-md", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ raw }),
@@ -33,11 +39,14 @@ export default function ConfigPage() {
       .then((data) => {
         setSaving(false);
         if (data.error) setMessage({ type: "error", text: data.error });
-        else setMessage({ type: "success", text: "Config gespeichert." });
+        else {
+          setMessage({ type: "success", text: tAgents("saved") });
+          setExists(true);
+        }
       })
       .catch(() => {
         setSaving(false);
-        setMessage({ type: "error", text: "Speichern fehlgeschlagen." });
+        setMessage({ type: "error", text: t("saveFailed") });
       });
   };
 
@@ -51,26 +60,25 @@ export default function ConfigPage() {
 
   return (
     <div className="space-y-6 text-white">
-      <h1 className="text-3xl font-bold">Config (.shimwrappercheckrc)</h1>
-      <p className="text-neutral-300">
-        Shell-Variablen und Kommentare. Wird beim nächsten Aufruf des Shims verwendet.
-      </p>
+      <h1 className="text-3xl font-bold">{tAgents("title")}</h1>
+      <p className="text-neutral-300">{tAgents("description")}</p>
+      {!exists && (
+        <div className="alert bg-neutral-800 border-neutral-600 text-neutral-300">
+          <span>{tAgents("notExists")}</span>
+        </div>
+      )}
       <textarea
-        className="textarea w-full font-mono text-sm min-h-[320px] bg-neutral-800 border-neutral-600 text-white"
+        className="textarea w-full font-mono text-sm min-h-[400px] bg-neutral-800 border-neutral-600 text-white"
         value={raw}
         onChange={(e) => setRaw(e.target.value)}
-        placeholder="# shimwrappercheck config\nSHIM_ENFORCE_COMMANDS=\"functions,db,migration\"\n..."
+        placeholder={tAgents("placeholder")}
         spellCheck={false}
       />
       <div className="flex gap-4 items-center">
         <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>
-          {saving ? "Speichern…" : "Speichern"}
+          {saving ? t("saving") : t("save")}
         </button>
-        {message && (
-          <span className={message.type === "success" ? "text-success" : "text-error"}>
-            {message.text}
-          </span>
-        )}
+        {message && <span className={message.type === "success" ? "text-success" : "text-error"}>{message.text}</span>}
       </div>
     </div>
   );

@@ -43,10 +43,7 @@ export async function GET() {
     return NextResponse.json(config);
   } catch (err) {
     console.error("ui-config GET error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unknown error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }
 
@@ -54,18 +51,12 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const portAuto = body.portAuto !== false;
-    const port =
-      typeof body.port === "number" && body.port > 0 && body.port < 65536
-        ? Math.floor(body.port)
-        : 3000;
+    const port = typeof body.port === "number" && body.port > 0 && body.port < 65536 ? Math.floor(body.port) : 3000;
     const config = { portAuto, port };
     writeConfig(config);
     return NextResponse.json(config);
   } catch (err) {
     console.error("ui-config POST error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unknown error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }
