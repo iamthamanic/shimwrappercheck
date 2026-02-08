@@ -41,12 +41,41 @@ function getDiff(projectRoot) {
   return start + '\n... [truncated] ...\n' + end;
 }
 
-const SYSTEM_PROMPT = `You are a code reviewer. You MUST respond with ONLY a single valid JSON object, no other text.
-Format: { "score": number, "deductions": [ { "reason": string, "points": number } ], "verdict": "ACCEPT" | "REJECT" }
-- Start at 100 points. Apply deductions from the checklist below.
-- Deductions (apply each that applies): SOLID violation (SRP, OCP, LSP, ISP, DIP) -15 points each; N+1 query or O(n²) complexity -20; missing input validation or security issue -25; unclear naming or side effects -10.
-- verdict: "ACCEPT" only if score >= 95; otherwise "REJECT".
-Output nothing but the JSON object.`;
+const SYSTEM_PROMPT = `You are an extremely strict Senior Software Architect. Your task is to evaluate a code diff.
+
+Rules:
+Start at 100 points. Go through the checklist below and deduct the stated points for each violation. Be merciless. "Okay" is not enough for 95%. 95% means world-class.
+
+1. Architecture & SOLID
+- Single Responsibility (SRP): Does the class/function have more than one reason to change? (Deduct: -15)
+- Dependency Inversion: Are dependencies (e.g. DB, APIs) hard-instantiated or injected? (Deduct: -10)
+- Coupling: Circular dependencies or deeply nested imports? (Deduct: -10)
+- YAGNI: Code for "future cases" that is not needed now? (Deduct: -5)
+
+2. Performance & Resources
+- Time complexity: Nested loops O(n²) that explode on large data? (Deduct: -20)
+- N+1: Database queries inside a loop? (Deduct: -20)
+- Memory leaks: Event listeners or streams opened but not closed? (Deduct: -15)
+- Bundle size: Huge libraries imported for one small function? (Deduct: -5)
+
+3. Security
+- IDOR: API accepts an ID (e.g. user_id) without checking the current user may access it? (Deduct: -25)
+- Data leakage: Sensitive data in logs or frontend? (Deduct: -20)
+- Rate limiting: Can this function be abused by mass calls? (Deduct: -10)
+
+4. Robustness & Error Handling
+- Silent fails: Empty catch blocks that swallow errors? (Deduct: -15)
+- Input validation: External data validated before use? (Deduct: -15)
+- Edge cases: null, undefined, [], very long strings? (Deduct: -10)
+
+5. Maintainability & Readability
+- Naming: Descriptive names or data, info, item? (Deduct: -5)
+- Side effects: Function unpredictably mutates global state? (Deduct: -10)
+- Comment quality: Does the comment explain "why" or only the obvious "what"? (Deduct: -2)
+
+Output ONLY a single valid JSON object, no other text.
+Format: { "score": number, "deductions": [ { "point": "ShortName", "minus": number, "reason": "Explanation" } ], "verdict": "ACCEPT" | "REJECT" }
+verdict: "ACCEPT" only if score >= 95; otherwise "REJECT".`;
 
 function buildUserPrompt(diff) {
   return `Review this code diff and output the JSON object only.\n\n--- DIFF ---\n${diff}\n--- END DIFF ---`;
@@ -129,10 +158,16 @@ async function runAsync(projectRoot) {
   const verdict = (json.verdict || '').toUpperCase();
   const deductions = Array.isArray(json.deductions) ? json.deductions : [];
   if (verdict === 'REJECT' || score < THRESHOLD) {
+    const suggestionText =
+      deductions.length
+        ? deductions
+            .map((d) => (d.reason != null ? d.reason : `${d.point || '?'}: -${d.minus ?? d.points ?? 0}`))
+            .join('; ')
+        : 'Address deductions to reach 95%.';
     return {
       ok: false,
       message: `AI review score ${score}% (min ${THRESHOLD}%)`,
-      suggestion: deductions.length ? deductions.map((d) => d.reason).join('; ') : 'Address deductions to reach 95%.',
+      suggestion: suggestionText,
       deductions,
     };
   }

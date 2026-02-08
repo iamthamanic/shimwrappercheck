@@ -234,7 +234,7 @@
     "aiReview": {
       "label": "Codex",
       "summary": "AI Code Review (ai-code-review.sh).",
-      "info": "Code-Review per Codex: Analysiert Git-Diff (staged/unstaged oder Push-Range), bewertet Code-Qualität (Rating, Warnings, Errors). PASS nur bei ausreichendem Rating und ohne kritische Findings. Review wird in .shimwrapper/reviews/ gespeichert.",
+      "info": "Code-Review per Codex: Strenge Senior-Architekt-Checkliste (SOLID, Performance, Sicherheit, Robustheit, Wartbarkeit). Start 100 Punkte, Abzüge pro Verstoß. Ausgabe: score, deductions (point, minus, reason), verdict. PASS nur bei Score ≥ 95% und verdict ACCEPT. Review in .shimwrapper/reviews/.",
       "timeoutSec": "Timeout (Sekunden)",
       "diffLimitBytes": "Max. Diff-Größe (Bytes)",
       "minRating": "Mindest-Rating für PASS",

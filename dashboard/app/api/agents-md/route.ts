@@ -35,7 +35,7 @@ Checks are configured in the dashboard or \`.shimwrappercheckrc\` (toggles and o
 
 - **Frontend:** Lint, Check Mock Data, Test Run, npm Audit, Snyk (optional; set \`SKIP_SNYK=1\` to skip), **Update README** (syncs version from package.json into README).
 - **Backend (Supabase/Deno):** Deno fmt, Deno lint, Deno audit.
-- **AI review (Codex):** Runs by default after frontend/backend checks. Skip with \`--no-ai-review\` or \`SKIP_AI_REVIEW=1\` for the shim; **on git push** many projects require AI review (no skip). **Pass criteria:** rating **≥ 95%** and **no warnings and no errors**. If the review fails, fix the code and re-run until it passes. Reviews are saved to \`.shimwrapper/reviews/\` (gitignored). When you run the shim or push and the output includes the AI review, include token usage and the review result (PASS/FAIL, rating, warnings, errors) in your response.
+- **AI review (Codex):** Runs by default after frontend/backend checks. Skip with \`--no-ai-review\` or \`SKIP_AI_REVIEW=1\` for the shim; **on git push** many projects require AI review (no skip). **Pass criteria:** **score ≥ 95%** and **verdict ACCEPT** (strict Senior-Architect checklist: SOLID, performance, security, robustness, maintainability; deductions per violation). If the review fails, fix the code and re-run until it passes. Reviews are saved to \`.shimwrapper/reviews/\` (gitignored). When you run the shim or push and the output includes the AI review, include token usage and the review result (PASS/FAIL, score, deductions, verdict) in your response.
 - **Post-deploy hooks (optional):** Health Ping, Edge Logs after Supabase deploy.
 
 If the project enforces **zero warnings** (e.g. ESLint \`--max-warnings 0\`), treat any warning as a failure.

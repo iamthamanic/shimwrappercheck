@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # AI code review: Codex only (Cursor disabled). Called from run-checks.sh.
-# Prompt: senior-dev, decades-of-expertise, best-code bar.
+# Prompt: Senior-Software-Architekt, 100 Punkte, Checkliste (SOLID, Performance, Sicherheit, Robustheit, Wartbarkeit), JSON score/deductions/verdict.
 # Codex: codex in PATH; use session after codex login (ChatGPT account, no API key in terminal).
 # Diff: staged + unstaged; if clean (e.g. pre-push), uses diff of commits being pushed (@{u}...HEAD or HEAD~1...HEAD).
 # Runs codex exec --json to get token usage from turn.completed; prints Token usage for agent to report.
@@ -49,32 +49,49 @@ else
 $(tail -c $LIMIT_BYTES "$DIFF_FILE")"
 fi
 
-# Senior-dev review prompt: structured output with rating (1-100), positive, warnings, errors, recommendations.
-# PASS only if rating >= 95 and no warnings and no errors.
-PROMPT="You are a senior software engineer with decades of code review experience. Your goal is to ensure the highest possible code quality: production-ready, secure, maintainable, and aligned with project standards.
+# Senior-Software-Architekt: 100 Punkte, Checkliste durchgehen, Abzüge anwenden. Ausgabe nur JSON.
+PROMPT=$(cat << 'PROMPT_END'
+Du bist ein extrem strenger Senior-Software-Architekt. Deine Aufgabe ist es, einen Code-Diff zu bewerten.
 
-Review the following code diff with the rigor of a principal engineer. Evaluate:
+Regeln:
+Starte mit 100 Punkten. Gehe die folgende Checkliste durch und ziehe für jeden Verstoß die angegebenen Punkte ab. Sei gnadenlos. Ein "okay" reicht nicht für 95%. 95% bedeutet Weltklasse-Niveau.
 
-1. Correctness and bugs: logic errors, edge cases, race conditions, off-by-one, null/undefined handling.
-2. Security: injection, XSS, sensitive data exposure, auth/authz, input validation, dependency risks.
-3. Performance: unnecessary work, N+1, memory leaks, blocking calls, inefficient algorithms or data structures.
-4. Maintainability: clarity, naming, single responsibility, DRY, testability, documentation where needed.
-5. Project compliance: AGENTS.md rules, existing patterns, lint/type discipline, error handling and logging.
-6. Robustness: error paths, timeouts, retries, backward compatibility, defensive checks.
+1. Architektur & SOLID
+- Single Responsibility (SRP): Hat die Klasse/Funktion mehr als einen Grund, sich zu ändern? (Abzug: -15)
+- Dependency Inversion: Werden Abhängigkeiten (z.B. DB, APIs) hart instanziiert oder injiziert? (Abzug: -10)
+- Kopplung: Zirkuläre Abhängigkeiten oder zu tief verschachtelte Importe? (Abzug: -10)
+- YAGNI: Code für "zukünftige Fälle", der jetzt nicht gebraucht wird? (Abzug: -5)
 
-Reply with exactly the following structure (one label per line, use None when there are no warnings or errors). Do not modify any files or suggest edits in the response.
+2. Performance & Ressourcen
+- Zeitkomplexität: Verschachtelte Schleifen O(n²), die bei großen Datenmengen explodieren? (Abzug: -20)
+- N+1: Werden in einer Schleife Datenbankabfragen gemacht? (Abzug: -20)
+- Memory Leaks: Event-Listener oder Streams geöffnet, aber nicht geschlossen? (Abzug: -15)
+- Bundle-Size: Riesige Bibliotheken importiert für eine kleine Funktion? (Abzug: -5)
 
-RATING: <1-100> (integer)
-POSITIVE: <short points on what is good>
-WARNINGS: <points or None>
-ERRORS: <points or None>
-RECOMMENDATIONS: <short recommendations>
-VERDICT: PASS or VERDICT: FAIL
+3. Sicherheit
+- IDOR: API akzeptiert ID (z.B. user_id) ohne Prüfung, ob der User diese Ressource sehen darf? (Abzug: -25)
+- Data Leakage: Sensible Daten in Logs oder Frontend? (Abzug: -20)
+- Rate Limiting: Funktion durch massenhafte Aufrufe lahmlegbar? (Abzug: -10)
 
-Rule: VERDICT must be PASS only if rating >= 95 and there are no warnings and no errors; otherwise VERDICT must be FAIL.
+4. Robustheit & Error Handling
+- Silent Fails: Leere catch-Blöcke, die Fehler verschlucken? (Abzug: -15)
+- Input Validation: Externe Daten validiert vor Verarbeitung? (Abzug: -15)
+- Edge Cases: null, undefined, [], extrem lange Strings? (Abzug: -10)
+
+5. Wartbarkeit & Lesbarkeit
+- Naming: Variablennamen beschreibend oder data, info, item? (Abzug: -5)
+- Side Effects: Funktion verändert unvorhersehbar globale Zustände? (Abzug: -10)
+- Kommentar-Qualität: Erklärt der Kommentar das "Warum" oder nur das "Was"? (Abzug: -2)
+
+Gib das Ergebnis NUR als ein einziges gültiges JSON-Objekt aus, kein anderer Text. Format:
+{"score": number, "deductions": [{"point": "Kurzname", "minus": number, "reason": "Begründung"}], "verdict": "ACCEPT" oder "REJECT"}
+verdict: "ACCEPT" nur wenn score >= 95; sonst "REJECT".
 
 --- DIFF ---
-$DIFF_LIMITED"
+PROMPT_END
+)
+PROMPT="${PROMPT}
+${DIFF_LIMITED}"
 
 CODEX_JSON_FILE="$(mktemp)"
 CODEX_LAST_MSG_FILE="$(mktemp)"
@@ -138,37 +155,41 @@ if [[ -z "$RESULT_TEXT" ]] && [[ -s "$CODEX_LAST_MSG_FILE" ]]; then
   RESULT_TEXT="$(cat "$CODEX_LAST_MSG_FILE")"
 fi
 
-# Parse structured review: RATING, POSITIVE, WARNINGS, ERRORS, RECOMMENDATIONS. Fallback: rating=0, has_warnings/errors=1.
+# Parse JSON review: score, deductions, verdict. Fallback: score=0, verdict=REJECT.
 REVIEW_RATING=0
-REVIEW_POSITIVE=""
-REVIEW_WARNINGS=""
-REVIEW_ERRORS=""
-REVIEW_RECOMMENDATIONS=""
-HAS_WARNINGS=1
-HAS_ERRORS=1
+REVIEW_VERDICT="REJECT"
+REVIEW_DEDUCTIONS=""
 
 if [[ -n "$RESULT_TEXT" ]]; then
-  REVIEW_RATING=$(echo "$RESULT_TEXT" | grep -iE '^RATING:[[:space:]]*[0-9]+' | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '\r' | grep -oE '[0-9]+' | head -1)
+  RESULT_JSON=""
+  if command -v node >/dev/null 2>&1; then
+    RESULT_TMP=$(mktemp)
+    printf '%s' "$RESULT_TEXT" > "$RESULT_TMP"
+    RESULT_JSON=$(node -e "
+      const fs = require('fs');
+      const d = fs.readFileSync(process.argv[1], 'utf8');
+      const m = d.match(/\{[\s\S]*\}/);
+      if (!m) process.exit(1);
+      try { console.log(JSON.stringify(JSON.parse(m[0]))); } catch (e) { process.exit(2); }
+    " "$RESULT_TMP" 2>/dev/null)
+    rm -f "$RESULT_TMP"
+  fi
+  if [[ -n "$RESULT_JSON" ]] && command -v jq >/dev/null 2>&1; then
+    REVIEW_RATING=$(echo "$RESULT_JSON" | jq -r '.score // 0')
+    REVIEW_VERDICT=$(echo "$RESULT_JSON" | jq -r '.verdict // "REJECT"')
+    REVIEW_DEDUCTIONS=$(echo "$RESULT_JSON" | jq -r '.deductions // []')
+  fi
   [[ -z "$REVIEW_RATING" ]] && REVIEW_RATING=0
+  [[ "$REVIEW_RATING" =~ ^[0-9]+$ ]] || REVIEW_RATING=0
   [[ "$REVIEW_RATING" -lt 0 ]] 2>/dev/null && REVIEW_RATING=0
   [[ "$REVIEW_RATING" -gt 100 ]] 2>/dev/null && REVIEW_RATING=100
-
-  # Sections: content from label line (after colon) until next label (sed '$d' = drop last line, macOS-compatible)
-  REVIEW_POSITIVE=$(echo "$RESULT_TEXT" | sed -n '/^POSITIVE:/,/^WARNINGS:/p' | tail -n +1 | sed '$d' | sed 's/^POSITIVE:[[:space:]]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  REVIEW_WARNINGS=$(echo "$RESULT_TEXT" | sed -n '/^WARNINGS:/,/^ERRORS:/p' | tail -n +1 | sed '$d' | sed 's/^WARNINGS:[[:space:]]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  REVIEW_ERRORS=$(echo "$RESULT_TEXT" | sed -n '/^ERRORS:/,/^RECOMMENDATIONS:/p' | tail -n +1 | sed '$d' | sed 's/^ERRORS:[[:space:]]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  REVIEW_RECOMMENDATIONS=$(echo "$RESULT_TEXT" | sed -n '/^RECOMMENDATIONS:/,/^VERDICT:/p' | tail -n +1 | sed '$d' | sed 's/^RECOMMENDATIONS:[[:space:]]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-
-  # has_warnings/has_errors: 0 only if content is empty or "None" (case-insensitive)
-  WNORM=$(echo "$REVIEW_WARNINGS" | tr -d '\r' | tr '[:upper:]' '[:lower:]' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  ENORM=$(echo "$REVIEW_ERRORS" | tr -d '\r' | tr '[:upper:]' '[:lower:]' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  [[ -z "$WNORM" || "$WNORM" == "none" ]] && HAS_WARNINGS=0 || HAS_WARNINGS=1
-  [[ -z "$ENORM" || "$ENORM" == "none" ]] && HAS_ERRORS=0 || HAS_ERRORS=1
+  REVIEW_VERDICT=$(echo "$REVIEW_VERDICT" | tr '[:lower:]' '[:upper:]')
+  [[ "$REVIEW_VERDICT" != "ACCEPT" ]] && REVIEW_VERDICT="REJECT"
 fi
 
-# Pass only if rating >= 95 and no warnings and no errors
+# Pass only if verdict ACCEPT and score >= 95
 PASS=0
-if [[ "$REVIEW_RATING" -ge 95 ]] && [[ "$HAS_WARNINGS" -eq 0 ]] && [[ "$HAS_ERRORS" -eq 0 ]]; then
+if [[ "$REVIEW_VERDICT" == "ACCEPT" ]] && [[ "$REVIEW_RATING" -ge 95 ]]; then
   PASS=1
 fi
 
@@ -190,11 +211,19 @@ BRANCH=""
   echo "# AI Code Review — $(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')"
   echo ""
   echo "- **Branch:** $BRANCH"
-  echo "- **Verdict:** $([ "$PASS" -eq 1 ] && echo "PASS" || echo "FAIL")"
-  echo "- **Rating:** ${REVIEW_RATING}%"
+  echo "- **Verdict:** $([ "$PASS" -eq 1 ] && echo "PASS" || echo "FAIL") ($REVIEW_VERDICT)"
+  echo "- **Score:** ${REVIEW_RATING}%"
   echo "- **Tokens:** ${INPUT_T:-?} input, ${OUTPUT_T:-?} output"
   echo ""
-  echo "## Structured review"
+  echo "## Deductions"
+  echo ""
+  if [[ -n "$REVIEW_DEDUCTIONS" ]] && [[ "$REVIEW_DEDUCTIONS" != "[]" ]]; then
+    echo "$REVIEW_DEDUCTIONS" | jq -r '.[] | "- **\(.point)**: -\(.minus) — \(.reason)"' 2>/dev/null || echo "$REVIEW_DEDUCTIONS"
+  else
+    echo "(none)"
+  fi
+  echo ""
+  echo "## Raw response"
   echo ""
   echo '```'
   [[ -n "$RESULT_TEXT" ]] && echo "$RESULT_TEXT" || echo "(no review text)"
@@ -202,16 +231,17 @@ BRANCH=""
 } >> "$REVIEW_FILE"
 echo "Review saved: $REVIEW_FILE" >&2
 
-# Always print review result and full structured review
+# Always print review result
 if [[ $PASS -eq 1 ]]; then
   echo "Codex AI review: PASS" >&2
 else
   echo "Codex AI review: FAIL" >&2
 fi
-echo "Rating: ${REVIEW_RATING}%" >&2
-echo "Positive: ${REVIEW_POSITIVE:-"(none)"}" >&2
-echo "Warnings: ${REVIEW_WARNINGS:-"(none)"}" >&2
-echo "Errors: ${REVIEW_ERRORS:-"(none)"}" >&2
-echo "Recommendations: ${REVIEW_RECOMMENDATIONS:-"(none)"}" >&2
+echo "Score: ${REVIEW_RATING}%" >&2
+echo "Verdict: ${REVIEW_VERDICT}" >&2
+if [[ -n "$REVIEW_DEDUCTIONS" ]] && [[ "$REVIEW_DEDUCTIONS" != "[]" ]]; then
+  echo "Deductions:" >&2
+  echo "$REVIEW_DEDUCTIONS" | jq -r '.[] | "  - \(.point): -\(.minus) — \(.reason)"' 2>/dev/null || echo "$REVIEW_DEDUCTIONS" >&2
+fi
 
 [[ $PASS -eq 1 ]] && exit 0 || exit 1

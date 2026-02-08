@@ -156,7 +156,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     tags: ["frontend", "backend"],
     role: "enforce",
     summary: "AI Code Review (ai-code-review.sh).",
-    info: "Code-Review per Codex: Analysiert Git-Diff (staged/unstaged oder Push-Range), bewertet Code-Qualität (Rating, Warnings, Errors). PASS nur bei ausreichendem Rating und ohne kritische Findings. Review wird in .shimwrapper/reviews/ gespeichert.",
+    info: "Code-Review per Codex: Strenge Senior-Architekt-Checkliste (SOLID, Performance, Sicherheit, Robustheit, Wartbarkeit). Start 100 Punkte, Abzüge pro Verstoß. Ausgabe: score, deductions, verdict. PASS nur bei Score ≥ 95% und verdict ACCEPT. Review in .shimwrapper/reviews/.",
     settings: [
       { key: "enabled", label: "Aktiv", type: "boolean", default: true },
       { key: "timeoutSec", label: "Timeout (Sekunden)", type: "number", default: 180 },
