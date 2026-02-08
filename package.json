@@ -1,6 +1,6 @@
 {
   "name": "shimwrappercheck",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Supabase CLI shim wrapper that enforces checks before deploy/push. Dashboard, presets, AGENTS.md.",
   "license": "MIT",
   "bin": {
