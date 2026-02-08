@@ -14,7 +14,7 @@ CLI-Shim, der Projekt-Checks ausführt, bevor ein echtes CLI-Kommando (z. B. S
 - **Netzwerk-Retry** bei flaky Supabase-CLI-Aufrufen.
 - **Post-Deploy-Hooks**: Health-Ping und Logs nach Deploy.
 - **Optionaler Auto-Push**: Nach Erfolg automatisch `git push`.
-- **AI-Review**: Codex (Standard), Cursor-Fallback; integriert in Checks.
+- **AI-Review**: Codex (Standard), optional Cursor/OpenAI/Anthropic. **Streng:** Senior-Software-Architekt-Checkliste (SOLID, Performance, Sicherheit, Robustheit, Wartbarkeit), Start 100 Punkte, Abzüge pro Verstoß. Ausgabe: Score, Deductions (point, minus, reason), Verdict. **PASS nur bei Score ≥ 95 % und Verdict ACCEPT.** Integriert in Checks; Reviews in `.shimwrapper/reviews/`.
 - **Interaktiver Setup-Wizard**: Repo-Scan, Konfiguration in einem Durchlauf.
 - **Global Install**: PATH-Shims (`supabase`, `git`, `shim`) in z. B. `~/.local/bin`.
 
@@ -34,7 +34,7 @@ CLI-Shim, der Projekt-Checks ausführt, bevor ein echtes CLI-Kommando (z. B. S
 
 - **Frontend**: **Prettier**, **ESLint**, **TypeScript Check**, Projektregeln, Check Mock Data, **Vitest**, **Vite Build**, npm Audit, Snyk, **Update README** (Version aus package.json in README syncen).
 - **Backend**: Deno fmt/lint/audit für Supabase Functions.
-- **Beides**: AI Review, SAST, Architecture, Complexity, Mutation, E2E (Templates/geplant).
+- **Beides**: AI Review (streng: Senior-Architekt-Checkliste, Score ≥ 95 %, Verdict ACCEPT), SAST, Architecture, Complexity, Mutation, E2E (Templates/geplant).
 - **Hooks**: Post-Deploy Health Ping, Edge Logs.
 
 ### Konfiguration
@@ -65,7 +65,7 @@ Der Wizard fragt u. a.:
 - Supabase/Git-Nutzung
 - Welche Befehle Checks/Hooks auslösen
 - Pre-Push-Hooks (Husky)
-- AI-Review
+- AI-Review (streng: Checkliste, Score ≥ 95 %, Verdict ACCEPT; mit `--no-ai-review` deaktivierbar)
 - Erzeugt `.shimwrappercheckrc` und optional `scripts/run-checks.sh`, Templates.
 
 **Danach startet das Dashboard automatisch** und öffnet im Browser (z. B. http://localhost:3000). Ein freier Port (3000, 3001, …) wird automatisch gewählt.
@@ -203,7 +203,7 @@ Nur den interaktiven Init ausführen (ohne erneutes Installieren):
 npx shimwrappercheck init
 ```
 
-Erkennung von Supabase/Git, Abfrage der Befehle für Checks/Hooks, Pre-Push-Hooks, AI-Review, Erzeugen von `.shimwrappercheckrc`.
+Erkennung von Supabase/Git, Abfrage der Befehle für Checks/Hooks, Pre-Push-Hooks, AI-Review (streng: Senior-Architekt-Checkliste, Score ≥ 95 %), Erzeugen von `.shimwrappercheckrc`.
 
 ## Wie es funktioniert
 
@@ -283,7 +283,7 @@ Die Datei wird als Shell-Skript eingelesen.
 ## Templates
 
 - `templates/run-checks.sh`     Runner für Lint, Tests, Deno, AI-Review usw.  
-- `templates/ai-code-review.sh` Optionaler AI-Review-Schritt  
+- `templates/ai-code-review.sh` Optionaler AI-Review-Schritt (streng: Senior-Architekt-Checkliste, 100 Punkte, Abzüge, JSON Score/Deductions/Verdict; PASS bei ≥ 95 % und ACCEPT)  
 - `templates/husky-pre-push`    Husky Pre-Push-Hook  
 - `templates/git-pre-push`      Reiner Git-Hook  
 
