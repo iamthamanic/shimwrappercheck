@@ -1,18 +1,28 @@
 #!/usr/bin/env bash
 # Shared checks for pre-push (GitHub) and supabase-checked (Supabase deploy).
-# Usage: run-checks.sh [--frontend] [--backend] [--no-frontend] [--no-backend] [--no-ai-review]
+# Usage: run-checks.sh [--frontend] [--backend] [--no-frontend] [--no-backend] [--no-ai-review] [--no-explanation-check]
 #   With no args: run frontend and backend checks (same as --frontend --backend).
 #   With args: set what runs (e.g. --no-frontend --no-ai-review to run only backend, no AI review).
 #   AI review runs by default after frontend/backend checks; use --no-ai-review to disable (or SKIP_AI_REVIEW=1).
+#   Full Explanation check runs by default after AI review; use --no-explanation-check to disable (or SKIP_EXPLANATION_CHECK=1).
 # Includes security: npm audit (frontend), deno audit (backend). Optional: Snyk (frontend, skip with SKIP_SNYK=1).
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# Load .shimwrappercheckrc so CHECK_MODE, SHIM_AI_*, SHIM_RUN_* etc. are set (e.g. when dashboard runs this script)
+if [[ -f "$ROOT_DIR/.shimwrappercheckrc" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$ROOT_DIR/.shimwrappercheckrc" 2>/dev/null || true
+  set +a
+fi
+
 run_frontend=false
 run_backend=false
 run_ai_review=true
+run_explanation_check=true
 
 if [[ $# -eq 0 ]]; then
   run_frontend=true
@@ -25,13 +35,15 @@ else
       --no-frontend) run_frontend=false ;;
       --no-backend) run_backend=false ;;
       --no-ai-review) run_ai_review=false ;;
-      *) echo "Unknown option: $arg. Use --frontend, --backend, --no-frontend, --no-backend, and/or --no-ai-review." >&2; exit 1 ;;
+      --no-explanation-check) run_explanation_check=false ;;
+      *) echo "Unknown option: $arg. Use --frontend, --backend, --no-frontend, --no-backend, --no-ai-review, and/or --no-explanation-check." >&2; exit 1 ;;
     esac
   done
 fi
 
-# Opt-out via env: SKIP_AI_REVIEW=1 disables AI review
+# Opt-out via env: SKIP_AI_REVIEW=1 disables AI review; SKIP_EXPLANATION_CHECK=1 disables Full Explanation check
 [[ -n "${SKIP_AI_REVIEW:-}" ]] && run_ai_review=false
+[[ -n "${SKIP_EXPLANATION_CHECK:-}" ]] && run_explanation_check=false
 
 # Granular toggles from .shimwrappercheckrc (SHIM_RUN_*=1|0). Default 1 when run_frontend/run_backend is true.
 run_prettier="${SHIM_RUN_PRETTIER:-1}"
@@ -47,6 +59,7 @@ run_deno_fmt="${SHIM_RUN_DENO_FMT:-1}"
 run_deno_lint="${SHIM_RUN_DENO_LINT:-1}"
 run_deno_audit="${SHIM_RUN_DENO_AUDIT:-1}"
 run_update_readme="${SHIM_RUN_UPDATE_README:-1}"
+run_explanation_check_rc="${SHIM_RUN_EXPLANATION_CHECK:-1}"
 
 # Wenn SHIM_CHECK_ORDER gesetzt ist: Checks genau in dieser Reihenfolge ausführen (wie in My Checks).
 run_one() {
@@ -73,6 +86,7 @@ run_one() {
     denoLint) [[ "$run_deno_lint" = "1" ]] && { echo "Deno lint..."; deno lint supabase/functions; } ;;
     denoAudit) [[ "$run_deno_audit" = "1" ]] && { echo "Deno audit..."; (cd supabase/functions/server && deno audit); } ;;
     aiReview) [[ "$run_ai_review" = true ]] && { echo "AI Review..."; bash "$ROOT_DIR/scripts/ai-code-review.sh"; } ;;
+    explanationCheck) [[ "$run_explanation_check_rc" = "1" ]] && [[ "$run_explanation_check" = true ]] && { echo "Full Explanation check..."; bash "$ROOT_DIR/scripts/ai-explanation-check.sh"; } ;;
     updateReadme) [[ "$run_update_readme" = "1" ]] && { echo "Update README...";
       if [[ -f "$ROOT_DIR/node_modules/shimwrappercheck/scripts/update-readme.js" ]]; then node "$ROOT_DIR/node_modules/shimwrappercheck/scripts/update-readme.js";
       elif [[ -f "$ROOT_DIR/scripts/update-readme.js" ]]; then node "$ROOT_DIR/scripts/update-readme.js";
@@ -137,4 +151,8 @@ fi
 
 if [[ "$run_ai_review" = true ]] && { [[ "$run_frontend" = true ]] || [[ "$run_backend" = true ]]; }; then
   bash "$ROOT_DIR/scripts/ai-code-review.sh"
+fi
+
+if [[ "$run_explanation_check" = true ]] && [[ "$run_explanation_check_rc" = "1" ]] && { [[ "$run_frontend" = true ]] || [[ "$run_backend" = true ]]; }; then
+  bash "$ROOT_DIR/scripts/ai-explanation-check.sh"
 fi

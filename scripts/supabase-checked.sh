@@ -74,6 +74,8 @@ for arg in "${ARGS_IN[@]}"; do
     --with-frontend) FORCE_FRONTEND=true ;;
     --no-ai-review) CHECKS_PASSTHROUGH+=("$arg") ;;
     --ai-review) CHECKS_PASSTHROUGH+=("$arg") ;;
+    --no-explanation-check) CHECKS_PASSTHROUGH+=("$arg") ;;
+    --explanation-check) CHECKS_PASSTHROUGH+=("$arg") ;;
     *) SUPABASE_ARGS+=("$arg") ;;
   esac
 done
@@ -89,7 +91,7 @@ fi
 
 if [[ "${#SUPABASE_ARGS[@]}" -eq 0 ]] && [[ "$CHECKS_ONLY" != true ]]; then
   echo "No Supabase command provided. Usage: supabase [shim flags] <supabase args>" >&2
-  echo "Shim flags: --no-checks --checks-only --no-hooks --no-push --no-ai-review" >&2
+  echo "Shim flags: --no-checks --checks-only --no-hooks --no-push --no-ai-review --no-explanation-check" >&2
   exit 1
 fi
 
@@ -124,6 +126,7 @@ if [[ "$RUN_CHECKS" = true ]]; then
   run_frontend=false
   run_backend=false
   run_ai_review=true
+  run_explanation_check=true
 
   changed_files=""
   if command -v git >/dev/null 2>&1; then
@@ -152,6 +155,12 @@ if [[ "$RUN_CHECKS" = true ]]; then
   if [[ -n "${SKIP_AI_REVIEW:-}" ]]; then
     run_ai_review=false
   fi
+  if [[ "$ARGS_TEXT_RAW" == *" --no-explanation-check "* ]]; then
+    run_explanation_check=false
+  fi
+  if [[ -n "${SKIP_EXPLANATION_CHECK:-}" ]]; then
+    run_explanation_check=false
+  fi
 
   if [[ "$run_frontend" = true ]] || [[ "$run_backend" = true ]]; then
     CHECKS_SCRIPT="$(resolve_checks_script)"
@@ -163,6 +172,7 @@ if [[ "$RUN_CHECKS" = true ]]; then
       [[ "$run_frontend" = true ]] && CHECKS_ARGS+=(--frontend)
       [[ "$run_backend" = true ]] && CHECKS_ARGS+=(--backend)
       [[ "$run_ai_review" = false ]] && CHECKS_ARGS+=(--no-ai-review)
+      [[ "$run_explanation_check" = false ]] && CHECKS_ARGS+=(--no-explanation-check)
       CHECKS_ARGS+=("${CHECKS_PASSTHROUGH[@]}")
       bash "$CHECKS_SCRIPT" "${CHECKS_ARGS[@]}"
     else

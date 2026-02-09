@@ -1,6 +1,7 @@
 node_modules/
 .DS_Store
 .shim/
+.shimwrapper/
 .shimwrappercheckrc
 .shimwrappercheck-presets.json
 dashboard/node_modules

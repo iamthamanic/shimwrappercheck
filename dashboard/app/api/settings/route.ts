@@ -10,6 +10,7 @@ import {
   type SettingsData,
   type Preset,
   type CheckToggles,
+  type CheckSettings,
   type SupabaseCommandId,
   type GitCommandId,
   DEFAULT_SETTINGS,
@@ -53,6 +54,7 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
       checkToggles.denoAudit = false;
     }
     if (args.includes("--no-ai-review")) checkToggles.aiReview = false;
+    if (args.includes("--no-explanation-check")) checkToggles.explanationCheck = false;
     if (args.includes("--no-sast")) checkToggles.sast = false;
     if (args.includes("--no-architecture")) checkToggles.architecture = false;
     if (args.includes("--no-complexity")) checkToggles.complexity = false;
@@ -76,7 +78,12 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
   if (readEnv("SHIM_RUN_DENO_FMT") !== undefined) checkToggles.denoFmt = readEnv("SHIM_RUN_DENO_FMT")!;
   if (readEnv("SHIM_RUN_DENO_LINT") !== undefined) checkToggles.denoLint = readEnv("SHIM_RUN_DENO_LINT")!;
   if (readEnv("SHIM_RUN_DENO_AUDIT") !== undefined) checkToggles.denoAudit = readEnv("SHIM_RUN_DENO_AUDIT")!;
+  if (readEnv("SHIM_RUN_EXPLANATION_CHECK") !== undefined)
+    checkToggles.explanationCheck = readEnv("SHIM_RUN_EXPLANATION_CHECK")!;
   if (readEnv("SHIM_RUN_UPDATE_README") !== undefined) checkToggles.updateReadme = readEnv("SHIM_RUN_UPDATE_README")!;
+
+  const checkModeMatch = rawRc.match(/CHECK_MODE="?(diff|full)"?/);
+  const checkMode = checkModeMatch ? checkModeMatch[1] : undefined;
 
   const enforceMatch = rawRc.match(/SHIM_ENFORCE_COMMANDS="([^"]*)"/);
   const hookMatch = rawRc.match(/SHIM_HOOK_COMMANDS="([^"]*)"/);
@@ -95,11 +102,16 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
     },
     git: { enforce: gitEnforceList as GitCommandId[] },
   };
-  return {
+  const result: Partial<SettingsData> = {
     presets: [preset],
     activePresetId: DEFAULT_VIBE_CODE_PRESET.id,
     checkToggles,
   };
+  if (checkMode) {
+    const existing = (result.checkSettings ?? {}) as CheckSettings;
+    result.checkSettings = { ...existing, aiReview: { ...existing.aiReview, checkMode: checkMode as "diff" | "full" } };
+  }
+  return result;
 }
 
 export async function GET() {

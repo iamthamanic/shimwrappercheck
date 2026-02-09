@@ -15,6 +15,7 @@ import type { SettingsData, CheckToggles } from "@/lib/presets";
 import { CHECK_DEFINITIONS } from "@/lib/checks";
 import type { CheckDef, CheckRole, CheckTag } from "@/lib/checks";
 import CheckCard, { type ToolStatus } from "./CheckCard";
+import { useRunChecksLog } from "./RunChecksLogContext";
 import { MY_SHIM_DROPPABLE_ID, MY_SHIM_BETWEEN_PREFIX, type CheckDragData } from "./ShimDndProvider";
 
 function formatTimestamp(d: Date): string {
@@ -67,6 +68,7 @@ function SortableMyCheckCard({
   onSettingsChange,
   onRemove,
   toolStatus,
+  logSegment,
   dragLabel,
   removeTitle,
   removeLabel,
@@ -78,6 +80,7 @@ function SortableMyCheckCard({
   onSettingsChange: (checkId: string, partial: Record<string, unknown>) => void;
   onRemove: (id: string) => void;
   toolStatus?: ToolStatus;
+  logSegment?: string;
   dragLabel: string;
   removeTitle: string;
   removeLabel: string;
@@ -120,6 +123,7 @@ function SortableMyCheckCard({
         inlineStyle
         hideEnabledToggle
         toolStatus={toolStatus}
+        logSegment={logSegment}
         headerExtra={
           <button
             type="button"
@@ -152,6 +156,7 @@ export default function MyShimChecks({
 }) {
   const t = useTranslations("common");
   const tMyChecks = useTranslations("myChecks");
+  const { segments: runChecksSegments } = useRunChecksLog();
   const [search, setSearch] = useState("");
   const [toolStatusMap, setToolStatusMap] = useState<Record<string, ToolStatus>>({});
   const [explode, setExplode] = useState(false);
@@ -224,6 +229,7 @@ export default function MyShimChecks({
             onSettingsChange={handleSettingsChange}
             onRemove={handleRemoveFromMyShim}
             toolStatus={toolStatusMap[def.id]}
+            logSegment={runChecksSegments[def.id]}
             dragLabel={t("dragToActivate")}
             removeTitle={t("removeFromMyShim")}
             removeLabel={t("remove")}

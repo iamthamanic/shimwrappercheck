@@ -128,6 +128,9 @@ export async function GET() {
     // aiReview: no single package; script/Codex
     tools.aiReview = { installed: true, label: "Skript/Codex" };
 
+    // explanationCheck: script/Codex (ai-explanation-check.sh)
+    tools.explanationCheck = { installed: true, label: "Skript/Codex (ai-explanation-check.sh)" };
+
     // updateReadme: script from package or project
     const updateReadmeInPkg = fs.existsSync(
       path.join(root, "node_modules", "shimwrappercheck", "scripts", "update-readme.js")

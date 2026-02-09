@@ -12,6 +12,7 @@ import { DEFAULT_VIBE_CODE_PRESET, SUPABASE_COMMAND_IDS } from "@/lib/presets";
 import StatusCard from "@/components/StatusCard";
 import TriggerCommandos from "@/components/TriggerCommandos";
 import MyShimChecks from "@/components/MyShimChecks";
+import { useRunChecksLog } from "@/components/RunChecksLogContext";
 
 type SettingsTab = "templates" | "information";
 
@@ -54,6 +55,7 @@ export default function SettingsPage() {
   const [exportFileName, setExportFileName] = useState("");
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameValue, setRenameValue] = useState("");
+  const { refetch: refetchRunChecksLog } = useRunChecksLog();
 
   const SETTINGS_FETCH_MS = 12_000;
 
@@ -124,6 +126,7 @@ export default function SettingsPage() {
       .then((data) => {
         setRunResult({ stdout: data.stdout ?? "", stderr: data.stderr ?? "", code: data.code ?? 1 });
         setRunning(false);
+        refetchRunChecksLog();
       })
       .catch(() => {
         setRunResult({ stdout: "", stderr: tSettings("runChecksRequestFailed"), code: 1 });

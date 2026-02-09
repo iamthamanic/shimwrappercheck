@@ -233,6 +233,14 @@ async function main() {
     }
   }
 
+  const aiExplanationPath = path.join(projectRoot, 'scripts', 'ai-explanation-check.sh');
+  if (!exists(aiExplanationPath)) {
+    const createExplanation = await askYesNo('scripts/ai-explanation-check.sh (Full Explanation Check) aus Template anlegen?', true);
+    if (createExplanation) {
+      copyTemplate('ai-explanation-check.sh', aiExplanationPath, true);
+    }
+  }
+
   const copyHardRulesTemplates = await askYesNo(
     'Hard-Rules Config-Templates kopieren (dependency-cruiser, semgrep, stryker, eslint complexity)?',
     false

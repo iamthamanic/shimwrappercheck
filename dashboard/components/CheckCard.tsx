@@ -45,6 +45,7 @@ export default function CheckCard({
   orderIndex,
   orderBadgeHighlight,
   toolStatus,
+  logSegment,
 }: {
   def: CheckDef;
   enabled: boolean;
@@ -69,10 +70,12 @@ export default function CheckCard({
   orderBadgeHighlight?: boolean;
   /** Tool-Status aus /api/check-tools – Anzeige + Copy-Paste in der Box */
   toolStatus?: ToolStatus;
+  /** Last run log segment for this check (from GET /api/run-checks/log). Shown in Logs tab. */
+  logSegment?: string;
 }) {
   const t = useTranslations("common");
   const tChecks = useTranslations("checks");
-  const [tab, setTab] = useState<"info" | "settings">("info");
+  const [tab, setTab] = useState<"info" | "settings" | "logs">("info");
   const [modalOpen, setModalOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
@@ -307,6 +310,13 @@ export default function CheckCard({
             >
               {t("settingsLabel")}
             </button>
+            <button
+              type="button"
+              className={`flex-1 py-2 px-3 text-xs font-medium ${tab === "logs" ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/5"}`}
+              onClick={() => setTab("logs")}
+            >
+              {t("logs")}
+            </button>
           </div>
           <div className={`p-3 text-sm min-h-[4rem] ${inlineStyle ? "text-neutral-300" : "text-neutral-300"}`}>
             {tab === "info" && (
@@ -387,6 +397,17 @@ export default function CheckCard({
                 })}
               </div>
             )}
+            {tab === "logs" && (
+              <div className="space-y-2">
+                {logSegment ? (
+                  <pre className="text-xs text-neutral-300 whitespace-pre-wrap break-words bg-black/30 rounded p-2 max-h-[12rem] overflow-y-auto font-mono">
+                    {logSegment}
+                  </pre>
+                ) : (
+                  <p className="text-neutral-500 text-xs">{t("noLogYet")}</p>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -431,6 +452,13 @@ export default function CheckCard({
                   onClick={() => setTab("settings")}
                 >
                   {t("settingsLabel")}
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 py-2 px-3 text-sm font-medium ${tab === "logs" ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/5"}`}
+                  onClick={() => setTab("logs")}
+                >
+                  {t("logs")}
                 </button>
               </div>
               <div className="overflow-y-auto flex-1 text-base pr-2">
@@ -510,6 +538,17 @@ export default function CheckCard({
                         </div>
                       );
                     })}
+                  </div>
+                )}
+                {tab === "logs" && (
+                  <div>
+                    {logSegment ? (
+                      <pre className="text-sm text-neutral-300 whitespace-pre-wrap break-words bg-black/30 rounded p-3 max-h-[20rem] overflow-y-auto font-mono">
+                        {logSegment}
+                      </pre>
+                    ) : (
+                      <p className="text-neutral-500 text-sm">{t("noLogYet")}</p>
+                    )}
                   </div>
                 )}
               </div>

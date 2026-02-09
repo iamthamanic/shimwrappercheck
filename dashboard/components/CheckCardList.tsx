@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 import type { SettingsData } from "@/lib/presets";
 import { CHECK_DEFINITIONS } from "@/lib/checks";
 import CheckCard, { type ToolStatus } from "./CheckCard";
+import { useRunChecksLog } from "./RunChecksLogContext";
 
 export default function CheckCardList({
   settings,
@@ -20,6 +21,7 @@ export default function CheckCardList({
   variant?: "simple" | "full";
 }) {
   const order = useMemo(() => settings?.checkOrder ?? [], [settings?.checkOrder]);
+  const { segments: runChecksSegments } = useRunChecksLog();
   const [search, setSearch] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
@@ -160,6 +162,7 @@ export default function CheckCardList({
               </span>
             }
             toolStatus={toolStatusMap[def.id]}
+            logSegment={runChecksSegments[def.id]}
           />
         </li>
       ))}

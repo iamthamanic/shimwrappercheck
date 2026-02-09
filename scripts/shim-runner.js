@@ -2,7 +2,7 @@
 /**
  * Shim runner: orchestrates all checks (deterministic, mutation, E2E, AI deductive review).
  * Writes .shim/last_error.json on first failure for agent self-healing.
- * Usage: node scripts/shim-runner.js [--full] [--no-sast] [--no-architecture] [--no-complexity] [--no-mutation] [--no-e2e] [--no-ai-review] [--frontend] [--backend]
+ * Usage: node scripts/shim-runner.js [--full] [--no-sast] [--no-architecture] [--no-complexity] [--no-mutation] [--no-e2e] [--no-ai-review] [--no-explanation-check] [--frontend] [--backend]
  * Or: npx shimwrappercheck run --full
  */
 const path = require('path');
@@ -33,6 +33,7 @@ function parseArgs() {
     mutation: full && !args.includes('--no-mutation'),
     e2e: full && !args.includes('--no-e2e'),
     aiReview: !args.includes('--no-ai-review'),
+    explanationCheck: !args.includes('--no-explanation-check'),
     frontend: args.includes('--frontend') || (args.length > 0 && !args.some(a => a.startsWith('--no-')) && !args.includes('--backend-only')),
     backend: args.includes('--backend'),
   };
@@ -159,6 +160,7 @@ function runFrontendBackendBase(opts) {
     if (opts.frontend) args.push('--frontend');
     if (opts.backend) args.push('--backend');
     if (!opts.aiReview) args.push('--no-ai-review');
+    if (!opts.explanationCheck) args.push('--no-explanation-check');
     const res = run('bash', [runChecksPath, ...args]);
     if (res.status !== 0 && res.status !== null) {
       fail('run-checks', 'Frontend/backend checks failed', 'Fix lint, build, or tests.', null, res.stdout + res.stderr);

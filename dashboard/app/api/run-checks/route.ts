@@ -1,5 +1,6 @@
 /**
  * POST /api/run-checks – run Node orchestrator (npx shimwrappercheck run) or fallback to scripts/run-checks.sh.
+ * Saves last run stdout/stderr to .shimwrapper/last-run.json for the Logs tab.
  * Vercel-compatible; uses SHIM_PROJECT_ROOT. Runs in project root.
  */
 import { NextResponse } from "next/server";
@@ -10,6 +11,23 @@ import { promisify } from "util";
 import { getProjectRoot } from "@/lib/projectRoot";
 
 const execAsync = promisify(exec);
+
+const LAST_RUN_FILENAME = "last-run.json";
+
+function getLastRunPath(root: string): string {
+  return path.join(root, ".shimwrapper", LAST_RUN_FILENAME);
+}
+
+function writeLastRun(root: string, stdout: string, stderr: string): void {
+  try {
+    const dir = path.join(root, ".shimwrapper");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const p = getLastRunPath(root);
+    fs.writeFileSync(p, JSON.stringify({ stdout, stderr, timestamp: new Date().toISOString() }), "utf8");
+  } catch (e) {
+    console.warn("run-checks: could not write last-run.json", e);
+  }
+}
 
 export async function POST() {
   try {
@@ -73,6 +91,7 @@ export async function POST() {
       }
     }
 
+    writeLastRun(root, stdout, stderr);
     return NextResponse.json({ stdout, stderr, code });
   } catch (err) {
     console.error("run-checks error:", err);

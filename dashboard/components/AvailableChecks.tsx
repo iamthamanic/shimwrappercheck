@@ -14,6 +14,7 @@ import type { SettingsData, CheckToggles } from "@/lib/presets";
 import { CHECK_DEFINITIONS } from "@/lib/checks";
 import type { CheckDef } from "@/lib/checks";
 import CheckCard, { type ToolStatus } from "./CheckCard";
+import { useRunChecksLog } from "./RunChecksLogContext";
 import { CHECK_LIBRARY_DROPPABLE_ID, type CheckDragData } from "./ShimDndProvider";
 
 type FilterState = { frontend: boolean; backend: boolean; enforce: boolean; hooks: boolean };
@@ -34,6 +35,7 @@ function DraggableLibraryCard({
   onSettingsChange,
   onToggle,
   toolStatus,
+  logSegment,
 }: {
   def: CheckDef;
   dragHandleTitle: string;
@@ -41,6 +43,7 @@ function DraggableLibraryCard({
   onSettingsChange: (partial: Record<string, unknown>) => void;
   onToggle: (v: boolean) => void;
   toolStatus?: ToolStatus;
+  logSegment?: string;
 }) {
   const dragData: CheckDragData = {
     orderIndex: null,
@@ -81,6 +84,7 @@ function DraggableLibraryCard({
         hideEnabledToggle
         inlineStyle
         toolStatus={toolStatus}
+        logSegment={logSegment}
       />
     </li>
   );
@@ -99,6 +103,7 @@ export default function AvailableChecks({
 }) {
   const t = useTranslations("common");
   const tCheckLib = useTranslations("checkLibrary");
+  const { segments: runChecksSegments } = useRunChecksLog();
   const [search, setSearch] = useState("");
   const [filterAll, setFilterAll] = useState(true);
   const [filter, setFilter] = useState<FilterState>({ frontend: false, backend: false, enforce: false, hooks: false });
@@ -266,6 +271,7 @@ export default function AvailableChecks({
                 onSettingsChange={(partial) => handleSettingsChange(def.id, partial)}
                 onToggle={(v) => handleToggle(def.id, v)}
                 toolStatus={toolStatusMap[def.id]}
+                logSegment={runChecksSegments[def.id]}
               />
             ))}
           </ul>

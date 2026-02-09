@@ -160,10 +160,29 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     settings: [
       { key: "enabled", label: "Aktiv", type: "boolean", default: true },
       { key: "timeoutSec", label: "Timeout (Sekunden)", type: "number", default: 180 },
+      {
+        key: "checkMode",
+        label: "AI review scope",
+        type: "select",
+        default: "diff",
+        options: [
+          { value: "diff", label: "diff — only changes (staged/unstaged or pushed commits)" },
+          { value: "full", label: "full — whole codebase (truncated to ~100KB)" },
+        ],
+      },
       { key: "diffLimitBytes", label: "Max. Diff-Größe (Bytes)", type: "number", default: 51200 },
       { key: "minRating", label: "Mindest-Rating für PASS", type: "number", default: 95 },
       { key: "reviewDir", label: "Ausgabeordner Reviews", type: "string", default: ".shimwrapper/reviews" },
     ],
+  },
+  {
+    id: "explanationCheck",
+    label: "Full Explanation",
+    tags: ["frontend", "backend"],
+    role: "enforce",
+    summary: "Full Explanation Check (ai-explanation-check.sh).",
+    info: "Prüft ausschließlich die Einhaltung des Standards „Mandatory Full Explanation Comments“: Docstrings pro Funktion, Inline-Kommentare für nicht-triviale Zeilen, keine reinen Snippets. Codex-basiert; PASS nur bei score ≥ 95% und verdict ACCEPT. Berichte in .shimwrapper/reviews/explanation-check-*.md.",
+    settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }],
   },
   {
     id: "checkMockData",

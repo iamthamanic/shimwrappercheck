@@ -10,6 +10,7 @@ import Header from "@/components/Header";
 import LayoutContent from "@/components/LayoutContent";
 import SetDocumentLang from "@/components/SetDocumentLang";
 import { SettingsSavedProvider } from "@/components/SettingsSavedContext";
+import { RunChecksLogProvider } from "@/components/RunChecksLogContext";
 import ShimDndWithNotify from "@/components/ShimDndWithNotify";
 import messagesDe from "@/messages/de.json";
 import messagesEn from "@/messages/en.json";
@@ -73,9 +74,11 @@ export default async function LocaleLayout({ children, params }: Props) {
         <Header />
         <div className="flex flex-1 min-h-0 flex-col w-full min-h-[50vh] bg-[#0f0f0f]">
           <SettingsSavedProvider>
-            <ShimDndWithNotify>
-              <LayoutContent>{children}</LayoutContent>
-            </ShimDndWithNotify>
+            <RunChecksLogProvider>
+              <ShimDndWithNotify>
+                <LayoutContent>{children}</LayoutContent>
+              </ShimDndWithNotify>
+            </RunChecksLogProvider>
           </SettingsSavedProvider>
         </div>
       </NextIntlClientProvider>

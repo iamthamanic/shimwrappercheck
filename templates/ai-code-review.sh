@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 # AI code review: Codex only (Cursor disabled). Called from run-checks.sh.
 # Prompt: Senior-Software-Architekt, 100 Punkte, Checkliste (SOLID, Performance, Sicherheit, Robustheit, Wartbarkeit), JSON score/deductions/verdict.
+# When verdict is REJECT: address all checklist points per affected file in one pass — see AGENTS.md and docs/AI_REVIEW_WHY_NEW_ERRORS_AFTER_FIXES.md.
 # Codex: codex in PATH; use session after codex login (ChatGPT account, no API key in terminal).
-# Diff: staged + unstaged; if clean (e.g. pre-push), uses diff of commits being pushed (@{u}...HEAD or HEAD~1...HEAD).
-# Runs codex exec --json to get token usage from turn.completed; prints Token usage for agent to report.
-# Diff limited to ~50KB head + tail. Timeout 180s when timeout(1) available.
+# CHECK_MODE controls which diff the AI gets:
+#   CHECK_MODE=diff (default): Only changes (staged + unstaged, or commits being pushed).
+#   CHECK_MODE=full:          Whole codebase (empty tree..HEAD); truncated to LIMIT_BYTES.
+# All other checks (format, lint, typecheck, …) always run on the full codebase.
+# Diff limited to ~100KB (head + tail) to avoid token limits and timeouts; with CHECK_MODE=full the repo diff may be large.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
+CHECK_MODE="${CHECK_MODE:-diff}"
 
 DIFF_FILE=""
 cleanup() {
@@ -17,28 +21,36 @@ cleanup() {
 trap cleanup EXIT
 
 DIFF_FILE="$(mktemp)"
-git diff --no-color >> "$DIFF_FILE" 2>/dev/null || true
-git diff --cached --no-color >> "$DIFF_FILE" 2>/dev/null || true
-
-# If working tree is clean (e.g. pre-push after commit), use diff of commits being pushed.
-if [[ ! -s "$DIFF_FILE" ]] && command -v git >/dev/null 2>&1; then
-  RANGE=""
-  if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
-    RANGE="@{u}...HEAD"
-  elif git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
-    RANGE="HEAD~1...HEAD"
+if [[ "$CHECK_MODE" == "full" ]]; then
+  EMPTY_TREE="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+  git diff --no-color "$EMPTY_TREE"..HEAD -- . >> "$DIFF_FILE" 2>/dev/null || true
+  if [[ ! -s "$DIFF_FILE" ]]; then
+    echo "Skipping AI review (CHECK_MODE=full): no diff produced (empty repo?)." >&2
+    exit 0
   fi
-  if [[ -n "$RANGE" ]]; then
-    git diff --no-color "$RANGE" >> "$DIFF_FILE" 2>/dev/null || true
+  echo "AI review: CHECK_MODE=full (whole codebase diff, may be truncated to ~100KB)." >&2
+else
+  git diff --no-color >> "$DIFF_FILE" 2>/dev/null || true
+  git diff --cached --no-color >> "$DIFF_FILE" 2>/dev/null || true
+  if [[ ! -s "$DIFF_FILE" ]] && command -v git >/dev/null 2>&1; then
+    RANGE=""
+    if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+      RANGE="@{u}...HEAD"
+    elif git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+      RANGE="HEAD~1...HEAD"
+    fi
+    if [[ -n "$RANGE" ]]; then
+      git diff --no-color "$RANGE" >> "$DIFF_FILE" 2>/dev/null || true
+    fi
   fi
+  if [[ ! -s "$DIFF_FILE" ]]; then
+    echo "Skipping AI review: no staged, unstaged, or pushed changes (CHECK_MODE=diff)." >&2
+    exit 0
+  fi
+  echo "AI review: CHECK_MODE=diff (changes only)." >&2
 fi
 
-if [[ ! -s "$DIFF_FILE" ]]; then
-  echo "Skipping AI review: no staged, unstaged, or pushed changes." >&2
-  exit 0
-fi
-
-# Limit diff to first and last ~50KB to avoid token limits and timeouts
+# Limit diff to first and last ~50KB to avoid token limits and timeouts. With CHECK_MODE=full the repo diff can be large; the AI then only sees head and tail.
 LIMIT_BYTES=51200
 DIFF_LIMITED=""
 if [[ $(wc -c < "$DIFF_FILE") -le $((LIMIT_BYTES * 2)) ]]; then
@@ -242,6 +254,9 @@ echo "Verdict: ${REVIEW_VERDICT}" >&2
 if [[ -n "$REVIEW_DEDUCTIONS" ]] && [[ "$REVIEW_DEDUCTIONS" != "[]" ]]; then
   echo "Deductions:" >&2
   echo "$REVIEW_DEDUCTIONS" | jq -r '.[] | "  - \(.point): -\(.minus) — \(.reason)"' 2>/dev/null || echo "$REVIEW_DEDUCTIONS" >&2
+fi
+if [[ $PASS -ne 1 ]]; then
+  echo "Address deductions above (or in $REVIEW_FILE). Do a broad pass per affected file (IDOR, rate limiting, input validation, error handling, edge cases) before re-running — see AGENTS.md and docs/AI_REVIEW_WHY_NEW_ERRORS_AFTER_FIXES.md." >&2
 fi
 
 [[ $PASS -eq 1 ]] && exit 0 || exit 1

@@ -43,6 +43,7 @@ export interface CheckToggles {
   denoLint: boolean;
   denoAudit: boolean;
   aiReview: boolean;
+  explanationCheck: boolean;
   updateReadme: boolean;
   sast: boolean;
   architecture: boolean;
@@ -54,7 +55,7 @@ export interface CheckToggles {
 /** Per-check options (persisted in presets JSON and written to rc as env where supported) */
 export interface CheckSettings {
   npmAudit?: { auditLevel?: string };
-  aiReview?: { timeoutSec?: number; diffLimitBytes?: number; minRating?: number; reviewDir?: string };
+  aiReview?: { timeoutSec?: number; diffLimitBytes?: number; minRating?: number; reviewDir?: string; checkMode?: "diff" | "full" };
   healthPing?: { defaultFunction?: string; healthFunctions?: string; healthPaths?: string; projectRef?: string };
   edgeLogs?: { defaultFunction?: string; logFunctions?: string; logLimit?: number };
 }
@@ -84,6 +85,7 @@ export const DEFAULT_CHECK_TOGGLES: CheckToggles = {
   denoLint: false,
   denoAudit: false,
   aiReview: false,
+  explanationCheck: false,
   updateReadme: false,
   sast: false,
   architecture: false,
@@ -145,6 +147,7 @@ export function buildRcContent(settings: SettingsData): string {
   if (frontendAllOff) args.push("--no-frontend");
   if (backendAllOff) args.push("--no-backend");
   if (!t.aiReview) args.push("--no-ai-review");
+  if (!t.explanationCheck) args.push("--no-explanation-check");
   if (!t.sast) args.push("--no-sast");
   if (!t.architecture) args.push("--no-architecture");
   if (!t.complexity) args.push("--no-complexity");
@@ -171,6 +174,7 @@ export function buildRcContent(settings: SettingsData): string {
   lines.push(`SHIM_RUN_DENO_FMT=${t.denoFmt ? 1 : 0}`);
   lines.push(`SHIM_RUN_DENO_LINT=${t.denoLint ? 1 : 0}`);
   lines.push(`SHIM_RUN_DENO_AUDIT=${t.denoAudit ? 1 : 0}`);
+  lines.push(`SHIM_RUN_EXPLANATION_CHECK=${t.explanationCheck ? 1 : 0}`);
   lines.push(`SHIM_RUN_UPDATE_README=${t.updateReadme ? 1 : 0}`);
 
   const cs = settings.checkSettings;
@@ -180,6 +184,7 @@ export function buildRcContent(settings: SettingsData): string {
   if (cs?.aiReview?.diffLimitBytes != null) lines.push(`SHIM_AI_DIFF_LIMIT_BYTES=${cs.aiReview.diffLimitBytes}`);
   if (cs?.aiReview?.minRating != null) lines.push(`SHIM_AI_MIN_RATING=${cs.aiReview.minRating}`);
   if (cs?.aiReview?.reviewDir) lines.push(`SHIM_AI_REVIEW_DIR="${cs.aiReview.reviewDir}"`);
+  if (cs?.aiReview?.checkMode) lines.push(`CHECK_MODE="${cs.aiReview.checkMode}"`);
   const defaultFn = cs?.healthPing?.defaultFunction || cs?.edgeLogs?.defaultFunction;
   if (defaultFn) lines.push(`SHIM_DEFAULT_FUNCTION="${defaultFn}"`);
   if (cs?.healthPing?.healthFunctions) lines.push(`SHIM_HEALTH_FUNCTIONS="${cs.healthPing.healthFunctions}"`);

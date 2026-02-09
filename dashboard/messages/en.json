@@ -15,6 +15,8 @@
     "hooks": "Hooks",
     "info": "Info",
     "settingsLabel": "Settings",
+    "logs": "Logs",
+    "noLogYet": "No log for this check yet. Run checks to see output.",
     "active": "Active",
     "inactive": "Inactive",
     "copy": "Copy",
@@ -239,6 +241,11 @@
       "diffLimitBytes": "Max diff size (bytes)",
       "minRating": "Minimum rating for PASS",
       "reviewDir": "Review output folder"
+    },
+    "explanationCheck": {
+      "label": "Full Explanation",
+      "summary": "Full Explanation Check (ai-explanation-check.sh).",
+      "info": "Checks only compliance with the „Mandatory Full Explanation Comments“ standard: docstrings per function, inline comments for non-trivial lines, no snippets only. Codex-based; PASS only if score ≥ 95% and verdict ACCEPT. Reports in .shimwrapper/reviews/explanation-check-*.md."
     },
     "checkMockData": {
       "label": "Check Mock Data",
