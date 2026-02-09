@@ -5,7 +5,7 @@
 # Codex: codex in PATH; use session after codex login (ChatGPT account, no API key in terminal).
 # CHECK_MODE controls which diff the AI gets:
 #   CHECK_MODE=diff (default): Only changes (staged + unstaged, or commits being pushed). One Codex run; review file shows Mode: diff.
-#   CHECK_MODE=full:          Chunked review per directory (src, supabase, scripts). Each chunk: git diff EMPTY_TREE..HEAD -- <dir>, up to 150KB per chunk; one Codex run per chunk; timeout 600s per chunk. PASS only if all chunks ACCEPT and score ≥ 95. Review file shows Mode: full (chunked) and sections ## Chunk: src, ## Chunk: supabase, ## Chunk: scripts.
+#   CHECK_MODE=full:          Chunked review per directory (src, supabase, scripts, dashboard). Each chunk: git diff EMPTY_TREE..HEAD -- <dir>, up to 150KB per chunk; one Codex run per chunk; timeout 600s per chunk. PASS only if all chunks ACCEPT and score ≥ 95. Review file shows Mode: full (chunked) and sections ## Chunk: src, ## Chunk: supabase, ## Chunk: scripts, ## Chunk: dashboard.
 # All other checks (format, lint, typecheck, …) always run on the full codebase.
 set -euo pipefail
 
@@ -27,11 +27,13 @@ if [[ "$CHECK_MODE" == "full" ]]; then
     exit 0
   fi
   EMPTY_TREE="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+  # Collect top-level dirs that exist: each gets one Codex chunk (avoids token limit); dashboard = Next.js app.
   CHUNK_DIRS=""
-  for d in src supabase scripts; do [[ -d "$ROOT_DIR/$d" ]] && CHUNK_DIRS="$CHUNK_DIRS $d"; done
+  for d in src supabase scripts dashboard; do [[ -d "$ROOT_DIR/$d" ]] && CHUNK_DIRS="$CHUNK_DIRS $d"; done
   CHUNK_DIRS=$(echo $CHUNK_DIRS)
+  # If no standard dirs exist, skip full review (nothing to chunk).
   if [[ -z "$CHUNK_DIRS" ]]; then
-    echo "Skipping AI review (CHECK_MODE=full): none of src, supabase, scripts exist." >&2
+    echo "Skipping AI review (CHECK_MODE=full): none of src, supabase, scripts, dashboard exist." >&2
     exit 0
   fi
   echo "AI review: CHECK_MODE=full (chunked per directory: $CHUNK_DIRS)." >&2
