@@ -44,8 +44,11 @@ export interface CheckToggles {
   denoAudit: boolean;
   aiReview: boolean;
   explanationCheck: boolean;
+  i18nCheck: boolean;
   updateReadme: boolean;
   sast: boolean;
+  gitleaks: boolean;
+  licenseChecker: boolean;
   architecture: boolean;
   complexity: boolean;
   mutation: boolean;
@@ -55,7 +58,13 @@ export interface CheckToggles {
 /** Per-check options (persisted in presets JSON and written to rc as env where supported) */
 export interface CheckSettings {
   npmAudit?: { auditLevel?: string };
-  aiReview?: { timeoutSec?: number; diffLimitBytes?: number; minRating?: number; reviewDir?: string; checkMode?: "diff" | "full" };
+  aiReview?: {
+    timeoutSec?: number;
+    diffLimitBytes?: number;
+    minRating?: number;
+    reviewDir?: string;
+    checkMode?: "diff" | "full";
+  };
   healthPing?: { defaultFunction?: string; healthFunctions?: string; healthPaths?: string; projectRef?: string };
   edgeLogs?: { defaultFunction?: string; logFunctions?: string; logLimit?: number };
 }
@@ -86,8 +95,11 @@ export const DEFAULT_CHECK_TOGGLES: CheckToggles = {
   denoAudit: false,
   aiReview: false,
   explanationCheck: false,
+  i18nCheck: false,
   updateReadme: false,
   sast: false,
+  gitleaks: false,
+  licenseChecker: false,
   architecture: false,
   complexity: false,
   mutation: false,
@@ -141,6 +153,7 @@ export function buildRcContent(settings: SettingsData): string {
     !t.npmAudit &&
     !t.viteBuild &&
     !t.snyk &&
+    !t.i18nCheck &&
     !t.updateReadme;
   const backendAllOff = !t.denoFmt && !t.denoLint && !t.denoAudit;
   const args: string[] = [];
@@ -148,7 +161,10 @@ export function buildRcContent(settings: SettingsData): string {
   if (backendAllOff) args.push("--no-backend");
   if (!t.aiReview) args.push("--no-ai-review");
   if (!t.explanationCheck) args.push("--no-explanation-check");
+  if (!t.i18nCheck) args.push("--no-i18n-check");
   if (!t.sast) args.push("--no-sast");
+  if (!t.gitleaks) args.push("--no-gitleaks");
+  if (!t.licenseChecker) args.push("--no-license-checker");
   if (!t.architecture) args.push("--no-architecture");
   if (!t.complexity) args.push("--no-complexity");
   if (!t.mutation) args.push("--no-mutation");
@@ -175,7 +191,11 @@ export function buildRcContent(settings: SettingsData): string {
   lines.push(`SHIM_RUN_DENO_LINT=${t.denoLint ? 1 : 0}`);
   lines.push(`SHIM_RUN_DENO_AUDIT=${t.denoAudit ? 1 : 0}`);
   lines.push(`SHIM_RUN_EXPLANATION_CHECK=${t.explanationCheck ? 1 : 0}`);
+  lines.push(`SHIM_RUN_I18N_CHECK=${t.i18nCheck ? 1 : 0}`);
   lines.push(`SHIM_RUN_UPDATE_README=${t.updateReadme ? 1 : 0}`);
+  lines.push(`SHIM_RUN_SAST=${t.sast ? 1 : 0}`);
+  lines.push(`SHIM_RUN_GITLEAKS=${t.gitleaks ? 1 : 0}`);
+  lines.push(`SHIM_RUN_LICENSE_CHECKER=${t.licenseChecker ? 1 : 0}`);
 
   const cs = settings.checkSettings;
   if (!t.snyk) lines.push("SKIP_SNYK=1");

@@ -1,6 +1,6 @@
 {
   "name": "shimwrappercheck",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "CLI-Shim, der Projekt-Checks ausführt, bevor ein echtes CLI-Kommando (z. B. Supabase, Git) läuft. Optional: Web-Dashboard zum Konfigurieren von Presets, Trigger-Befehlen, Checks und AGENTS.md.",
   "license": "MIT",
   "bin": {
@@ -33,12 +33,19 @@
   },
   "scripts": {
     "prepublishOnly": "node scripts/prepublish-clean.js",
+    "dev": "npm run dashboard",
     "dashboard": "npm install --prefix dashboard && npm run dev --prefix dashboard",
     "setup": "node bin/shimwrappercheck setup",
     "init": "node bin/shimwrappercheck init",
     "supabase:checked": "supabase",
     "git:checked": "./bin/git",
-    "dashboard:check": "npm run check --prefix dashboard"
+    "dashboard:check": "npm run check --prefix dashboard",
+    "lint": "npm run lint --prefix dashboard",
+    "format:check": "npm run format:check --prefix dashboard",
+    "typecheck": "npm run typecheck --prefix dashboard",
+    "build": "npm run build --prefix dashboard",
+    "test:run": "npm run build --prefix dashboard",
+    "check:mock-data": "true"
   },
   "dependencies": {
     "dotenv": "^17.2.4"

@@ -119,6 +119,24 @@ export default function CheckCard({
             return s.label;
           }
         })();
+  /** Translated label for select options (e.g. aiReview.checkMode diff/full). */
+  const getSelectOptionLabel = (s: { key: string }, o: { value: string; label: string }): string => {
+    if (def.id === "aiReview" && s.key === "checkMode") {
+      if (o.value === "diff") return tChecks("aiReview.checkModeOptionDiff");
+      if (o.value === "full") return tChecks("aiReview.checkModeOptionFull");
+    }
+    return o.label;
+  };
+  /** Tooltip for a setting (checks.{def.id}.{s.key}Tooltip). Returns null if no translation. */
+  const getSettingTooltip = (s: { key: string }): string | null => {
+    try {
+      const key = `${def.id}.${s.key}Tooltip`;
+      const v = (tChecks as (k: string) => string)(key);
+      return typeof v === "string" && v.length > 0 && v !== key ? v : null;
+    } catch {
+      return null;
+    }
+  };
   const checkLabel = (() => {
     try {
       return tChecks(`${def.id}.label`);
@@ -150,7 +168,29 @@ export default function CheckCard({
           const val = checkSettings?.[s.key] ?? s.default;
           return (
             <div key={s.key}>
-              <label className="text-xs text-neutral-400">{getSettingLabel(s)}</label>
+              <div className="flex items-center gap-1 flex-wrap">
+                <label className="text-xs text-neutral-400">{getSettingLabel(s)}</label>
+                {getSettingTooltip(s) && (
+                  <span className="tooltip tooltip-right" data-tip={getSettingTooltip(s)}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs btn-circle text-white/50 hover:text-white/80"
+                      aria-label={t("info")}
+                    >
+                      <svg
+                        className="w-3.5 h-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 16v-4M12 8h.01" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+              </div>
               {s.type === "boolean" && (
                 <input
                   type="checkbox"
@@ -183,7 +223,7 @@ export default function CheckCard({
                 >
                   {s.options?.map((o) => (
                     <option key={o.value} value={o.value}>
-                      {o.label}
+                      {getSelectOptionLabel(s, o)}
                     </option>
                   ))}
                 </select>
@@ -352,7 +392,29 @@ export default function CheckCard({
                   const val = checkSettings?.[s.key] ?? s.default;
                   return (
                     <div key={s.key}>
-                      <label className="text-xs text-neutral-400">{getSettingLabel(s)}</label>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <label className="text-xs text-neutral-400">{getSettingLabel(s)}</label>
+                        {getSettingTooltip(s) && (
+                          <span className="tooltip tooltip-right" data-tip={getSettingTooltip(s)}>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-xs btn-circle text-white/50 hover:text-white/80"
+                              aria-label={t("info")}
+                            >
+                              <svg
+                                className="w-3.5 h-3.5"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                              >
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M12 16v-4M12 8h.01" />
+                              </svg>
+                            </button>
+                          </span>
+                        )}
+                      </div>
                       {s.type === "boolean" && (
                         <input
                           type="checkbox"
@@ -387,7 +449,7 @@ export default function CheckCard({
                         >
                           {s.options?.map((o) => (
                             <option key={o.value} value={o.value}>
-                              {o.label}
+                              {getSelectOptionLabel(s, o)}
                             </option>
                           ))}
                         </select>
@@ -495,7 +557,29 @@ export default function CheckCard({
                       const val = checkSettings?.[s.key] ?? s.default;
                       return (
                         <div key={s.key}>
-                          <label className="text-sm text-neutral-300 block mb-1">{getSettingLabel(s)}</label>
+                          <div className="flex items-center gap-1 flex-wrap mb-1">
+                            <label className="text-sm text-neutral-300 block">{getSettingLabel(s)}</label>
+                            {getSettingTooltip(s) && (
+                              <span className="tooltip tooltip-right" data-tip={getSettingTooltip(s)}>
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-xs btn-circle text-white/50 hover:text-white/80"
+                                  aria-label={t("info")}
+                                >
+                                  <svg
+                                    className="w-3.5 h-3.5"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                  >
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M12 16v-4M12 8h.01" />
+                                  </svg>
+                                </button>
+                              </span>
+                            )}
+                          </div>
                           {s.type === "boolean" && (
                             <input
                               type="checkbox"
@@ -530,7 +614,7 @@ export default function CheckCard({
                             >
                               {s.options?.map((o) => (
                                 <option key={o.value} value={o.value}>
-                                  {o.label}
+                                  {getSelectOptionLabel(s, o)}
                                 </option>
                               ))}
                             </select>

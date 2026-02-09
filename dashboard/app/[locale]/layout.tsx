@@ -85,10 +85,12 @@ export default async function LocaleLayout({ children, params }: Props) {
     );
   } catch (e) {
     console.error("LocaleLayout render failed:", e);
+    const fallbackTitle = locale === "de" ? "Dashboard fehlt" : "Dashboard missing";
+    const fallbackGeneric = locale === "de" ? "Unbekannter Fehler" : "Unknown error";
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#0f0f0f] text-white p-4">
-        <h1 className="text-xl font-semibold mb-2">Dashboard fehlt</h1>
-        <p className="text-neutral-400 text-sm">{e instanceof Error ? e.message : "Unbekannter Fehler"}</p>
+        <h1 className="text-xl font-semibold mb-2">{fallbackTitle}</h1>
+        <p className="text-neutral-400 text-sm">{e instanceof Error ? e.message : fallbackGeneric}</p>
       </div>
     );
   }

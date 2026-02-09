@@ -131,6 +131,16 @@ export async function GET() {
     // explanationCheck: script/Codex (ai-explanation-check.sh)
     tools.explanationCheck = { installed: true, label: "Skript/Codex (ai-explanation-check.sh)" };
 
+    // i18nCheck: scripts/i18n-check.js
+    const i18nCheckInProject = fs.existsSync(path.join(root, "scripts", "i18n-check.js"));
+    const i18nCheckInPkg = fs.existsSync(
+      path.join(root, "node_modules", "shimwrappercheck", "scripts", "i18n-check.js")
+    );
+    tools.i18nCheck =
+      i18nCheckInProject || i18nCheckInPkg
+        ? { installed: true, label: "i18n-Check (scripts/i18n-check.js)" }
+        : { installed: false, label: "Skript fehlt", command: "scripts/i18n-check.js" };
+
     // updateReadme: script from package or project
     const updateReadmeInPkg = fs.existsSync(
       path.join(root, "node_modules", "shimwrappercheck", "scripts", "update-readme.js")
@@ -146,8 +156,48 @@ export async function GET() {
               "Wird von run-checks aus node_modules/shimwrappercheck/scripts/ ausgeführt, wenn das Paket installiert ist",
           };
 
-    // Optional / geplant: SAST, architecture, complexity, mutation, e2e
-    tools.sast = { installed: true, label: "Optional (z. B. semgrep)" };
+    // Semgrep (SAST)
+    let semgrepInstalled = false;
+    try {
+      execSync("which semgrep", { encoding: "utf8", stdio: "pipe" });
+      semgrepInstalled = true;
+    } catch {
+      try {
+        execSync("npm exec --yes semgrep -- --version", { cwd: root, stdio: "pipe" });
+        semgrepInstalled = true;
+      } catch {
+        // not installed
+      }
+    }
+    tools.sast = semgrepInstalled
+      ? { installed: true, label: "Semgrep (semgrep scan)" }
+      : { installed: false, label: "Semgrep", command: "pip install semgrep oder npx semgrep" };
+
+    // Gitleaks
+    let gitleaksInstalled = false;
+    try {
+      execSync("which gitleaks", { encoding: "utf8", stdio: "pipe" });
+      gitleaksInstalled = true;
+    } catch {
+      // not in PATH
+    }
+    tools.gitleaks = gitleaksInstalled
+      ? { installed: true, label: "Gitleaks" }
+      : { installed: false, label: "Gitleaks", command: "z. B. brew install gitleaks" };
+
+    // license-checker (npx)
+    let licenseCheckerInstalled = false;
+    try {
+      execSync("npx license-checker --version", { cwd: root, stdio: "pipe" });
+      licenseCheckerInstalled = true;
+    } catch {
+      // npx will install on first run
+    }
+    tools.licenseChecker = licenseCheckerInstalled
+      ? { installed: true, label: "license-checker (npx license-checker)" }
+      : { installed: false, label: "license-checker", command: "npx license-checker" };
+
+    // Optional / geplant: architecture, complexity, mutation, e2e
     tools.architecture = { installed: true, label: "Optional (z. B. dependency-cruiser)" };
     tools.complexity = { installed: true, label: "Optional (z. B. eslint-plugin-complexity)" };
     tools.mutation = { installed: true, label: "Optional (z. B. Stryker)" };

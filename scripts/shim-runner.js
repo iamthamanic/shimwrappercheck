@@ -2,7 +2,7 @@
 /**
  * Shim runner: orchestrates all checks (deterministic, mutation, E2E, AI deductive review).
  * Writes .shim/last_error.json on first failure for agent self-healing.
- * Usage: node scripts/shim-runner.js [--full] [--no-sast] [--no-architecture] [--no-complexity] [--no-mutation] [--no-e2e] [--no-ai-review] [--no-explanation-check] [--frontend] [--backend]
+ * Usage: node scripts/shim-runner.js [--full] [--no-sast] [--no-gitleaks] [--no-license-checker] [--no-architecture] [--no-complexity] [--no-mutation] [--no-e2e] [--no-ai-review] [--no-explanation-check] [--frontend] [--backend]
  * Or: npx shimwrappercheck run --full
  */
 const path = require('path');
@@ -28,12 +28,15 @@ function parseArgs() {
   const opts = {
     full,
     sast: !args.includes('--no-sast'),
+    gitleaks: !args.includes('--no-gitleaks'),
+    licenseChecker: !args.includes('--no-license-checker'),
     architecture: !args.includes('--no-architecture'),
     complexity: !args.includes('--no-complexity'),
     mutation: full && !args.includes('--no-mutation'),
     e2e: full && !args.includes('--no-e2e'),
     aiReview: !args.includes('--no-ai-review'),
     explanationCheck: !args.includes('--no-explanation-check'),
+    i18nCheck: !args.includes('--no-i18n-check'),
     frontend: args.includes('--frontend') || (args.length > 0 && !args.some(a => a.startsWith('--no-')) && !args.includes('--backend-only')),
     backend: args.includes('--backend'),
   };
@@ -97,7 +100,28 @@ function checkSemgrep(opts) {
   if (semgrep.status === 127 || semgrep.status === 126) return;
   if (semgrep.status !== 0 && semgrep.status !== null) {
     const firstLine = (semgrep.stdout + semgrep.stderr).split('\n').find(l => /:\d+:\d+:/.test(l)) || semgrep.stderr.slice(0, 500);
-    fail('semgrep', 'SAST findings', 'Fix or suppress findings; see semgrep output.', firstLine, semgrep.stdout + semgrep.stderr);
+    fail('semgrep', 'Semgrep findings', 'Fix or suppress findings; see semgrep output.', firstLine, semgrep.stdout + semgrep.stderr);
+  }
+}
+
+function checkGitleaks(opts) {
+  if (!opts.gitleaks) return;
+  const configPath = path.join(projectRoot, '.gitleaks.toml');
+  const args = ['detect', '--no-git', '--source', '.', '--verbose'];
+  if (fs.existsSync(configPath)) args.splice(1, 0, '--config', configPath);
+  const gitleaks = run('gitleaks', args);
+  if (gitleaks.error && gitleaks.error.code === 'ENOENT') return;
+  if (gitleaks.status === 127 || gitleaks.status === 126) return;
+  if (gitleaks.status !== 0 && gitleaks.status !== null) {
+    fail('gitleaks', 'Secrets detected', 'Remove or rotate exposed secrets.', null, gitleaks.stdout + gitleaks.stderr);
+  }
+}
+
+function checkLicenseChecker(opts) {
+  if (!opts.licenseChecker) return;
+  const res = runNpx(['license-checker', '--summary']);
+  if (res.status !== 0 && res.status !== null) {
+    fail('license-checker', 'License check failed or disallowed licenses', 'Adjust .licensecheckerrc or dependencies.', null, res.stdout + res.stderr);
   }
 }
 
@@ -161,6 +185,10 @@ function runFrontendBackendBase(opts) {
     if (opts.backend) args.push('--backend');
     if (!opts.aiReview) args.push('--no-ai-review');
     if (!opts.explanationCheck) args.push('--no-explanation-check');
+    if (!opts.i18nCheck) args.push('--no-i18n-check');
+    if (!opts.sast) args.push('--no-sast');
+    if (!opts.gitleaks) args.push('--no-gitleaks');
+    if (!opts.licenseChecker) args.push('--no-license-checker');
     const res = run('bash', [runChecksPath, ...args]);
     if (res.status !== 0 && res.status !== null) {
       fail('run-checks', 'Frontend/backend checks failed', 'Fix lint, build, or tests.', null, res.stdout + res.stderr);
@@ -180,6 +208,8 @@ async function main() {
 
   runFrontendBackendBase(opts);
   checkSemgrep(opts);
+  checkGitleaks(opts);
+  checkLicenseChecker(opts);
   checkDependencyCruiser(opts);
   checkStryker(opts);
   checkE2E(opts);

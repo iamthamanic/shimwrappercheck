@@ -55,7 +55,10 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
     }
     if (args.includes("--no-ai-review")) checkToggles.aiReview = false;
     if (args.includes("--no-explanation-check")) checkToggles.explanationCheck = false;
+    if (args.includes("--no-i18n-check")) checkToggles.i18nCheck = false;
     if (args.includes("--no-sast")) checkToggles.sast = false;
+    if (args.includes("--no-gitleaks")) checkToggles.gitleaks = false;
+    if (args.includes("--no-license-checker")) checkToggles.licenseChecker = false;
     if (args.includes("--no-architecture")) checkToggles.architecture = false;
     if (args.includes("--no-complexity")) checkToggles.complexity = false;
     if (args.includes("--no-mutation")) checkToggles.mutation = false;
@@ -80,7 +83,12 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
   if (readEnv("SHIM_RUN_DENO_AUDIT") !== undefined) checkToggles.denoAudit = readEnv("SHIM_RUN_DENO_AUDIT")!;
   if (readEnv("SHIM_RUN_EXPLANATION_CHECK") !== undefined)
     checkToggles.explanationCheck = readEnv("SHIM_RUN_EXPLANATION_CHECK")!;
+  if (readEnv("SHIM_RUN_I18N_CHECK") !== undefined) checkToggles.i18nCheck = readEnv("SHIM_RUN_I18N_CHECK")!;
   if (readEnv("SHIM_RUN_UPDATE_README") !== undefined) checkToggles.updateReadme = readEnv("SHIM_RUN_UPDATE_README")!;
+  if (readEnv("SHIM_RUN_SAST") !== undefined) checkToggles.sast = readEnv("SHIM_RUN_SAST")!;
+  if (readEnv("SHIM_RUN_GITLEAKS") !== undefined) checkToggles.gitleaks = readEnv("SHIM_RUN_GITLEAKS")!;
+  if (readEnv("SHIM_RUN_LICENSE_CHECKER") !== undefined)
+    checkToggles.licenseChecker = readEnv("SHIM_RUN_LICENSE_CHECKER")!;
 
   const checkModeMatch = rawRc.match(/CHECK_MODE="?(diff|full)"?/);
   const checkMode = checkModeMatch ? checkModeMatch[1] : undefined;

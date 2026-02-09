@@ -18,7 +18,11 @@ export const CHECK_LOG_MARKERS: Record<string, string[]> = {
   denoAudit: ["Deno audit...", "Running backend security (deno audit)"],
   aiReview: ["AI Review...", "Running Codex AI review"],
   explanationCheck: ["Full Explanation check...", "Running Full Explanation check"],
+  i18nCheck: ["i18n check...", "Skipping i18n check"],
   updateReadme: ["Update README...", "Skipping Update README"],
+  sast: ["Semgrep..."],
+  gitleaks: ["Gitleaks..."],
+  licenseChecker: ["license-checker..."],
 };
 
 export interface LastRunLog {

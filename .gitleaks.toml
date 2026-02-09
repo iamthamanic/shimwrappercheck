@@ -1,0 +1,8 @@
+# Allowlist for gitleaks: exclude build artifacts and generated keys
+[allowlist]
+description = "Exclude Next.js build output and other generated artifacts"
+paths = [
+  '''dashboard/\.next/''',
+  '''node_modules/''',
+  '''\.next/''',
+]
