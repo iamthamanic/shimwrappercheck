@@ -3,7 +3,7 @@
 This file is used by AI agents (Cursor, Codex, Claude, Gemini, Kimi, Deepseek etc.) when working with this repo.
 It can be edited via the dashboard (Config → AGENTS.md) so agents and humans share one source of truth.
 
-**What concerns shimwrappercheck:** This repo _is_ shimwrappercheck (the CLI shim + dashboard). The sections below either describe how to _use_ the shim in this repo (Shim usage, Dashboard, Project rules re checks/timeouts/CHECK_MODE), how to _extend_ it (Checks and presets, Hard Rules), or how to _develop_ it (Coding Standard, Project rules re README/docs, Backend/Frontend rules for dashboard and scripts). Each section header is annotated with **→ Shimwrappercheck:** so you can see the link at a glance.
+**What concerns shimwrappercheck:** This repo _is_ shimwrappercheck (the CLI shim + dashboard). The sections below either describe how to _use_ the shim in this repo (Shim usage, Dashboard, Project rules re checks/timeouts/CHECK*MODE), how to \_extend* it (Checks and presets, Hard Rules), or how to _develop_ it (Coding Standard, Project rules re README/docs, Backend/Frontend rules for dashboard and scripts). Each section header is annotated with **→ Shimwrappercheck:** so you can see the link at a glance.
 
 ## Shim usage
 

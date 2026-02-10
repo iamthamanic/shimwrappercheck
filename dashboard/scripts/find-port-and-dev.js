@@ -163,10 +163,7 @@ function canListenOnPort(port) {
       const server = net.createServer();
       server.once("error", (err) => {
         const code = err && err.code ? err.code : "UNKNOWN";
-        if (
-          (code === "EADDRNOTAVAIL" || code === "EAFNOSUPPORT") &&
-          typeof onUnsupported === "function"
-        ) {
+        if ((code === "EADDRNOTAVAIL" || code === "EAFNOSUPPORT") && typeof onUnsupported === "function") {
           onUnsupported();
           return;
         }

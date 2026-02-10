@@ -102,25 +102,25 @@ function SortableMyCheckCard({
 
   return (
     <li ref={setNodeRef} style={style} className={`list-none ${isDragging ? "opacity-0 pointer-events-none" : ""}`}>
-        <CheckCard
-          def={def}
-          orderIndex={orderIndex}
-          orderBadgeHighlight={highlightOrderBadge}
-          enabled={true}
-          onToggle={() => {}}
-          checkSettings={(settings?.checkSettings as Record<string, Record<string, unknown>>)?.[def.id]}
-          onSettingsChange={(partial) => onSettingsChange(def.id, partial)}
-          isRunningCheck={isRunningCheck}
-          dragHandle={
-            <span
-              {...listeners}
-              {...attributes}
-              className="w-6 h-full min-h-6 flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none text-neutral-400 hover:text-white"
-              title={dragLabel}
-            >
-              ⋮⋮
-            </span>
-          }
+      <CheckCard
+        def={def}
+        orderIndex={orderIndex}
+        orderBadgeHighlight={highlightOrderBadge}
+        enabled={true}
+        onToggle={() => {}}
+        checkSettings={(settings?.checkSettings as Record<string, Record<string, unknown>>)?.[def.id]}
+        onSettingsChange={(partial) => onSettingsChange(def.id, partial)}
+        isRunningCheck={isRunningCheck}
+        dragHandle={
+          <span
+            {...listeners}
+            {...attributes}
+            className="w-6 h-full min-h-6 flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none text-neutral-400 hover:text-white"
+            title={dragLabel}
+          >
+            ⋮⋮
+          </span>
+        }
         leftTags={[...def.tags, def.role]}
         statusTag="active"
         inlineStyle
