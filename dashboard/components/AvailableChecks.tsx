@@ -6,7 +6,7 @@
  */
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
@@ -38,7 +38,7 @@ function DraggableLibraryCard({
   logSegment,
   suggestedReason,
   onDismissSuggestion,
-  dismissSuggestionLabel,
+  dismissSuggestionLabel: _dismissSuggestionLabel,
   whySuggestedLabel,
   closeLabel,
 }: {
@@ -57,10 +57,10 @@ function DraggableLibraryCard({
 }) {
   const [suggestionModalOpen, setSuggestionModalOpen] = useState(false);
   const tooltipWrapRef = useRef<HTMLDivElement>(null);
-  const closeSuggestionModal = () => {
+  const closeSuggestionModal = useCallback(() => {
     setSuggestionModalOpen(false);
     onDismissSuggestion?.();
-  };
+  }, [onDismissSuggestion]);
   useEffect(() => {
     if (!suggestionModalOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -75,7 +75,7 @@ function DraggableLibraryCard({
       window.removeEventListener("keydown", onKey);
       document.removeEventListener("mousedown", onMouseDown);
     };
-  }, [suggestionModalOpen]);
+  }, [suggestionModalOpen, closeSuggestionModal]);
   const dragData: CheckDragData = {
     orderIndex: null,
     leftTags: [...def.tags, def.role],
