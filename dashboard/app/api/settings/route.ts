@@ -121,7 +121,10 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
   };
   if (checkMode) {
     const existing = (result.checkSettings ?? {}) as CheckSettings;
-    result.checkSettings = { ...existing, aiReview: { ...existing.aiReview, checkMode: checkMode as "mix" | "snippet" | "diff" | "full" } };
+    result.checkSettings = {
+      ...existing,
+      aiReview: { ...existing.aiReview, checkMode: checkMode as "mix" | "snippet" | "diff" | "full" },
+    };
   }
   return result;
 }
