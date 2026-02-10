@@ -93,8 +93,9 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
   if (readEnv("SHIM_RUN_COMPLEXITY") !== undefined) checkToggles.complexity = readEnv("SHIM_RUN_COMPLEXITY")!;
   if (readEnv("SHIM_RUN_MUTATION") !== undefined) checkToggles.mutation = readEnv("SHIM_RUN_MUTATION")!;
 
-  const checkModeMatch = rawRc.match(/CHECK_MODE="?(diff|full)"?/);
-  const checkMode = checkModeMatch ? checkModeMatch[1] : undefined;
+  const checkModeMatch = rawRc.match(/CHECK_MODE="?(mix|snippet|diff|full)"?/);
+  const checkModeRaw = checkModeMatch ? checkModeMatch[1] : undefined;
+  const checkMode = checkModeRaw === "diff" ? "snippet" : checkModeRaw;
 
   const enforceMatch = rawRc.match(/SHIM_ENFORCE_COMMANDS="([^"]*)"/);
   const hookMatch = rawRc.match(/SHIM_HOOK_COMMANDS="([^"]*)"/);
@@ -120,7 +121,7 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
   };
   if (checkMode) {
     const existing = (result.checkSettings ?? {}) as CheckSettings;
-    result.checkSettings = { ...existing, aiReview: { ...existing.aiReview, checkMode: checkMode as "diff" | "full" } };
+    result.checkSettings = { ...existing, aiReview: { ...existing.aiReview, checkMode: checkMode as "mix" | "snippet" | "diff" | "full" } };
   }
   return result;
 }

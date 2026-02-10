@@ -156,7 +156,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     tags: ["frontend", "backend"],
     role: "enforce",
     summary: "KI-Review mit fester Architektur- und Security-Checkliste.",
-    info: "Zweck: Zweitmeinung zu Architektur, Sicherheit und Wartbarkeit. Prüft: Codex bewertet Diff oder gesamten Code und liefert Score + Verdict. Bestanden, wenn: Verdict `ACCEPT` und Score >= Mindestwert (Standard 95). Nicht bestanden, wenn: `REJECT` oder Score darunter. Anpassen: `CHECK_MODE`, Mindestscore, Timeout. Hinweis: Reviews liegen in `.shimwrapper/reviews/`.",
+    info: "Zweck: Zweitmeinung zu Architektur, Sicherheit und Wartbarkeit. Prüft: Codex bewertet Snippets (geänderten Code), den Full-Scan oder den Mix-Loop und liefert Score + Verdict. Bestanden, wenn: Verdict `ACCEPT` und Score >= Mindestwert (Standard 95). Nicht bestanden, wenn: `REJECT` oder Score darunter. Anpassen: `CHECK_MODE`, Mindestscore, Timeout. Hinweis: Reviews liegen in `.shimwrapper/reviews/`.",
     settings: [
       { key: "enabled", label: "Aktiv", type: "boolean", default: true },
       { key: "timeoutSec", label: "Timeout (Sekunden)", type: "number", default: 180 },
@@ -164,10 +164,11 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
         key: "checkMode",
         label: "AI review scope",
         type: "select",
-        default: "diff",
+        default: "mix",
         options: [
-          { value: "diff", label: "diff — only changes (staged/unstaged or pushed commits)" },
-          { value: "full", label: "full — whole codebase (truncated to ~100KB)" },
+          { value: "mix", label: "mix — refactor loop: full scan, push uses snippet" },
+          { value: "snippet", label: "snippet — only changed code (staged/unstaged or pushed commits)" },
+          { value: "full", label: "full — whole codebase (chunked per directory)" },
         ],
       },
       { key: "diffLimitBytes", label: "Max. Diff-Größe (Bytes)", type: "number", default: 51200 },

@@ -30,15 +30,15 @@ if [ "$run_frontend" = false ] && [ "$run_backend" = false ]; then
   exit 0
 fi
 
-# Full mode: Node orchestrator (all checks + Stryker + E2E + AI deductive review). Loads .env for API keys.
+# Push: AI review only for snippet (CHECK_MODE=snippet). Fast checks + snippet-only review.
 if [ -f "node_modules/.bin/shimwrappercheck" ] || command -v shimwrappercheck >/dev/null 2>&1; then
-  npx shimwrappercheck run --full || exit 1
+  CHECK_MODE=snippet npx shimwrappercheck run --full || exit 1
 else
   unset SKIP_AI_REVIEW
   CHECK_ARGS=""
   [ "$run_frontend" = true ] && CHECK_ARGS="--frontend"
   [ "$run_backend" = true ] && CHECK_ARGS="${CHECK_ARGS:+$CHECK_ARGS }--backend"
-  bash scripts/run-checks.sh $CHECK_ARGS
+  CHECK_MODE=snippet bash scripts/run-checks.sh $CHECK_ARGS
 fi
 
 # Update README (e.g. "Last updated" line) so it stays in sync on push

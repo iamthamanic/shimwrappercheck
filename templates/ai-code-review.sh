@@ -4,7 +4,7 @@
 # When verdict is REJECT: address all checklist points per affected file in one pass — see AGENTS.md and docs/AI_REVIEW_WHY_NEW_ERRORS_AFTER_FIXES.md.
 # Codex: codex in PATH; use session after codex login (ChatGPT account, no API key in terminal).
 # CHECK_MODE controls which diff the AI gets:
-#   CHECK_MODE=diff (default): Only changes (staged + unstaged, or commits being pushed).
+#   CHECK_MODE=snippet (default): Only changed code snippets (staged + unstaged, or commits being pushed).
 #   CHECK_MODE=full:          Whole codebase (empty tree..HEAD); truncated to LIMIT_BYTES.
 # All other checks (format, lint, typecheck, …) always run on the full codebase.
 # Diff limited to ~100KB (head + tail) to avoid token limits and timeouts; with CHECK_MODE=full the repo diff may be large.
@@ -12,7 +12,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
-CHECK_MODE="${CHECK_MODE:-diff}"
+CHECK_MODE="${CHECK_MODE:-snippet}"
+[[ "$CHECK_MODE" == "diff" ]] && CHECK_MODE=snippet
 
 DIFF_FILE=""
 cleanup() {
@@ -44,10 +45,10 @@ else
     fi
   fi
   if [[ ! -s "$DIFF_FILE" ]]; then
-    echo "Skipping AI review: no staged, unstaged, or pushed changes (CHECK_MODE=diff)." >&2
+    echo "Skipping AI review: no staged, unstaged, or pushed changes (CHECK_MODE=snippet)." >&2
     exit 0
   fi
-  echo "AI review: CHECK_MODE=diff (changes only)." >&2
+  echo "AI review: CHECK_MODE=snippet (changes only)." >&2
 fi
 
 # Limit diff to first and last ~50KB to avoid token limits and timeouts. With CHECK_MODE=full the repo diff can be large; the AI then only sees head and tail.
@@ -216,11 +217,13 @@ fi
 # Save review to .shimwrapper/reviews/ as markdown (always, pass or fail)
 REVIEWS_DIR="$ROOT_DIR/.shimwrapper/reviews"
 mkdir -p "$REVIEWS_DIR"
-REVIEW_FILE="$REVIEWS_DIR/review-$(date +%Y%m%d-%H%M%S).md"
+REVIEW_DATE="$(date +%d.%m.%Y)"
+REVIEW_TIME="$(date +%H:%M:%S)"
+REVIEW_FILE="$REVIEWS_DIR/review-${CHECK_MODE}-${REVIEW_DATE}-$(date +%H-%M-%S).md"
 BRANCH=""
 [[ -n "${GIT_BRANCH:-}" ]] && BRANCH="$GIT_BRANCH" || BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")"
 {
-  echo "# AI Code Review — $(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')"
+  echo "# AI Code Review — Date $REVIEW_DATE  Time $REVIEW_TIME"
   echo ""
   echo "- **Branch:** $BRANCH"
   echo "- **Verdict:** $([ "$PASS" -eq 1 ] && echo "PASS" || echo "FAIL") ($REVIEW_VERDICT)"

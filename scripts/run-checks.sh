@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Shared checks for pre-push (GitHub) and supabase-checked (Supabase deploy).
-# Usage: run-checks.sh [--frontend] [--backend] [--no-frontend] [--no-backend] [--no-ai-review] [--no-explanation-check]
-#   With no args: run frontend and backend checks (same as --frontend --backend).
-#   With args: set what runs (e.g. --no-frontend --no-ai-review to run only backend, no AI review).
-#   AI review runs by default after frontend/backend checks; use --no-ai-review to disable (or SKIP_AI_REVIEW=1).
+# Usage: run-checks.sh [--frontend] [--backend] [--refactor|--until-95] [--no-frontend] [--no-backend] [--no-ai-review] [--no-explanation-check] ...
+#   With no args: run frontend and backend checks (same as --frontend --backend). CHECK_MODE defaults to full (whole-codebase AI review).
+#   --refactor / --until-95: force CHECK_MODE=full (chunked full scan). Use for refactor loops until all chunks ≥95%.
+#   Pre-push should set CHECK_MODE=snippet so AI review only runs on pushed changes; run-checks.sh does not override CHECK_MODE if already set.
+#   AI review runs by default; use --no-ai-review to disable (or SKIP_AI_REVIEW=1).
 #   Full Explanation check runs by default after AI review; use --no-explanation-check to disable (or SKIP_EXPLANATION_CHECK=1).
 # Includes security: npm audit (frontend), deno audit (backend). Optional: Snyk (frontend, skip with SKIP_SNYK=1).
 set -euo pipefail
@@ -35,8 +36,8 @@ run_sast=true
 run_gitleaks=true
 run_license_checker=true
 run_architecture=true
-run_complexity=true
 run_mutation=true
+run_refactor=false
 
 if [[ $# -eq 0 ]]; then
   run_frontend=true
@@ -46,6 +47,7 @@ else
     case "$arg" in
       --frontend) run_frontend=true ;;
       --backend) run_backend=true ;;
+      --refactor|--until-95) run_refactor=true ;;
       --no-frontend) run_frontend=false ;;
       --no-backend) run_backend=false ;;
       --no-ai-review) run_ai_review=false ;;
@@ -57,10 +59,16 @@ else
       --no-architecture) run_architecture=false ;;
       --no-complexity) run_complexity=false ;;
       --no-mutation) run_mutation=false ;;
-      *) echo "Unknown option: $arg. Use --frontend, --backend, --no-frontend, --no-backend, --no-ai-review, --no-explanation-check, --no-i18n-check, --no-sast, --no-gitleaks, --no-license-checker, --no-architecture, --no-complexity, --no-mutation." >&2; exit 1 ;;
+      *) echo "Unknown option: $arg. Use --frontend, --backend, --refactor, --until-95, --no-frontend, --no-backend, --no-ai-review, --no-explanation-check, --no-i18n-check, --no-sast, --no-gitleaks, --no-license-checker, --no-architecture, --no-complexity, --no-mutation." >&2; exit 1 ;;
     esac
   done
 fi
+
+# CHECK_MODE: only set if not already set (e.g. pre-push sets CHECK_MODE=snippet). Default full for manual/refactor runs.
+[[ "$run_refactor" = true ]] && CHECK_MODE=full
+export CHECK_MODE="${CHECK_MODE:-full}"
+[[ "$CHECK_MODE" == "mix" ]] && CHECK_MODE=full
+[[ "$CHECK_MODE" == "diff" ]] && CHECK_MODE=snippet
 
 # Opt-out via env: SKIP_AI_REVIEW=1 disables AI review; SKIP_EXPLANATION_CHECK=1 disables Full Explanation check
 [[ -n "${SKIP_AI_REVIEW:-}" ]] && run_ai_review=false

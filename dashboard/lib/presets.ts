@@ -63,7 +63,7 @@ export interface CheckSettings {
     diffLimitBytes?: number;
     minRating?: number;
     reviewDir?: string;
-    checkMode?: "diff" | "full";
+    checkMode?: "mix" | "snippet" | "diff" | "full";
   };
   healthPing?: { defaultFunction?: string; healthFunctions?: string; healthPaths?: string; projectRef?: string };
   edgeLogs?: { defaultFunction?: string; logFunctions?: string; logLimit?: number };
@@ -207,7 +207,10 @@ export function buildRcContent(settings: SettingsData): string {
   if (cs?.aiReview?.diffLimitBytes != null) lines.push(`SHIM_AI_DIFF_LIMIT_BYTES=${cs.aiReview.diffLimitBytes}`);
   if (cs?.aiReview?.minRating != null) lines.push(`SHIM_AI_MIN_RATING=${cs.aiReview.minRating}`);
   if (cs?.aiReview?.reviewDir) lines.push(`SHIM_AI_REVIEW_DIR="${cs.aiReview.reviewDir}"`);
-  if (cs?.aiReview?.checkMode) lines.push(`CHECK_MODE="${cs.aiReview.checkMode}"`);
+  if (cs?.aiReview?.checkMode) {
+    const mode = cs.aiReview.checkMode === "diff" ? "snippet" : cs.aiReview.checkMode;
+    lines.push(`CHECK_MODE="${mode}"`);
+  }
   const defaultFn = cs?.healthPing?.defaultFunction || cs?.edgeLogs?.defaultFunction;
   if (defaultFn) lines.push(`SHIM_DEFAULT_FUNCTION="${defaultFn}"`);
   if (cs?.healthPing?.healthFunctions) lines.push(`SHIM_HEALTH_FUNCTIONS="${cs.healthPing.healthFunctions}"`);

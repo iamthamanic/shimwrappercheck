@@ -4,14 +4,15 @@
 # When verdict is REJECT: address all checklist points per affected file in one pass — see AGENTS.md and docs/AI_REVIEW_WHY_NEW_ERRORS_AFTER_FIXES.md.
 # Codex: codex in PATH; use session after codex login (ChatGPT account, no API key in terminal).
 # CHECK_MODE controls which diff the AI gets:
-#   CHECK_MODE=diff (default): Only changes (staged + unstaged, or commits being pushed). One Codex run; review file shows Mode: diff.
+#   CHECK_MODE=snippet (default): Only changed code snippets (staged + unstaged, or commits being pushed). One Codex run; review file shows Mode: snippet.
 #   CHECK_MODE=full:          Chunked review per directory (src, supabase, scripts, dashboard). Each chunk: git diff EMPTY_TREE..HEAD -- <dir>, up to 150KB per chunk; one Codex run per chunk; timeout 600s per chunk. PASS only if all chunks ACCEPT and score ≥ 95. Review file shows Mode: full (chunked) and sections ## Chunk: src, ## Chunk: supabase, ## Chunk: scripts, ## Chunk: dashboard.
 # All other checks (format, lint, typecheck, …) always run on the full codebase.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
-CHECK_MODE="${CHECK_MODE:-diff}"
+CHECK_MODE="${CHECK_MODE:-snippet}"
+[[ "$CHECK_MODE" == "diff" ]] && CHECK_MODE=snippet
 
 DIFF_FILE=""
 cleanup() {
@@ -41,7 +42,9 @@ if [[ "$CHECK_MODE" == "full" ]]; then
   CHUNK_TIMEOUT="${SHIM_AI_CHUNK_TIMEOUT:-600}"
   REVIEWS_DIR="$ROOT_DIR/.shimwrapper/reviews"
   mkdir -p "$REVIEWS_DIR"
-  REVIEW_FILE="$REVIEWS_DIR/review-$(date +%Y%m%d-%H%M%S).md"
+  REVIEW_DATE="$(date +%d.%m.%Y)"
+  REVIEW_TIME="$(date +%H:%M:%S)"
+  REVIEW_FILE="$REVIEWS_DIR/review-${CHECK_MODE}-${REVIEW_DATE}-$(date +%H-%M-%S).md"
   BRANCH=""
   [[ -n "${GIT_BRANCH:-}" ]] && BRANCH="$GIT_BRANCH" || BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")"
   OVERALL_PASS=1
@@ -198,7 +201,7 @@ ${CHUNK_CONTENT}"
   done
 
   {
-    echo "# AI Code Review — $(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')"
+    echo "# AI Code Review — Date $REVIEW_DATE  Time $REVIEW_TIME"
     echo ""
     echo "- **Mode:** full (chunked)"
     echo "- **Branch:** $BRANCH"
@@ -216,7 +219,7 @@ ${CHUNK_CONTENT}"
   exit $([[ $OVERALL_PASS -eq 1 ]] && echo 0 || echo 1)
 fi
 
-# Diff path (CHECK_MODE=diff)
+# Snippet path (CHECK_MODE=snippet)
 git diff --no-color >> "$DIFF_FILE" 2>/dev/null || true
 git diff --cached --no-color >> "$DIFF_FILE" 2>/dev/null || true
 if [[ ! -s "$DIFF_FILE" ]] && command -v git >/dev/null 2>&1; then
@@ -231,10 +234,10 @@ if [[ ! -s "$DIFF_FILE" ]] && command -v git >/dev/null 2>&1; then
   fi
 fi
 if [[ ! -s "$DIFF_FILE" ]]; then
-  echo "Skipping AI review: no staged, unstaged, or pushed changes (CHECK_MODE=diff)." >&2
+  echo "Skipping AI review: no staged, unstaged, or pushed changes (CHECK_MODE=snippet)." >&2
   exit 0
 fi
-echo "AI review: CHECK_MODE=diff (changes only)." >&2
+echo "AI review: CHECK_MODE=snippet (changes only)." >&2
 
 # Limit diff to first and last ~50KB to avoid token limits and timeouts. With CHECK_MODE=full the repo diff can be large; the AI then only sees head and tail.
 LIMIT_BYTES=51200
@@ -402,11 +405,13 @@ fi
 # Save review to .shimwrapper/reviews/ as markdown (always, pass or fail)
 REVIEWS_DIR="$ROOT_DIR/.shimwrapper/reviews"
 mkdir -p "$REVIEWS_DIR"
-REVIEW_FILE="$REVIEWS_DIR/review-$(date +%Y%m%d-%H%M%S).md"
+REVIEW_DATE="$(date +%d.%m.%Y)"
+REVIEW_TIME="$(date +%H:%M:%S)"
+REVIEW_FILE="$REVIEWS_DIR/review-${CHECK_MODE}-${REVIEW_DATE}-$(date +%H-%M-%S).md"
 BRANCH=""
 [[ -n "${GIT_BRANCH:-}" ]] && BRANCH="$GIT_BRANCH" || BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")"
 {
-  echo "# AI Code Review — $(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')"
+  echo "# AI Code Review — Date $REVIEW_DATE  Time $REVIEW_TIME"
   echo ""
   echo "- **Mode:** $CHECK_MODE"
   echo "- **Branch:** $BRANCH"
