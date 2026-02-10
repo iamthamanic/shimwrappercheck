@@ -89,25 +89,25 @@ Dann die im Terminal angezeigte URL im Browser öffnen.
 
 **Im Dashboard:**
 
-1. **Trigger Commandos (My Shim, links)**  
-   - Tab **Enforce** oder **Hooks** wählen.  
-   - Befehle eintippen (z. B. `git push`, `supabase functions deploy`), mit **Enter** als Tag bestätigen.  
+1. **Trigger Commandos (My Shim, links)**
+   - Tab **Enforce** oder **Hooks** wählen.
+   - Befehle eintippen (z. B. `git push`, `supabase functions deploy`), mit **Enter** als Tag bestätigen.
    - Änderungen werden gespeichert und in `.shimwrappercheckrc` / Presets übernommen.
 
-2. **My Checks (My Shim, links)**  
-   - Checks aus der **Check Library** (rechts) per Drag in „My Checks“ ziehen.  
-   - Reihenfolge per Drag ändern, einzeln entfernen.  
+2. **My Checks (My Shim, links)**
+   - Checks aus der **Check Library** (rechts) per Drag in „My Checks“ ziehen.
+   - Reihenfolge per Drag ändern, einzeln entfernen.
    - Pro Check: Info/Settings; **Tool-Status** zeigt, ob das Tool (z. B. ESLint, Deno) vorhanden ist, und bietet einen **Kopieren**-Befehl zum Nachinstallieren.
 
-3. **Check Library (rechts)**  
-   - Filter: Frontend, Backend, Enforce, Hooks (Mehrfachauswahl).  
+3. **Check Library (rechts)**
+   - Filter: Frontend, Backend, Enforce, Hooks (Mehrfachauswahl).
    - Suche, Drag zu My Shim zum Aktivieren.
 
-4. **Einstellungen**  
-   - **Templates**: Preset wechseln, ⋮ am aktiven Preset für Export/Umbenennen; Trigger Commandos & My Checks wie in der Sidebar bearbeiten.  
+4. **Einstellungen**
+   - **Templates**: Preset wechseln, ⋮ am aktiven Preset für Export/Umbenennen; Trigger Commandos & My Checks wie in der Sidebar bearbeiten.
    - **Information**: Status aller Dateien/Skripte, „Nur Checks ausführen“, Links zu Config und AGENTS.md.
 
-5. **Config / AGENTS.md**  
+5. **Config / AGENTS.md**
    - Über Einstellungen → Information oder Navigation: Roh-Editor für `.shimwrappercheckrc` und Editor für AGENTS.md.
 
 ### 4. Checked Befehle ausführen
@@ -127,15 +127,15 @@ npm run git:checked -- push
 **Nur Checks ausführen** (ohne Supabase/Git):
 
 - Im Dashboard unter **Einstellungen → Information** auf „Nur Checks ausführen“ klicken,  
-  oder  
+  oder
 - CLI: `npx supabase --checks-only functions deploy server`
 
 **Wrapper-Flags** (werden nicht an das echte CLI durchgereicht):
 
-- `--no-checks`   Checks überspringen  
-- `--checks-only` Nur Checks, kein Supabase/Git  
-- `--no-hooks`    Post-Deploy-Hooks überspringen  
-- `--no-push`     Auto-Push überspringen  
+- `--no-checks` Checks überspringen
+- `--checks-only` Nur Checks, kein Supabase/Git
+- `--no-hooks` Post-Deploy-Hooks überspringen
+- `--no-push` Auto-Push überspringen
 
 ### 5. Konfigurationsdateien
 
@@ -243,14 +243,14 @@ npm exec --package shimwrappercheck -- shim --cli terraform -- plan
 
 ## Wrapper-Flags
 
-- `--no-checks`    Checks für diesen Aufruf überspringen  
-- `--checks-only`  Nur Checks, kein Supabase/Git  
-- `--no-hooks`     Post-Deploy-Hooks überspringen  
-- `--no-push`      Auto-Push überspringen  
-- `--no-ai-review` An run-checks.sh durchgereicht  
-- `--with-frontend` Frontend-Checks erzwingen  
-- `--ai-review`    An run-checks.sh durchgereicht  
-- `--auto-push`    (Generischer Shim) Auto-Push nach Befehl  
+- `--no-checks` Checks für diesen Aufruf überspringen
+- `--checks-only` Nur Checks, kein Supabase/Git
+- `--no-hooks` Post-Deploy-Hooks überspringen
+- `--no-push` Auto-Push überspringen
+- `--no-ai-review` An run-checks.sh durchgereicht
+- `--with-frontend` Frontend-Checks erzwingen
+- `--ai-review` An run-checks.sh durchgereicht
+- `--auto-push` (Generischer Shim) Auto-Push nach Befehl
 
 ## Befehlsfilter
 
@@ -261,21 +261,21 @@ Befehle werden als Token gematcht (z. B. `functions`, `db`, `push`).
 
 ## Umgebungsvariablen (Auswahl)
 
-- `SHIM_PROJECT_ROOT`           Projekt-Root (z. B. für Dashboard auf Vercel)  
-- `SHIM_CHECKS_SCRIPT`         Pfad zum Checks-Skript  
-- `SHIM_CHECKS_ARGS`            Zusätzliche Argumente für run-checks  
-- `SHIM_CONFIG_FILE`            Konfigurationsdatei (Standard: `.shimwrappercheckrc`)  
-- `SHIM_DISABLE_CHECKS=1`       Checks deaktivieren  
-- `SHIM_DISABLE_HOOKS=1`        Hooks deaktivieren  
-- `SHIM_AUTO_PUSH=1|0`          Auto-Push nach Erfolg  
-- `SHIM_ENFORCE_COMMANDS`       Supabase-Befehle für Checks  
-- `SHIM_HOOK_COMMANDS`          Supabase-Befehle für Hooks  
-- `SHIM_GIT_ENFORCE_COMMANDS`   Git-Befehle für Checks  
-- `SHIM_DEFAULT_FUNCTION`       Standard-Funktion für Health/Logs  
-- `SHIM_HEALTH_FUNCTIONS`, `SHIM_LOG_FUNCTIONS`, `SHIM_LOG_LIMIT`  
-- `SUPABASE_PROJECT_REF`, `SHIM_HEALTH_PATHS`  
-- Netzwerk-Retry: `SUPABASE_RETRY_MAX`, `SUPABASE_RETRY_BACKOFF_SECONDS`  
-- Generischer Shim: `SHIM_CLI_*`, `SHIM_CLI_PRE_HOOKS`, `SHIM_CLI_POST_HOOKS`  
+- `SHIM_PROJECT_ROOT` Projekt-Root (z. B. für Dashboard auf Vercel)
+- `SHIM_CHECKS_SCRIPT` Pfad zum Checks-Skript
+- `SHIM_CHECKS_ARGS` Zusätzliche Argumente für run-checks
+- `SHIM_CONFIG_FILE` Konfigurationsdatei (Standard: `.shimwrappercheckrc`)
+- `SHIM_DISABLE_CHECKS=1` Checks deaktivieren
+- `SHIM_DISABLE_HOOKS=1` Hooks deaktivieren
+- `SHIM_AUTO_PUSH=1|0` Auto-Push nach Erfolg
+- `SHIM_ENFORCE_COMMANDS` Supabase-Befehle für Checks
+- `SHIM_HOOK_COMMANDS` Supabase-Befehle für Hooks
+- `SHIM_GIT_ENFORCE_COMMANDS` Git-Befehle für Checks
+- `SHIM_DEFAULT_FUNCTION` Standard-Funktion für Health/Logs
+- `SHIM_HEALTH_FUNCTIONS`, `SHIM_LOG_FUNCTIONS`, `SHIM_LOG_LIMIT`
+- `SUPABASE_PROJECT_REF`, `SHIM_HEALTH_PATHS`
+- Netzwerk-Retry: `SUPABASE_RETRY_MAX`, `SUPABASE_RETRY_BACKOFF_SECONDS`
+- Generischer Shim: `SHIM_CLI_*`, `SHIM_CLI_PRE_HOOKS`, `SHIM_CLI_POST_HOOKS`
 
 ## Config-Datei
 
@@ -293,19 +293,19 @@ Die Datei wird als Shell-Skript eingelesen.
 
 ## Templates
 
-- `templates/run-checks.sh`     Runner für Lint, Tests, Deno, AI-Review usw.  
-- `templates/ai-code-review.sh` Optionaler AI-Review-Schritt (streng: Senior-Architekt-Checkliste, 100 Punkte, Abzüge, JSON Score/Deductions/Verdict; PASS bei ≥ 95 % und ACCEPT)  
-- `templates/husky-pre-push`    Husky Pre-Push-Hook  
-- `templates/git-pre-push`      Reiner Git-Hook  
+- `templates/run-checks.sh` Runner für Lint, Tests, Deno, AI-Review usw.
+- `templates/ai-code-review.sh` Optionaler AI-Review-Schritt (streng: Senior-Architekt-Checkliste, 100 Punkte, Abzüge, JSON Score/Deductions/Verdict; PASS bei ≥ 95 % und ACCEPT)
+- `templates/husky-pre-push` Husky Pre-Push-Hook
+- `templates/git-pre-push` Reiner Git-Hook
 
 ## Hard Rules (optionale Tools)
 
 Für SAST, Architektur, Komplexität, Mutation, E2E:
 
-- **dependency-cruiser**: `npm i -D dependency-cruiser`  
-- **eslint-plugin-complexity**: `npm i -D eslint-plugin-complexity`  
-- **Stryker**: `npm i -D @stryker-mutator/core`  
-- **semgrep**: z. B. `brew install semgrep` oder `npx semgrep`  
+- **dependency-cruiser**: `npm i -D dependency-cruiser`
+- **eslint-plugin-complexity**: `npm i -D eslint-plugin-complexity`
+- **Stryker**: `npm i -D @stryker-mutator/core`
+- **semgrep**: z. B. `brew install semgrep` oder `npx semgrep`
 
 Konfig-Vorlagen in `templates/`: `.dependency-cruiser.json`, `.semgrep.example.yml`, `stryker.config.json`, `eslint.complexity.json`. Optional über den Init-Wizard einrichten.
 

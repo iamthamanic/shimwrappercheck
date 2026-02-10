@@ -27,7 +27,12 @@ function flatten(obj, prefix = "") {
   const out = {};
   for (const [k, v] of Object.entries(obj)) {
     const key = prefix ? `${prefix}.${k}` : k;
-    if (v != null && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length > 0) {
+    if (
+      v != null &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      Object.keys(v).length > 0
+    ) {
       Object.assign(out, flatten(v, key));
     } else {
       out[key] = v;
@@ -47,14 +52,19 @@ function setNested(obj, keyPath, value) {
   cur[parts[parts.length - 1]] = value;
 }
 
-function collectSourceFiles(dir, exts = [".tsx", ".ts", ".jsx", ".js"], exclude = ["node_modules", ".next", "dist"]) {
+function collectSourceFiles(
+  dir,
+  exts = [".tsx", ".ts", ".jsx", ".js"],
+  exclude = ["node_modules", ".next", "dist"],
+) {
   const results = [];
   if (!fs.existsSync(dir)) return results;
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const e of entries) {
     const full = path.join(dir, e.name);
     if (e.isDirectory()) {
-      if (!exclude.includes(e.name)) results.push(...collectSourceFiles(full, exts, exclude));
+      if (!exclude.includes(e.name))
+        results.push(...collectSourceFiles(full, exts, exclude));
     } else if (exts.some((ext) => e.name.endsWith(ext))) {
       results.push(full);
     }
@@ -71,7 +81,8 @@ function extractUsedKeys(filePath) {
 
   // const t = useTranslations("common") or let tChecks = useTranslations("checks")
   const nsByVar = {};
-  const assignRegex = /(?:const|let|var)\s+(\w+)\s*=\s*useTranslations\s*\(\s*["']([^"']+)["']\s*\)/g;
+  const assignRegex =
+    /(?:const|let|var)\s+(\w+)\s*=\s*useTranslations\s*\(\s*["']([^"']+)["']\s*\)/g;
   let m;
   while ((m = assignRegex.exec(content)) !== null) {
     nsByVar[m[1]] = m[2];
@@ -103,7 +114,9 @@ function main() {
     process.exit(1);
   }
 
-  const localeFiles = fs.readdirSync(MESSAGES_DIR).filter((f) => f.endsWith(".json"));
+  const localeFiles = fs
+    .readdirSync(MESSAGES_DIR)
+    .filter((f) => f.endsWith(".json"));
   if (localeFiles.length === 0) {
     console.error("i18n-check: no *.json in", MESSAGES_DIR);
     process.exit(1);
@@ -137,7 +150,9 @@ function main() {
   }
 
   const fallbackLocale = "en.json";
-  const fallbackFlat = locales[fallbackLocale] ? locales[fallbackLocale].flat : {};
+  const fallbackFlat = locales[fallbackLocale]
+    ? locales[fallbackLocale].flat
+    : {};
   let hasMissing = false;
   const report = [];
 
@@ -163,13 +178,16 @@ function main() {
       console.log(`Locale: ${r.locale}`);
       console.log(`  Missing keys: ${r.missing.length}`);
       r.missing.slice(0, 20).forEach((k) => console.log(`    - ${k}`));
-      if (r.missing.length > 20) console.log(`    ... and ${r.missing.length - 20} more`);
+      if (r.missing.length > 20)
+        console.log(`    ... and ${r.missing.length - 20} more`);
       if (r.fixed) console.log(`  Added ${r.fixed} keys (--fix).`);
     }
   }
 
   if (hasMissing && !fix) {
-    console.error("i18n-check FAIL: missing translation keys. Run with --fix to add placeholders.");
+    console.error(
+      "i18n-check FAIL: missing translation keys. Run with --fix to add placeholders.",
+    );
     process.exit(1);
   }
   if (hasMissing && fix) {

@@ -91,28 +91,28 @@ function DraggableLibraryCard({
           </span>
         )}
         <CheckCard
-        def={def}
-        enabled={false}
-        onToggle={onToggle}
-        checkSettings={checkSettings}
-        onSettingsChange={onSettingsChange}
-        dragHandle={
-          <span
-            {...listeners}
-            {...attributes}
-            className="w-6 h-full min-h-6 flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none text-neutral-400 hover:text-white"
-            title={dragHandleTitle}
-          >
-            ⋮⋮
-          </span>
-        }
-        leftTags={[...def.tags, def.role]}
-        statusTag="inactive"
-        hideEnabledToggle
-        inlineStyle
-        toolStatus={toolStatus}
-        logSegment={logSegment}
-      />
+          def={def}
+          enabled={false}
+          onToggle={onToggle}
+          checkSettings={checkSettings}
+          onSettingsChange={onSettingsChange}
+          dragHandle={
+            <span
+              {...listeners}
+              {...attributes}
+              className="w-6 h-full min-h-6 flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none text-neutral-400 hover:text-white"
+              title={dragHandleTitle}
+            >
+              ⋮⋮
+            </span>
+          }
+          leftTags={[...def.tags, def.role]}
+          statusTag="inactive"
+          hideEnabledToggle
+          inlineStyle
+          toolStatus={toolStatus}
+          logSegment={logSegment}
+        />
       </div>
     </li>
   );
@@ -240,7 +240,7 @@ export default function AvailableChecks({
           setScanError(err);
           return;
         }
-        const recs = ((data as { recommendations?: Record<string, string> }).recommendations) ?? {};
+        const recs = (data as { recommendations?: Record<string, string> }).recommendations ?? {};
         setSuggestedReasons(recs);
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 1000);
@@ -340,7 +340,9 @@ export default function AvailableChecks({
             {isScanning ? (
               <>
                 <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin shrink-0" />
-                <span>{tCheckLib("scanCodebaseScanning")} {scanProgress}%</span>
+                <span>
+                  {tCheckLib("scanCodebaseScanning")} {scanProgress}%
+                </span>
               </>
             ) : (
               tCheckLib("scanCodebase")

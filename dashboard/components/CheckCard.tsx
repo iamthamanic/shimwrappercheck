@@ -10,11 +10,7 @@ import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import confetti from "canvas-confetti";
 import type { CheckDef } from "@/lib/checks";
-import {
-  generateScriptFromRules,
-  parseRulesFromScript,
-  type ProjectRuleForm,
-} from "@/lib/projectRulesScript";
+import { generateScriptFromRules, parseRulesFromScript, type ProjectRuleForm } from "@/lib/projectRulesScript";
 
 export type ToolStatus = { installed: boolean; label?: string; command?: string; repo?: string };
 
@@ -159,8 +155,18 @@ export default function CheckCard({
     setProjectRulesFormRules((prev) =>
       prev.map((r) => {
         if (r.id !== id) return r;
-        if (patch.type === "forbidden_pattern") return { id: r.id, type: "forbidden_pattern" as const, pattern: "pattern" in patch ? (patch.pattern ?? "") : (r.type === "forbidden_pattern" ? r.pattern : "") };
-        if (patch.type === "max_lines") return { id: r.id, type: "max_lines" as const, maxLines: "maxLines" in patch ? (patch.maxLines ?? 300) : (r.type === "max_lines" ? r.maxLines : 300) };
+        if (patch.type === "forbidden_pattern")
+          return {
+            id: r.id,
+            type: "forbidden_pattern" as const,
+            pattern: "pattern" in patch ? (patch.pattern ?? "") : r.type === "forbidden_pattern" ? r.pattern : "",
+          };
+        if (patch.type === "max_lines")
+          return {
+            id: r.id,
+            type: "max_lines" as const,
+            maxLines: "maxLines" in patch ? (patch.maxLines ?? 300) : r.type === "max_lines" ? r.maxLines : 300,
+          };
         if (r.type === "forbidden_pattern" && "pattern" in patch) return { ...r, pattern: patch.pattern ?? r.pattern };
         if (r.type === "max_lines" && "maxLines" in patch) return { ...r, maxLines: patch.maxLines ?? r.maxLines };
         return r;
@@ -173,11 +179,7 @@ export default function CheckCard({
   };
 
   useEffect(() => {
-    if (
-      isProjectRules &&
-      (tab === "settings" || modalOpen) &&
-      !projectRulesFetchedRef.current
-    ) {
+    if (isProjectRules && (tab === "settings" || modalOpen) && !projectRulesFetchedRef.current) {
       projectRulesFetchedRef.current = true;
       setProjectRulesLoading(true);
       setProjectRulesMessage(null);
@@ -579,7 +581,9 @@ export default function CheckCard({
                                 placeholder={t("projectRulesMaxLinesPlaceholder")}
                                 value={rule.maxLines}
                                 onChange={(e) =>
-                                  updateProjectRule(rule.id, { maxLines: Math.max(1, parseInt(e.target.value, 10) || 300) })
+                                  updateProjectRule(rule.id, {
+                                    maxLines: Math.max(1, parseInt(e.target.value, 10) || 300),
+                                  })
                                 }
                               />
                             )}
@@ -881,11 +885,14 @@ export default function CheckCard({
                                     value={rule.type}
                                     onChange={(e) => {
                                       const typ = e.target.value as "forbidden_pattern" | "max_lines";
-                                      if (typ === "forbidden_pattern") updateProjectRule(rule.id, { type: typ, pattern: "" });
+                                      if (typ === "forbidden_pattern")
+                                        updateProjectRule(rule.id, { type: typ, pattern: "" });
                                       else updateProjectRule(rule.id, { type: typ, maxLines: 300 });
                                     }}
                                   >
-                                    <option value="forbidden_pattern">{t("projectRulesRuleTypeForbiddenPattern")}</option>
+                                    <option value="forbidden_pattern">
+                                      {t("projectRulesRuleTypeForbiddenPattern")}
+                                    </option>
                                     <option value="max_lines">{t("projectRulesRuleTypeMaxLines")}</option>
                                   </select>
                                 </div>
@@ -911,7 +918,9 @@ export default function CheckCard({
                                       placeholder={t("projectRulesMaxLinesPlaceholder")}
                                       value={rule.maxLines}
                                       onChange={(e) =>
-                                        updateProjectRule(rule.id, { maxLines: Math.max(1, parseInt(e.target.value, 10) || 300) })
+                                        updateProjectRule(rule.id, {
+                                          maxLines: Math.max(1, parseInt(e.target.value, 10) || 300),
+                                        })
                                       }
                                     />
                                   </div>
@@ -1038,7 +1047,9 @@ export default function CheckCard({
                                     className="input input-bordered bg-neutral-900 border-neutral-600 text-white w-full"
                                     value={val != null ? String(val) : ""}
                                     onChange={(e) =>
-                                      onSettingsChange?.({ [s.key]: e.target.value ? Number(e.target.value) : s.default })
+                                      onSettingsChange?.({
+                                        [s.key]: e.target.value ? Number(e.target.value) : s.default,
+                                      })
                                     }
                                   />
                                 )}

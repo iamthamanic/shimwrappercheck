@@ -12,6 +12,8 @@ const net = require("net");
 const http = require("http");
 
 const LOCK_FILE = ".shimwrappercheck-dashboard.lock";
+const MAX_PORT = 65535;
+const PRIVILEGED_PORT_MAX = 1023;
 
 function getProjectRoot() {
   const cwd = process.cwd();
@@ -56,22 +58,18 @@ function removeLock() {
 
 function isDashboardRunning(port) {
   return new Promise((resolve) => {
-    const req = http.get(
-      `http://127.0.0.1:${port}/api/info`,
-      { timeout: 2000 },
-      (res) => {
-        let body = "";
-        res.on("data", (chunk) => (body += chunk));
-        res.on("end", () => {
-          try {
-            const data = JSON.parse(body);
-            resolve(typeof data.version === "string");
-          } catch {
-            resolve(false);
-          }
-        });
-      }
-    );
+    const req = http.get(`http://127.0.0.1:${port}/api/info`, { timeout: 2000 }, (res) => {
+      let body = "";
+      res.on("data", (chunk) => (body += chunk));
+      res.on("end", () => {
+        try {
+          const data = JSON.parse(body);
+          resolve(typeof data.version === "string");
+        } catch {
+          resolve(false);
+        }
+      });
+    });
     req.on("error", () => resolve(false));
     req.on("timeout", () => {
       req.destroy();
@@ -113,15 +111,14 @@ function readUiConfig() {
 
 const wantRestart = process.argv.includes("--restart");
 const uiConfig = readUiConfig();
-const startPort = parseInt(process.env.PORT || String(uiConfig.port || 3000), 10);
+const envPort = process.env.PORT;
+const rawStartPort = envPort ? Number(envPort) : Number(uiConfig.port || 3000);
 
-function tryPort(port, cb) {
-  const server = net.createServer();
-  server.once("error", () => tryPort(port + 1, cb));
-  server.once("listening", () => {
-    server.close(() => cb(port));
-  });
-  server.listen(port);
+function normalizeStartPort(port) {
+  if (!Number.isFinite(port)) return 3000;
+  if (port < 1) return 1;
+  if (port > MAX_PORT) return MAX_PORT;
+  return Math.trunc(port);
 }
 
 function runDev(port) {
@@ -139,6 +136,39 @@ function runDev(port) {
     removeLock();
     process.exit(code || 0);
   });
+}
+
+function portRangeFor(startPort) {
+  const minPort = startPort > PRIVILEGED_PORT_MAX ? PRIVILEGED_PORT_MAX + 1 : 1;
+  return { minPort, maxPort: MAX_PORT };
+}
+
+function nextPortInRange(startPort, minPort, maxPort, offset) {
+  const range = maxPort - minPort + 1;
+  const normalizedStart = startPort - minPort;
+  return minPort + ((normalizedStart + offset) % range);
+}
+
+function canListenOnPort(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once("error", () => resolve(false));
+    server.once("listening", () => {
+      server.close(() => resolve(true));
+    });
+    server.listen(port, "127.0.0.1");
+  });
+}
+
+async function findAvailablePort(startPort) {
+  const { minPort, maxPort } = portRangeFor(startPort);
+  const range = maxPort - minPort + 1;
+  for (let offset = 0; offset < range; offset += 1) {
+    const candidate = nextPortInRange(startPort, minPort, maxPort, offset);
+    const free = await canListenOnPort(candidate);
+    if (free) return candidate;
+  }
+  throw new Error(`No free ports available between ${minPort} and ${maxPort}.`);
 }
 
 async function main() {
@@ -162,8 +192,16 @@ async function main() {
     }
   }
 
+  const startPort = normalizeStartPort(rawStartPort);
   if (uiConfig.portAuto) {
-    tryPort(startPort, runDev);
+    try {
+      const port = await findAvailablePort(startPort);
+      runDev(port);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`${message}\n`);
+      process.exit(1);
+    }
   } else {
     runDev(startPort);
   }

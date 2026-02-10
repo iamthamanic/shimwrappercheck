@@ -66,7 +66,11 @@ export async function GET() {
     const tools: Record<string, ToolStatus> = {};
 
     const dashboardPkgPath = path.join(root, "dashboard", "package.json");
-    let dashboardPkg: { devDependencies?: Record<string, string>; dependencies?: Record<string, string>; scripts?: Record<string, string> } = {};
+    let dashboardPkg: {
+      devDependencies?: Record<string, string>;
+      dependencies?: Record<string, string>;
+      scripts?: Record<string, string>;
+    } = {};
     if (fs.existsSync(dashboardPkgPath)) {
       try {
         dashboardPkg = JSON.parse(fs.readFileSync(dashboardPkgPath, "utf8"));
@@ -81,7 +85,8 @@ export async function GET() {
         { dep: "eslint", label: "ESLint" },
         { dep: "@eslint/core", label: "ESLint" },
         { dep: "biome", label: "Biome" },
-      ]) ?? whichDep(dashboardPkg, [
+      ]) ??
+      whichDep(dashboardPkg, [
         { dep: "eslint", label: "ESLint" },
         { dep: "@eslint/core", label: "ESLint" },
         { dep: "biome", label: "Biome" },
@@ -93,7 +98,12 @@ export async function GET() {
           label: lintTool ? `${lintTool} erkannt` : "Lint-Script erkannt",
           repo: lintTool === "Biome" ? "https://github.com/biomejs/biome" : "https://github.com/eslint/eslint",
         }
-      : { installed: false, label: "Kein Linter gefunden", command: "npm i -D eslint", repo: "https://github.com/eslint/eslint" };
+      : {
+          installed: false,
+          label: "Kein Linter gefunden",
+          command: "npm i -D eslint",
+          repo: "https://github.com/eslint/eslint",
+        };
 
     // prettier: root or dashboard (monorepo)
     const prettierOk =
@@ -104,7 +114,12 @@ export async function GET() {
       hasScript(dashboardPkg, "format:check");
     tools.prettier = prettierOk
       ? { installed: true, label: "Prettier erkannt", repo: "https://github.com/prettier/prettier" }
-      : { installed: false, label: "Prettier nicht gefunden", command: "npm i -D prettier", repo: "https://github.com/prettier/prettier" };
+      : {
+          installed: false,
+          label: "Prettier nicht gefunden",
+          command: "npm i -D prettier",
+          repo: "https://github.com/prettier/prettier",
+        };
 
     // typecheck: root or dashboard (monorepo)
     const typecheckOk =
@@ -114,7 +129,12 @@ export async function GET() {
         (hasScript(dashboardPkg, "typecheck") || hasScript(dashboardPkg, "type-check")));
     tools.typecheck = typecheckOk
       ? { installed: true, label: "TypeScript erkannt", repo: "https://github.com/microsoft/TypeScript" }
-      : { installed: false, label: "TypeScript oder typecheck-Script fehlt", command: "npm i -D typescript", repo: "https://github.com/microsoft/TypeScript" };
+      : {
+          installed: false,
+          label: "TypeScript oder typecheck-Script fehlt",
+          command: "npm i -D typescript",
+          repo: "https://github.com/microsoft/TypeScript",
+        };
 
     // checkMockData: script check:mock-data
     const mockOk = hasScript(pkg, "check:mock-data");
@@ -133,7 +153,8 @@ export async function GET() {
         { dep: "jest", label: "Jest" },
         { dep: "@jest/core", label: "Jest" },
         { dep: "mocha", label: "Mocha" },
-      ]) ?? whichDep(dashboardPkg, [
+      ]) ??
+      whichDep(dashboardPkg, [
         { dep: "vitest", label: "Vitest" },
         { dep: "jest", label: "Jest" },
         { dep: "@jest/core", label: "Jest" },
@@ -141,14 +162,23 @@ export async function GET() {
       ]);
     const testOk = !!testTool || hasScript(pkg, "test") || hasScript(pkg, "test:run");
     const testRepo =
-      testTool === "Jest" ? "https://github.com/jestjs/jest" : testTool === "Mocha" ? "https://github.com/mochajs/mocha" : "https://github.com/vitest-dev/vitest";
+      testTool === "Jest"
+        ? "https://github.com/jestjs/jest"
+        : testTool === "Mocha"
+          ? "https://github.com/mochajs/mocha"
+          : "https://github.com/vitest-dev/vitest";
     tools.testRun = testOk
       ? {
           installed: true,
           label: testTool ? `${testTool} erkannt` : "Test-Script erkannt",
           repo: testRepo,
         }
-      : { installed: false, label: "Kein Test-Runner gefunden", command: "npm i -D vitest", repo: "https://github.com/vitest-dev/vitest" };
+      : {
+          installed: false,
+          label: "Kein Test-Runner gefunden",
+          command: "npm i -D vitest",
+          repo: "https://github.com/vitest-dev/vitest",
+        };
 
     // projectRules: scripts/checks/project-rules.sh
     const projectRulesPath = path.join(root, "scripts", "checks", "project-rules.sh");
@@ -171,13 +201,23 @@ export async function GET() {
           label: hasDep(pkg, ["vite"]) || hasDep(dashboardPkg, ["vite"]) ? "Vite erkannt" : "Build-Script erkannt",
           repo: "https://github.com/vitejs/vite",
         }
-      : { installed: false, label: "Vite/build nicht gefunden", command: "npm i -D vite", repo: "https://github.com/vitejs/vite" };
+      : {
+          installed: false,
+          label: "Vite/build nicht gefunden",
+          command: "npm i -D vite",
+          repo: "https://github.com/vitejs/vite",
+        };
 
     // snyk
     const snykOk = hasDep(pkg, ["snyk"]);
     tools.snyk = snykOk
       ? { installed: true, label: "Snyk erkannt", repo: "https://github.com/snyk/cli" }
-      : { installed: false, label: "Snyk nicht installiert (optional)", command: "npm i -D snyk", repo: "https://github.com/snyk/cli" };
+      : {
+          installed: false,
+          label: "Snyk nicht installiert (optional)",
+          command: "npm i -D snyk",
+          repo: "https://github.com/snyk/cli",
+        };
 
     // deno*
     const denoLabel = denoInPath ? "Deno erkannt" : "Deno nicht im PATH";
@@ -239,7 +279,12 @@ export async function GET() {
     }
     tools.sast = semgrepInstalled
       ? { installed: true, label: "Semgrep erkannt", repo: "https://github.com/semgrep/semgrep" }
-      : { installed: false, label: "Semgrep", command: "pip install semgrep oder npx semgrep", repo: "https://github.com/semgrep/semgrep" };
+      : {
+          installed: false,
+          label: "Semgrep",
+          command: "pip install semgrep oder npx semgrep",
+          repo: "https://github.com/semgrep/semgrep",
+        };
 
     // Gitleaks
     let gitleaksInstalled = false;
@@ -251,7 +296,12 @@ export async function GET() {
     }
     tools.gitleaks = gitleaksInstalled
       ? { installed: true, label: "Gitleaks erkannt", repo: "https://github.com/gitleaks/gitleaks" }
-      : { installed: false, label: "Gitleaks", command: "z. B. brew install gitleaks", repo: "https://github.com/gitleaks/gitleaks" };
+      : {
+          installed: false,
+          label: "Gitleaks",
+          command: "z. B. brew install gitleaks",
+          repo: "https://github.com/gitleaks/gitleaks",
+        };
 
     // license-checker (npx)
     let licenseCheckerInstalled = false;
@@ -263,7 +313,12 @@ export async function GET() {
     }
     tools.licenseChecker = licenseCheckerInstalled
       ? { installed: true, label: "license-checker erkannt", repo: "https://github.com/davglass/license-checker" }
-      : { installed: false, label: "license-checker", command: "npx license-checker", repo: "https://github.com/davglass/license-checker" };
+      : {
+          installed: false,
+          label: "license-checker",
+          command: "npx license-checker",
+          repo: "https://github.com/davglass/license-checker",
+        };
 
     // Architecture: dependency-cruiser (npx depcruise)
     const hasDepcruiseConfig = fs.existsSync(path.join(root, ".dependency-cruiser.json"));
@@ -279,8 +334,18 @@ export async function GET() {
       hasDepcruiseConfig && depcruiseAvailable
         ? { installed: true, label: "dependency-cruiser erkannt", repo: depcruiseRepo }
         : hasDepcruiseConfig
-          ? { installed: false, label: "dependency-cruiser", command: "npx depcruise (Config vorhanden)", repo: depcruiseRepo }
-          : { installed: false, label: "dependency-cruiser", command: ".dependency-cruiser.json anlegen (z. B. aus templates/)", repo: depcruiseRepo };
+          ? {
+              installed: false,
+              label: "dependency-cruiser",
+              command: "npx depcruise (Config vorhanden)",
+              repo: depcruiseRepo,
+            }
+          : {
+              installed: false,
+              label: "dependency-cruiser",
+              command: ".dependency-cruiser.json anlegen (z. B. aus templates/)",
+              repo: depcruiseRepo,
+            };
 
     // Complexity: eslint-plugin-complexity + eslint.complexity.json
     const hasComplexityConfig =
@@ -288,7 +353,12 @@ export async function GET() {
       fs.existsSync(path.join(root, "node_modules", "shimwrappercheck", "templates", "eslint.complexity.json"));
     tools.complexity = hasComplexityConfig
       ? { installed: true, label: "eslint-plugin-complexity erkannt", repo: "https://github.com/eslint/eslint" }
-      : { installed: false, label: "eslint-plugin-complexity", command: "eslint.complexity.json anlegen oder templates/ nutzen", repo: "https://github.com/eslint/eslint" };
+      : {
+          installed: false,
+          label: "eslint-plugin-complexity",
+          command: "eslint.complexity.json anlegen oder templates/ nutzen",
+          repo: "https://github.com/eslint/eslint",
+        };
 
     // Mutation: Stryker
     const hasStrykerConfig = fs.existsSync(path.join(root, "stryker.config.json"));
@@ -304,10 +374,24 @@ export async function GET() {
       hasStrykerConfig && strykerAvailable
         ? { installed: true, label: "Stryker erkannt", repo: strykerRepo }
         : hasStrykerConfig
-          ? { installed: false, label: "Stryker", command: "npx @stryker-mutator/core (Config vorhanden)", repo: strykerRepo }
-          : { installed: false, label: "Stryker", command: "stryker.config.json anlegen (z. B. aus templates/)", repo: strykerRepo };
+          ? {
+              installed: false,
+              label: "Stryker",
+              command: "npx @stryker-mutator/core (Config vorhanden)",
+              repo: strykerRepo,
+            }
+          : {
+              installed: false,
+              label: "Stryker",
+              command: "stryker.config.json anlegen (z. B. aus templates/)",
+              repo: strykerRepo,
+            };
 
-    tools.e2e = { installed: true, label: "E2E optional (z. B. Playwright)", repo: "https://github.com/microsoft/playwright" };
+    tools.e2e = {
+      installed: true,
+      label: "E2E optional (z. B. Playwright)",
+      repo: "https://github.com/microsoft/playwright",
+    };
 
     // Hooks: keine lokale Tool-Installation
     tools.healthPing = { installed: true, label: "Supabase/Shell" };

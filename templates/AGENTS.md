@@ -85,51 +85,51 @@ Core rules with brief rationale. Full rules and examples: see `BACKEND_RULES_DI-
 ### Backend (Node/Prisma/Express etc.)
 
 - **Module independence:** A module must not import from other modules or `common/`.  
-  *Why: Keeps modules swappable and testable; changes don't break other areas.*
+  _Why: Keeps modules swappable and testable; changes don't break other areas._
 
 - **Dependency Injection:** Inject all external dependencies (Prisma, Logger, Config) via DI; no hardcoded values.  
-  *Why: Enables tests with mocks; no hidden dependencies.*
+  _Why: Enables tests with mocks; no hidden dependencies._
 
 - **Logger always required:** Logger is a required dependency; no `console.log` in services.  
-  *Why: Consistent logging, structured logs, controllable in production.*
+  _Why: Consistent logging, structured logs, controllable in production._
 
 - **File size:** Max 300 lines per file (hard limit 500).  
-  *Why: Maintainability, single responsibility, better overview.*
+  _Why: Maintainability, single responsibility, better overview._
 
 - **DTOs everywhere:** Explicit DTOs for all API inputs and outputs; no Prisma types in responses.  
-  *Why: Clear contracts; no accidental exposure of internal fields.*
+  _Why: Clear contracts; no accidental exposure of internal fields._
 
 - **Controllers HTTP only:** No business logic, no direct Prisma in controllers; validation (e.g. Zod) at controller level.  
-  *Why: Clear layers; business logic testable in services.*
+  _Why: Clear layers; business logic testable in services._
 
 - **Standard response:** Unified format `{ success: true, data }` or `{ success: false, error: { code, message } }`.  
-  *Why: Consistent API; simple error handling in the frontend.*
+  _Why: Consistent API; simple error handling in the frontend._
 
 ### Frontend (React/Next.js etc.)
 
 - **Domain modules:** Structure by domains (`src/modules/<domain>/`), not by technology only.  
-  *Why: Domain focus; clear boundaries between areas.*
+  _Why: Domain focus; clear boundaries between areas._
 
 - **File and component size:** Max 300 lines per file, max 150 lines per component.  
-  *Why: Maintainability; small reusable units.*
+  _Why: Maintainability; small reusable units._
 
 - **CSS Modules / SCSS first:** Styling in CSS/SCSS files (e.g. `.module.scss`); no Tailwind classes in JSX.  
-  *Why: Consistent styles; no styling chaos in markup.*
+  _Why: Consistent styles; no styling chaos in markup._
 
 - **CSS variables only:** No hardcoded colors (`#hex`, `rgb()`, `hsl()`) in code; colors/spacing via CSS variables.  
-  *Why: Theming and dark mode from one source; design system enforceable.*
+  _Why: Theming and dark mode from one source; design system enforceable._
 
 - **No business logic in components:** Logic in services/hooks; keep pages slim.  
-  *Why: Components testable; logic reusable.*
+  _Why: Components testable; logic reusable._
 
 - **API in services only:** No direct `fetch`/Axios calls in UI components; React Query for server state.  
-  *Why: Caching; loading/error state centralized; less duplicate code.*
+  _Why: Caching; loading/error state centralized; less duplicate code._
 
 - **Explicit types:** Strict TypeScript, no `any`, clear DTOs/interfaces.  
-  *Why: Type safety; better IDE support; fewer runtime errors.*
+  _Why: Type safety; better IDE support; fewer runtime errors._
 
 - **Accessibility:** Semantic HTML, keyboard navigation, `aria-label` for icon-only buttons.  
-  *Why: Usability for all; accessibility (WCAG).*
+  _Why: Usability for all; accessibility (WCAG)._
 
 ### Security
 

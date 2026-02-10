@@ -199,65 +199,65 @@
   "checks": {
     "lint": {
       "label": "ESLint",
-      "summary": "Checks code for style issues and common error sources.",
-      "info": "Context: Unused variables, typos, or project rule violations often cause hard-to-find bugs and inconsistent code. Solution: npm run lint (ESLint) is run. Pass: ESLint exits with no reports (exit code 0). Fail: ESLint reports errors or, depending on config, warnings."
+      "summary": "Finds rule and quality violations in code.",
+      "info": "Purpose: Prevents common mistakes and style violations before shipping. Checks: Project files with ESLint rules (`npm run lint`). Pass when: ESLint exits with 0. Fail when: ESLint reports errors (exit != 0). Configure: ESLint config and rules in the project."
     },
     "prettier": {
       "label": "Prettier",
-      "summary": "Ensures consistent code formatting.",
-      "info": "Context: Inconsistent indentation, quotes, or line breaks make changes harder to read and distract from content in code reviews. Solution: Prettier runs in check mode (e.g. npm run format:check or prettier --check). Pass: All checked files match the configured format. Fail: At least one file does not."
+      "summary": "Enforces consistent code formatting.",
+      "info": "Purpose: Keeps formatting consistent and review-friendly. Checks: Prettier in check mode (`npm run format:check` or `prettier --check`). Pass when: No formatting differences are found. Fail when: Formatting differences are found. Configure: Prettier config in the project."
     },
     "typecheck": {
       "label": "TypeScript Check",
-      "summary": "Checks that TypeScript types are consistent.",
-      "info": "Context: TypeScript catches many errors before run time (wrong types, missing properties). Without this check, faulty code can be shipped. Solution: The TypeScript compiler runs without building (tsc --noEmit or npm run typecheck). Pass: No type errors. Fail: The compiler reports one or more type errors."
+      "summary": "Catches TypeScript type errors before runtime.",
+      "info": "Purpose: Prevents runtime issues caused by wrong types. Checks: `tsc --noEmit` (or `npm run typecheck`). Pass when: No type errors (exit 0). Fail when: The compiler reports errors. Configure: `tsconfig.json` and TypeScript settings."
     },
     "testRun": {
       "label": "Vitest",
-      "summary": "Runs automated tests; continues only if all pass.",
-      "info": "Context: Without tests, changes can break existing behaviour unnoticed; users then see failures. Solution: The test suite is run (e.g. npm run test or Vitest). Pass: All tests pass. Fail: At least one test fails – push/deploy is blocked."
+      "summary": "Runs build and tests.",
+      "info": "Purpose: Ensures the app still works after changes. Checks: `npm run build` and `npm run test:run`. Pass when: Build and tests succeed. Fail when: Build or any test fails. Configure: Build and test scripts in `package.json`."
     },
     "projectRules": {
       "label": "Project rules",
-      "summary": "Checks project-specific rules (structure, naming, imports).",
-      "info": "Context: Projects can have their own rules (e.g. allowed folders, file naming, what may be imported). Breaking them causes clutter and technical debt. Solution: The script scripts/checks/project-rules.sh is run. Pass: The script exits with code 0. Fail: The script reports violations. Note: The script must exist in the project."
+      "summary": "Enforces project-specific rules (e.g. structure, imports).",
+      "info": "Purpose: Enforces team rules beyond lint. Checks: `scripts/checks/project-rules.sh` if present. Pass when: The script exits with 0. Fail when: The script reports violations (exit != 0). Configure: Rules inside the script. Note: If the script is missing, the check is skipped."
     },
     "npmAudit": {
       "label": "npm audit",
-      "summary": "Scans npm dependencies for known security vulnerabilities.",
-      "info": "Context: Libraries can have known vulnerabilities; shipping them can put users or data at risk. Solution: npm audit is run. The level (critical, high, moderate, low) sets the severity threshold for failure. Pass: No vulnerabilities at or above that level. Fail: At least one vulnerability at or above that level.",
+      "summary": "Scans npm dependencies for known vulnerabilities.",
+      "info": "Purpose: Blocks builds with known security issues. Checks: `npm audit` at the configured severity. Pass when: No findings at or above the threshold. Fail when: At least one finding at or above the threshold. Configure: `auditLevel` or `SHIM_AUDIT_LEVEL`.",
       "auditLevel": "Audit level",
       "auditLevelTooltip": "Severity threshold for failure: critical (only critical), high (critical + high), moderate (+ moderate), low (+ low). Higher level = stricter."
     },
     "viteBuild": {
       "label": "Vite",
-      "summary": "Checks that the frontend project builds without errors.",
-      "info": "Context: If the build fails, deployment fails or a broken version is shipped. Solution: The build is run (e.g. npm run build with Vite). Pass: Build completes with no errors. Fail: Build fails with an error – push/deploy is blocked."
+      "summary": "Ensures the frontend can be built.",
+      "info": "Purpose: Prevents deploys with build errors. Checks: `npm run build`. Pass when: The build finishes successfully. Fail when: The build fails. Configure: Build script in `package.json`."
     },
     "snyk": {
       "label": "Snyk",
-      "summary": "Extra scan for security issues in dependencies (when Snyk is installed).",
-      "info": "Context: npm audit does not cover all sources; Snyk can find additional vulnerabilities. Solution: Snyk is run if installed in the project. Pass: Snyk reports no issues, or Snyk is not installed (then the check is skipped). Fail: Snyk reports issues. Without Snyk installed, the check does not run."
+      "summary": "Optional security scan with Snyk.",
+      "info": "Purpose: Finds additional dependency vulnerabilities. Checks: `snyk test` if Snyk is installed. Pass when: No findings, or Snyk is not installed (skipped). Fail when: Snyk reports issues. Configure: `.snyk` policy; skip with `SKIP_SNYK=1`."
     },
     "denoFmt": {
       "label": "Deno fmt",
-      "summary": "Checks formatting of backend/Edge Function code (Deno).",
-      "info": "Context: Code in supabase/functions (Deno) should be consistently formatted so changes stay readable. Solution: deno fmt --check is run for supabase/functions. Pass: Code matches Deno default formatting. Fail: At least one file does not."
+      "summary": "Checks formatting of Supabase Edge Functions.",
+      "info": "Purpose: Keeps Deno code formatting consistent. Checks: `deno fmt --check supabase/functions`. Pass when: No formatting differences. Fail when: Differences are found. Note: Skipped if `supabase/functions` is missing."
     },
     "denoLint": {
       "label": "Deno lint",
-      "summary": "Checks Deno code (backend/functions) for errors and bad practice.",
-      "info": "Context: Backend and Edge Function code can have bugs or problematic patterns; lint finds them before deploy. Solution: deno lint is run for supabase/functions. Pass: No lint messages. Fail: The linter reports one or more violations."
+      "summary": "Lints Deno code for Edge Functions.",
+      "info": "Purpose: Finds errors and bad practices in Deno code. Checks: `deno lint supabase/functions`. Pass when: No lint messages. Fail when: Lint messages are reported. Note: Skipped if `supabase/functions` is missing."
     },
     "denoAudit": {
       "label": "Deno audit",
-      "summary": "Scans Deno dependencies (backend/functions) for known vulnerabilities.",
-      "info": "Context: Deno dependencies can have known vulnerabilities; they should be checked before deploy. Solution: deno audit is run in the relevant directory (e.g. supabase/functions/server). Pass: No reported vulnerabilities. Fail: One or more vulnerabilities reported."
+      "summary": "Security check for Deno dependencies.",
+      "info": "Purpose: Detects known vulnerabilities in Deno deps. Checks: `deno audit` in `supabase/functions/server`. Pass when: No findings. Fail when: Findings are reported. Note: Skipped if `supabase/functions` is missing."
     },
     "aiReview": {
       "label": "AI Review",
-      "summary": "Has an AI (Codex) review the code against a checklist.",
-      "info": "Context: Code can look fine but have weaknesses in architecture, security, or maintainability; an automated review gives a second opinion. Solution: The selected code (changes only or full codebase per directory) is sent to Codex; Codex scores it against a fixed checklist (e.g. SOLID, performance, security) and returns a score and verdict (ACCEPT/REJECT). Pass: Verdict ACCEPT and score at or above the configured minimum (default 95). Fail: REJECT or score below that. Requirement: Codex CLI installed and logged in. Reports are saved in .shimwrapper/reviews/.",
+      "summary": "AI review with a fixed architecture and security checklist.",
+      "info": "Purpose: Second opinion on architecture, security, and maintainability. Checks: Codex reviews the diff or full codebase and returns a score and verdict. Pass when: Verdict `ACCEPT` and score >= minimum (default 95). Fail when: Verdict `REJECT` or score below minimum. Configure: `CHECK_MODE`, minimum score, and timeout. Note: Reports are saved in `.shimwrapper/reviews/`; Codex CLI required.",
       "timeoutSec": "Timeout (seconds)",
       "timeoutSecTooltip": "Maximum runtime for the AI review in seconds. On timeout the check fails. Consider increasing for large diffs or full codebase mode.",
       "checkMode": "AI review scope",
@@ -273,63 +273,63 @@
     },
     "explanationCheck": {
       "label": "Full Explanation",
-      "summary": "Checks that every part of the code is explained (docstrings and comments).",
-      "info": "Context: Unexplained code is hard to maintain; this project requires every function and non-trivial logic to be justified. Solution: The changed code is sent to Codex; Codex checks for docstrings and meaningful inline comments. Pass: Score at least 95 and verdict ACCEPT. Fail: Below that or REJECT. Reports in .shimwrapper/reviews/explanation-check-*.md. Requirement: Codex CLI available."
+      "summary": "Requires explained code (docstrings + comments).",
+      "info": "Purpose: Improves readability and maintainability. Checks: Codex verifies docstrings and inline comments for non-trivial logic. Pass when: Verdict `ACCEPT` and score >= 95. Fail when: Verdict `REJECT` or score below 95. Configure: `.shimwrappercheckrc` (SHIM_RUN_EXPLANATION_CHECK) or `--no-explanation-check`. Note: Reports in `.shimwrapper/reviews/explanation-check-*.md`."
     },
     "i18nCheck": {
       "label": "i18n / Translations",
-      "summary": "Checks that all text keys used in code exist in every language file.",
-      "info": "Context: In multilingual apps, every displayed text must be defined for each language; missing entries show raw keys or wrong text to users. Solution: Source code is scanned for translation calls and compared with files in messages/*.json. Pass: Every key used in code exists in every locale file. Fail: At least one key is missing in at least one language. Optional: --fix can add missing keys as placeholders (scripts/i18n-check.js)."
+      "summary": "Ensures all translation keys exist.",
+      "info": "Purpose: Prevents missing UI text. Checks: Code translation keys against all `messages/*.json`. Pass when: Every used key exists in every locale. Fail when: Any key is missing. Configure: `--fix` adds placeholders; skip with `--no-i18n-check`. Note: Requires `scripts/i18n-check.js`."
     },
     "checkMockData": {
       "label": "Check Mock Data",
-      "summary": "Checks that the project’s mock/test data is valid and consistent.",
-      "info": "Context: Invalid or inconsistent mock data can skew tests or hide bugs. Solution: The project’s check:mock-data script is run (if defined in package.json). Pass: Script exits with code 0. Fail: Script reports errors or exits with a non-zero code. Without a defined script, the check is skipped."
+      "summary": "Validates project mock and test data.",
+      "info": "Purpose: Prevents invalid mock data from breaking tests. Checks: `npm run check:mock-data`. Pass when: The script exits with 0. Fail when: The script fails or is missing. Configure: Define the script in `package.json`."
     },
     "updateReadme": {
       "label": "Update README",
-      "summary": "Runs a script that e.g. updates the version in the README.",
-      "info": "Context: README and docs go stale; a script can at least update parts (e.g. version from package.json). Solution: The update-README script (from package or project) is run. Pass: Script runs without error. Fail: Script fails. Note: What is updated depends on the script; content changes still need to be done manually."
+      "summary": "Updates README parts via script.",
+      "info": "Purpose: Keeps README data (e.g. version) in sync. Checks: `scripts/update-readme.js` (project) or shimwrappercheck's script. Pass when: The script runs successfully, or no script exists (skipped). Fail when: A script exists and fails. Configure: Provide or adjust the script in the project."
     },
     "sast": {
       "label": "Semgrep",
-      "summary": "Static analysis with Semgrep: finds security patterns and rule violations in code.",
-      "info": "Context: Semgrep is a static analysis (SAST) tool with rule-based checks. Solution: semgrep scan is run (e.g. with --config auto). Pass: No findings. Fail: Semgrep reports matches. Tool must be installed (pip install semgrep or npx semgrep)."
+      "summary": "SAST scan with Semgrep.",
+      "info": "Purpose: Finds security patterns in code. Checks: `semgrep scan --config auto --error`. Pass when: No findings. Fail when: Findings are reported. Configure: Semgrep rules/config. Note: Skipped if Semgrep is not installed."
     },
     "gitleaks": {
       "label": "Gitleaks",
-      "summary": "Scans the repo for accidentally committed secrets (API keys, passwords).",
-      "info": "Context: Gitleaks detects known secret patterns in the codebase and git history. Solution: gitleaks detect is run. Pass: No matches. Fail: At least one secret found. Tool must be installed (e.g. Homebrew or gitleaks.io)."
+      "summary": "Finds secrets in the repository.",
+      "info": "Purpose: Prevents API keys or passwords from being committed. Checks: `gitleaks detect` against the working tree (uses `.gitleaks.toml` if present). Pass when: No matches. Fail when: Matches are found. Configure: `.gitleaks.toml`. Note: Skipped if Gitleaks is not installed."
     },
     "licenseChecker": {
       "label": "license-checker",
-      "summary": "Checks npm dependency licenses; fails if disallowed licenses are found.",
-      "info": "Context: The license-checker tool lists licenses of all dependencies. Solution: npx license-checker is run with configurable allowed/disallowed licenses. Pass: No disallowed licenses. Fail: At least one disallowed license. Configurable via .licensecheckerrc or CLI options."
+      "summary": "Creates a license overview for npm dependencies.",
+      "info": "Purpose: Shows which licenses your dependencies use. Checks: `npx license-checker --summary` (reads `.licensecheckerrc`). Pass when: The command runs (the default runner does not fail the check). Fail when: In a strict runner, disallowed licenses are found or the command errors. Configure: `.licensecheckerrc` or CLI options. Note: The default `run-checks.sh` does not enforce failure."
     },
     "architecture": {
       "label": "dependency-cruiser",
-      "summary": "Checks dependency graph and architecture rules (e.g. no forbidden cycles).",
-      "info": "Context: dependency-cruiser validates the module graph against rules in .dependency-cruiser.json. Solution: npx depcruise src (or dashboard) --output-type err. Pass: No violations. Fail: Circular or forbidden dependencies. Add config from templates/ or project."
+      "summary": "Checks architecture rules and forbidden dependencies.",
+      "info": "Purpose: Enforces module boundaries and prevents cycles. Checks: dependency-cruiser against `.dependency-cruiser.json`. Pass when: No rule violations. Fail when: Cycles or forbidden dependencies are found. Configure: `.dependency-cruiser.json`. Note: Skipped if the config is missing."
     },
     "complexity": {
       "label": "Complexity",
-      "summary": "Warns about excessive cyclomatic complexity per function.",
-      "info": "Context: eslint-plugin-complexity enforces a complexity limit (e.g. max 10 per function). Solution: ESLint is run with eslint.complexity.json (project or templates/). Pass: No violations. Fail: Functions over the threshold. Project needs eslint-plugin-complexity and config."
+      "summary": "Limits complexity of individual functions.",
+      "info": "Purpose: Keeps functions small and understandable. Checks: ESLint with `eslint-plugin-complexity` and config. Pass when: No function exceeds the threshold. Fail when: A function exceeds the threshold. Configure: `eslint.complexity.json`. Note: Skipped if no config is found."
     },
     "mutation": {
       "label": "Stryker",
-      "summary": "Mutation testing: checks whether tests actually catch bugs (kill mutants).",
-      "info": "Context: Stryker mutates code slightly; if tests still pass, they may not cover the change. Solution: npx stryker run with stryker.config.json. Pass: Mutation score above threshold (e.g. 80%). Fail: Score below. Add config from templates/ or project."
+      "summary": "Measures test quality with mutation testing.",
+      "info": "Purpose: Verifies tests catch real faults. Checks: `npx stryker run` with `stryker.config.json`. Pass when: Mutation score is above the threshold. Fail when: Score is below threshold or the run fails. Configure: `stryker.config.json`. Note: Skipped if the config is missing."
     },
     "e2e": {
       "label": "E2E",
-      "summary": "End-to-end tests over the whole app (currently only available as an option).",
-      "info": "Context: E2E tests simulate real users and test the app from start to finish. Solution: This check exists in config but is not run by the default run-checks.sh. Enabling it only stores the preference; tests must be set up in the project (e.g. with Playwright)."
+      "summary": "Option for end-to-end tests (must be set up in the project).",
+      "info": "Purpose: Tests complete user flows. Checks: Not run by the default runner; enabling only stores the preference. Pass when: Depends on your E2E script. Fail when: Depends on your E2E script. Configure: Add an E2E command to your own `run-checks.sh`."
     },
     "healthPing": {
       "label": "Post-Deploy: Health Ping",
-      "summary": "After deploy: checks that the deployed Supabase Functions are reachable and respond.",
-      "info": "Context: After a deploy, the app might still be unreachable or misconfigured; a quick request confirms the function responds. Solution: After a Supabase deploy, the configured health URLs of the Edge Functions are called over HTTP (script ping-edge-health.sh). Pass: The called endpoints respond (e.g. HTTP 200). Fail: No response or error. Requirement: Correct Project Ref and, if needed, health paths.",
+      "summary": "After deploy: calls health endpoints.",
+      "info": "Purpose: Verifies functions respond after deploy. Checks: Configured health URLs of Edge Functions. Pass when: All endpoints respond successfully (e.g. HTTP 200). Fail when: Timeouts or error codes occur. Configure: Project ref, function names, and paths.",
       "defaultFunction": "Default function",
       "defaultFunctionTooltip": "Name of the Edge Function called by default via GET. Must expose a health endpoint.",
       "healthFunctions": "Additional functions (comma-separated)",
@@ -341,8 +341,8 @@
     },
     "edgeLogs": {
       "label": "Post-Deploy: Edge Logs",
-      "summary": "Fetches the latest Edge Function logs after deploy for inspection.",
-      "info": "Context: After a deploy, logs show whether functions started correctly or threw errors. Solution: After deploy, the latest log lines of the configured Edge Function(s) are fetched (script fetch-edge-logs.sh). There is no explicit pass/fail – logs are only provided; you decide whether everything looks correct.",
+      "summary": "After deploy: shows the latest edge logs.",
+      "info": "Purpose: Quick manual verification after deploy. Checks: Fetches the latest log lines for the configured functions. Pass when: Not applicable (logs only). Fail when: Not applicable. Configure: Function names and log limit.",
       "defaultFunction": "Default function",
       "defaultFunctionTooltip": "Function whose logs are fetched by default.",
       "logFunctions": "Functions for logs (comma-separated)",

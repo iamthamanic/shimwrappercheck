@@ -19,9 +19,7 @@ function hasDep(pkg: Pkg, names: string[]): boolean {
   const dev = { ...pkg.devDependencies, ...pkg.dependencies };
   const keys = Object.keys(dev);
   return names.some(
-    (n) =>
-      keys.includes(n) ||
-      keys.some((k) => k === n || k.startsWith(n + "/") || k.startsWith("@" + n))
+    (n) => keys.includes(n) || keys.some((k) => k === n || k.startsWith(n + "/") || k.startsWith("@" + n))
   );
 }
 
@@ -46,8 +44,7 @@ export async function GET() {
     const dashboardPkg = readJson<Pkg>(path.join(root, "dashboard", "package.json"), {});
 
     const hasNpm =
-      fs.existsSync(path.join(root, "package.json")) ||
-      fs.existsSync(path.join(root, "dashboard", "package.json"));
+      fs.existsSync(path.join(root, "package.json")) || fs.existsSync(path.join(root, "dashboard", "package.json"));
 
     if (hasNpm) {
       if (
@@ -89,11 +86,7 @@ export async function GET() {
         recommendations.projectRules = "scripts/checks/project-rules.sh found.";
       }
       recommendations.npmAudit = "npm project; npm audit checks dependencies.";
-      if (
-        hasDep(pkg, ["vite"]) ||
-        hasScript(pkg, "build") ||
-        hasDep(dashboardPkg, ["vite"])
-      ) {
+      if (hasDep(pkg, ["vite"]) || hasScript(pkg, "build") || hasDep(dashboardPkg, ["vite"])) {
         recommendations.viteBuild = "Vite or build script found.";
       }
       if (hasDep(pkg, ["snyk"])) {
@@ -111,9 +104,7 @@ export async function GET() {
     const messagesRoot = path.join(root, "messages");
     const messagesDashboard = path.join(root, "dashboard", "messages");
     const dirHasJson = (dir: string) =>
-      fs.existsSync(dir) &&
-      fs.statSync(dir).isDirectory() &&
-      fs.readdirSync(dir).some((f) => f.endsWith(".json"));
+      fs.existsSync(dir) && fs.statSync(dir).isDirectory() && fs.readdirSync(dir).some((f) => f.endsWith(".json"));
     const hasMessages = dirHasJson(messagesRoot) || dirHasJson(messagesDashboard);
     if (hasMessages) {
       recommendations.i18nCheck = "messages/ or dashboard/messages/ with locale JSON files found.";

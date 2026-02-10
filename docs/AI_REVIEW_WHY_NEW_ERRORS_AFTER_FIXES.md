@@ -20,12 +20,12 @@ So **addressing deductions narrowly** tends to cause multiple review cycles. **D
 
 Use this list for every route or API handler in the files that were part of the reviewed diff:
 
-| Area | Check |
-|------|--------|
-| **IDOR / Auth** | Does the handler verify the current user is allowed to access the requested resource (e.g. by ID)? No IDOR: IDs from the client are validated against the authenticated user / permissions. |
-| **Rate limiting** | Is the endpoint protected by rate limiting where appropriate (auth, sensitive actions, public APIs)? |
-| **Input validation** | Are all inputs (body, query, params) validated (e.g. Zod) before use? Type and format checks; reject invalid input with a clear response. |
-| **Error handling** | Are errors caught and mapped to stable responses (e.g. 4xx/5xx) without leaking internals? No raw stack traces or internal messages to the client. |
-| **Edge cases** | Are null/empty, missing optional fields, and boundary values handled? No unhandled edge cases that could cause 500s or wrong behavior. |
+| Area                 | Check                                                                                                                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **IDOR / Auth**      | Does the handler verify the current user is allowed to access the requested resource (e.g. by ID)? No IDOR: IDs from the client are validated against the authenticated user / permissions. |
+| **Rate limiting**    | Is the endpoint protected by rate limiting where appropriate (auth, sensitive actions, public APIs)?                                                                                        |
+| **Input validation** | Are all inputs (body, query, params) validated (e.g. Zod) before use? Type and format checks; reject invalid input with a clear response.                                                   |
+| **Error handling**   | Are errors caught and mapped to stable responses (e.g. 4xx/5xx) without leaking internals? No raw stack traces or internal messages to the client.                                          |
+| **Edge cases**       | Are null/empty, missing optional fields, and boundary values handled? No unhandled edge cases that could cause 500s or wrong behavior.                                                      |
 
 After you have gone through this checklist for all affected files, commit and run the AI review again. See **AGENTS.md** for the rule “When AI review REJECTs — address broadly”.

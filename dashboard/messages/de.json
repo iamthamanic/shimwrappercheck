@@ -199,65 +199,65 @@
   "checks": {
     "lint": {
       "label": "ESLint",
-      "summary": "Prüft den Code auf Stilfehler und typische Fehlerquellen.",
-      "info": "Kontext: Ungenutzte Variablen, Tippfehler oder Verstöße gegen Projektregeln führen oft zu schwer auffindbaren Fehlern und uneinheitlichem Code. Lösung: Es wird npm run lint (ESLint) ausgeführt. Bestanden: ESLint beendet ohne Meldungen (Exit-Code 0). Nicht bestanden: ESLint meldet Fehler oder – je nach Konfiguration – Warnungen."
+      "summary": "Findet Regel- und Qualitätsverstöße im Code.",
+      "info": "Zweck: Verhindert typische Fehler und Stilbrüche, bevor sie in Produktion landen. Prüft: Projektdateien mit ESLint-Regeln (`npm run lint`). Bestanden, wenn: Der ESLint-Lauf endet ohne Fehler (Exit 0). Nicht bestanden, wenn: ESLint Fehler meldet (Exit != 0). Anpassen: ESLint-Config und Regeln im Projekt."
     },
     "prettier": {
       "label": "Prettier",
-      "summary": "Stellt einheitliche Code-Formatierung sicher.",
-      "info": "Kontext: Unterschiedliche Einrückung, Anführungszeichen oder Zeilenumbrüche machen Änderungen schwer lesbar und lenken in Code-Reviews vom Inhalt ab. Lösung: Prettier wird im Prüfmodus ausgeführt (z. B. npm run format:check oder prettier --check). Bestanden: Alle geprüften Dateien entsprechen der konfigurierten Formatierung. Nicht bestanden: Mindestens eine Datei weicht ab."
+      "summary": "Sichert ein einheitliches Code-Format.",
+      "info": "Zweck: Einheitliche Formatierung ohne Diskussionen. Prüft: Prettier im Check-Modus (`npm run format:check` oder `prettier --check`). Bestanden, wenn: Keine Formatabweichungen gefunden werden. Nicht bestanden, wenn: Formatabweichungen gefunden werden. Anpassen: Prettier-Config im Projekt."
     },
     "typecheck": {
       "label": "TypeScript Check",
-      "summary": "Prüft, ob die Typen im TypeScript-Code zusammenpassen.",
-      "info": "Kontext: TypeScript erkennt viele Fehler vor dem Ausführen (falsche Typen, fehlende Eigenschaften). Ohne diese Prüfung kann fehlerhafter Code ausgeliefert werden. Lösung: Der TypeScript-Compiler läuft ohne Build (tsc --noEmit bzw. npm run typecheck). Bestanden: Keine Typfehler. Nicht bestanden: Der Compiler meldet einen oder mehrere Typfehler."
+      "summary": "Findet TypeScript-Typfehler vor dem Lauf.",
+      "info": "Zweck: Verhindert Laufzeitfehler durch falsche Typen. Prüft: `tsc --noEmit` (oder `npm run typecheck`). Bestanden, wenn: Keine Typfehler (Exit 0). Nicht bestanden, wenn: Der Compiler Fehler meldet. Anpassen: `tsconfig.json` und TypeScript-Regeln."
     },
     "testRun": {
       "label": "Vitest",
-      "summary": "Führt die automatisierten Tests aus; nur bei Erfolg geht es weiter.",
-      "info": "Kontext: Ohne Tests können Änderungen bestehende Funktionen unbemerkt kaputt machen; Nutzer sehen dann Fehler. Lösung: Die Test-Suite wird ausgeführt (z. B. npm run test oder Vitest). Bestanden: Alle Tests laufen grün. Nicht bestanden: Mindestens ein Test schlägt fehl – Push/Deploy wird blockiert."
+      "summary": "Führt Build und Tests aus.",
+      "info": "Zweck: Sicherstellen, dass die App nach Änderungen weiterhin funktioniert. Prüft: `npm run build` und `npm run test:run`. Bestanden, wenn: Build und Tests erfolgreich sind. Nicht bestanden, wenn: Build oder Tests fehlschlagen. Anpassen: Build- und Test-Skripte in `package.json`."
     },
     "projectRules": {
       "label": "Projektregeln",
-      "summary": "Prüft projektspezifische Regeln (Struktur, Namenskonventionen, Imports).",
-      "info": "Kontext: Jedes Projekt kann eigene Regeln haben (z. B. welche Ordner erlaubt sind, wie Dateien heißen, was importiert werden darf). Werden sie gebrochen, entsteht Unordnung und technische Schulden. Lösung: Das Skript scripts/checks/project-rules.sh wird ausgeführt. Bestanden: Das Skript endet mit Exit-Code 0. Nicht bestanden: Das Skript meldet Verstöße. Hinweis: Das Skript muss im Projekt vorhanden sein."
+      "summary": "Erzwingt projektspezifische Regeln (z. B. Struktur, Imports).",
+      "info": "Zweck: Sichert Teamregeln, die Lint nicht abdeckt. Prüft: `scripts/checks/project-rules.sh` (falls vorhanden). Bestanden, wenn: Das Script endet ohne Fehler (Exit 0). Nicht bestanden, wenn: Das Script meldet Verstöße (Exit != 0). Anpassen: Regeln im Script. Hinweis: Fehlt das Script, wird der Check übersprungen."
     },
     "npmAudit": {
       "label": "npm audit",
-      "summary": "Sucht in den npm-Abhängigkeiten nach bekannten Sicherheitslücken.",
-      "info": "Kontext: Bibliotheken können bekannte Sicherheitslücken haben; werden sie ausgeliefert, können Nutzer oder Daten gefährdet sein. Lösung: npm audit wird ausgeführt. Die Stufe (critical, high, moderate, low) legt fest, ab welcher Schwere der Check fehlschlägt. Bestanden: Keine gefundenen Lücken auf oder über dieser Stufe. Nicht bestanden: Mindestens eine Lücke auf oder über der Stufe.",
+      "summary": "Scannt npm-Abhängigkeiten auf bekannte Sicherheitslücken.",
+      "info": "Zweck: Stoppt Builds bei bekannten Schwachstellen. Prüft: `npm audit` mit konfigurierter Schweregrad-Schwelle. Bestanden, wenn: Keine Findings ab der Schwelle. Nicht bestanden, wenn: Mindestens ein Finding ab der Schwelle. Anpassen: `auditLevel` oder `SHIM_AUDIT_LEVEL`.",
       "auditLevel": "Audit-Stufe",
       "auditLevelTooltip": "Ab welcher Schwere der Check fehlschlägt: critical (nur Kritisch), high (Kritisch + Hoch), moderate (+ Mittel), low (+ Niedrig). Höhere Stufen = strenger."
     },
     "viteBuild": {
       "label": "Vite",
-      "summary": "Prüft, ob das Frontend-Projekt fehlerfrei gebaut werden kann.",
-      "info": "Kontext: Wenn der Build fehlschlägt, schlägt auch das Deployment fehl oder es wird eine kaputte Version ausgeliefert. Lösung: Der Build wird ausgeführt (z. B. npm run build mit Vite). Bestanden: Der Build endet ohne Fehler. Nicht bestanden: Der Build bricht mit Fehlermeldung ab – Push/Deploy wird blockiert."
+      "summary": "Stellt sicher, dass das Frontend gebaut werden kann.",
+      "info": "Zweck: Verhindert Deploys mit Build-Fehlern. Prüft: `npm run build`. Bestanden, wenn: Der Build erfolgreich endet. Nicht bestanden, wenn: Der Build fehlschlägt. Anpassen: Build-Skript in `package.json`."
     },
     "snyk": {
       "label": "Snyk",
-      "summary": "Zusätzliche Prüfung auf Sicherheitslücken in Abhängigkeiten (wenn Snyk installiert ist).",
-      "info": "Kontext: npm audit deckt nicht alle Quellen ab; Snyk kann weitere Schwachstellen kennen. Lösung: Snyk wird ausgeführt, sofern es im Projekt installiert ist. Bestanden: Snyk meldet keine Probleme, oder Snyk ist nicht installiert (dann wird der Check übersprungen). Nicht bestanden: Snyk meldet gefundene Lücken. Ohne Snyk-Installation läuft der Check nicht."
+      "summary": "Optionaler Security-Scan mit Snyk.",
+      "info": "Zweck: Findet zusätzliche Schwachstellen in Dependencies. Prüft: `snyk test`, wenn Snyk installiert ist. Bestanden, wenn: Keine Findings oder Snyk nicht installiert (übersprungen). Nicht bestanden, wenn: Snyk Findings meldet. Anpassen: `.snyk` Policy; Skip mit `SKIP_SNYK=1`."
     },
     "denoFmt": {
       "label": "Deno fmt",
-      "summary": "Prüft die Formatierung des Backend-/Edge-Function-Codes (Deno).",
-      "info": "Kontext: Der Code in supabase/functions (Deno) soll einheitlich formatiert sein, damit Änderungen lesbar bleiben. Lösung: deno fmt --check wird für supabase/functions ausgeführt. Bestanden: Der Code entspricht der Deno-Standardformatierung. Nicht bestanden: Mindestens eine Datei weicht ab."
+      "summary": "Prüft Formatierung der Supabase Edge Functions.",
+      "info": "Zweck: Einheitliches Format im Deno-Code. Prüft: `deno fmt --check supabase/functions`. Bestanden, wenn: Keine Abweichungen gefunden werden. Nicht bestanden, wenn: Abweichungen vorhanden sind. Hinweis: Wird übersprungen, wenn `supabase/functions` fehlt."
     },
     "denoLint": {
       "label": "Deno lint",
-      "summary": "Prüft den Deno-Code (Backend/Functions) auf Fehler und schlechte Praxis.",
-      "info": "Kontext: Auch Backend- und Edge-Function-Code kann Fehler oder problematische Muster enthalten; Lint findet sie vor dem Deploy. Lösung: deno lint wird für supabase/functions ausgeführt. Bestanden: Keine Lint-Meldungen. Nicht bestanden: Der Linter meldet einen oder mehrere Verstöße."
+      "summary": "Lintet Deno-Code der Edge Functions.",
+      "info": "Zweck: Findet Fehler und schlechte Praxis im Deno-Code. Prüft: `deno lint supabase/functions`. Bestanden, wenn: Keine Meldungen. Nicht bestanden, wenn: Linter Meldungen ausgibt. Hinweis: Wird übersprungen, wenn `supabase/functions` fehlt."
     },
     "denoAudit": {
       "label": "Deno audit",
-      "summary": "Sucht in den Deno-Abhängigkeiten (Backend/Functions) nach bekannten Sicherheitslücken.",
-      "info": "Kontext: Deno-Abhängigkeiten können bekannte Sicherheitslücken haben; sie sollten vor dem Deploy geprüft werden. Lösung: deno audit wird im relevanten Verzeichnis (z. B. supabase/functions/server) ausgeführt. Bestanden: Keine gemeldeten Schwachstellen. Nicht bestanden: Es werden eine oder mehrere Lücken gemeldet."
+      "summary": "Sicherheitscheck für Deno-Abhängigkeiten.",
+      "info": "Zweck: Schützt vor bekannten Sicherheitslücken in Deno-Dependencies. Prüft: `deno audit` in `supabase/functions/server`. Bestanden, wenn: Keine Findings. Nicht bestanden, wenn: Findings gemeldet werden. Hinweis: Wird übersprungen, wenn `supabase/functions` fehlt."
     },
     "aiReview": {
       "label": "AI Review",
-      "summary": "Lässt eine KI (Codex) den Code anhand einer Checkliste prüfen.",
-      "info": "Kontext: Code kann oberflächlich in Ordnung wirken, aber Schwächen in Architektur, Sicherheit oder Wartbarkeit haben; eine automatisierte Prüfung gibt eine zweite Meinung. Lösung: Der ausgewählte Code (nur Änderungen oder pro Verzeichnis die ganze Codebase) wird an Codex geschickt; Codex bewertet nach einer festen Checkliste (z. B. SOLID, Performance, Sicherheit) und vergibt Punkte sowie ein Urteil (ACCEPT/REJECT). Bestanden: Urteil ACCEPT und Bewertung mindestens so hoch wie eingestellt (Standard 95). Nicht bestanden: REJECT oder Bewertung darunter. Voraussetzung: Codex-CLI installiert und eingeloggt. Berichte werden in .shimwrapper/reviews/ gespeichert.",
+      "summary": "KI-Review mit fester Architektur- und Security-Checkliste.",
+      "info": "Zweck: Zweitmeinung zu Architektur, Sicherheit und Wartbarkeit. Prüft: Codex bewertet Diff oder Codebase und liefert Score + Verdict. Bestanden, wenn: Verdict `ACCEPT` und Score >= Mindestwert (Standard 95). Nicht bestanden, wenn: `REJECT` oder Score darunter. Anpassen: `CHECK_MODE`, Mindestscore, Timeout. Hinweis: Reviews liegen in `.shimwrapper/reviews/`; Codex-CLI erforderlich.",
       "timeoutSec": "Timeout (Sekunden)",
       "timeoutSecTooltip": "Maximale Laufzeit des AI-Reviews in Sekunden. Bei Timeout gilt der Check als fehlgeschlagen. Bei großen Diffs oder vollem Codebase-Modus ggf. erhöhen.",
       "checkMode": "AI-Review-Umfang",
@@ -273,63 +273,63 @@
     },
     "explanationCheck": {
       "label": "Full Explanation",
-      "summary": "Prüft, ob jeder Code-Abschnitt erklärt ist (Docstrings und Kommentare).",
-      "info": "Kontext: Unerklärter Code ist schwer wartbar; dieses Projekt verlangt, dass jede Funktion und nicht-triviale Logik begründet wird. Lösung: Der geänderte Code wird an Codex geschickt; Codex prüft, ob Docstrings und sinnvolle Inline-Kommentare vorhanden sind. Bestanden: Bewertung mindestens 95 und Urteil ACCEPT. Nicht bestanden: Darunter oder REJECT. Berichte in .shimwrapper/reviews/explanation-check-*.md. Voraussetzung: Codex-CLI verfügbar."
+      "summary": "Erfordert erklärten Code (Docstrings + Kommentare).",
+      "info": "Zweck: Erhöht Verständlichkeit und Wartbarkeit. Prüft: Codex bewertet Docstrings und Kommentare für nicht-triviale Logik. Bestanden, wenn: Verdict `ACCEPT` und Score >= 95. Nicht bestanden, wenn: `REJECT` oder Score darunter. Anpassen: `.shimwrappercheckrc` (SHIM_RUN_EXPLANATION_CHECK) oder `--no-explanation-check`. Hinweis: Report in `.shimwrapper/reviews/explanation-check-*.md`."
     },
     "i18nCheck": {
       "label": "i18n / Übersetzungen",
-      "summary": "Prüft, ob alle im Code verwendeten Texte in allen Sprachdateien vorhanden sind.",
-      "info": "Kontext: Bei mehrsprachigen Apps müssen alle angezeigten Texte in jeder Sprache definiert sein; fehlen Einträge, sehen Nutzer Schlüssel oder falsche Texte. Lösung: Der Quellcode wird nach Übersetzungsaufrufen durchsucht und mit den Dateien in messages/*.json abgeglichen. Bestanden: Jeder im Code verwendete Schlüssel existiert in jeder Locale-Datei. Nicht bestanden: Mindestens ein Schlüssel fehlt in mindestens einer Sprache. Optional: Mit --fix können fehlende Schlüssel als Platzhalter ergänzt werden (scripts/i18n-check.js)."
+      "summary": "Sichert, dass alle Übersetzungs-Keys existieren.",
+      "info": "Zweck: Verhindert fehlende Texte in der UI. Prüft: Übersetzungs-Keys im Code gegen alle `messages/*.json`. Bestanden, wenn: Jeder verwendete Key in jeder Locale vorhanden ist. Nicht bestanden, wenn: Mindestens ein Key fehlt. Anpassen: `--fix` ergänzt Platzhalter; Skip mit `--no-i18n-check`. Hinweis: Benötigt `scripts/i18n-check.js`."
     },
     "checkMockData": {
       "label": "Check Mock Data",
-      "summary": "Prüft, ob die Mock- bzw. Testdaten des Projekts gültig und konsistent sind.",
-      "info": "Kontext: Ungültige oder widersprüchliche Mock-Daten können Tests verfälschen oder Fehler verdecken. Lösung: Das Skript check:mock-data des Projekts wird ausgeführt (falls in package.json definiert). Bestanden: Das Skript endet mit Exit-Code 0. Nicht bestanden: Das Skript meldet Fehler oder endet mit Fehlercode. Ohne definiertes Skript wird der Check übersprungen."
+      "summary": "Validiert projektinterne Mock- und Testdaten.",
+      "info": "Zweck: Verhindert fehlerhafte Tests durch ungültige Mock-Daten. Prüft: `npm run check:mock-data`. Bestanden, wenn: Das Script endet ohne Fehler (Exit 0). Nicht bestanden, wenn: Das Script fehlschlägt oder fehlt. Anpassen: Script in `package.json` definieren."
     },
     "updateReadme": {
       "label": "Update README",
-      "summary": "Führt ein Skript aus, das z. B. die Version in der README aktualisiert.",
-      "info": "Kontext: README und Doku veralten schnell; ein Skript kann zumindest Teile (z. B. Versionsnummer aus package.json) automatisch anpassen. Lösung: Das Update-README-Skript (aus dem Paket oder dem Projekt) wird ausgeführt. Bestanden: Das Skript läuft ohne Fehler. Nicht bestanden: Das Skript schlägt fehl. Hinweis: Was genau aktualisiert wird, hängt vom Skript ab; inhaltliche Änderungen müssen weiterhin manuell erfolgen."
+      "summary": "Aktualisiert README-Teile per Script.",
+      "info": "Zweck: Hält z. B. Versionsangaben konsistent. Prüft: `scripts/update-readme.js` (Projekt) oder shimwrappercheck-Script. Bestanden, wenn: Script erfolgreich läuft oder nicht vorhanden ist (übersprungen). Nicht bestanden, wenn: Ein Script vorhanden ist und fehlschlägt. Anpassen: Script im Projekt bereitstellen oder anpassen."
     },
     "sast": {
       "label": "Semgrep",
-      "summary": "Statische Analyse mit Semgrep: sucht nach Sicherheitsmustern und Regelverstößen im Code.",
-      "info": "Kontext: Semgrep ist ein Tool für statische Code-Analyse (SAST) mit regelbasierten Checks. Lösung: semgrep scan wird ausgeführt (z. B. mit --config auto). Bestanden: Keine Findings. Nicht bestanden: Semgrep meldet Treffer. Tool muss installiert sein (pip install semgrep oder npx semgrep)."
+      "summary": "SAST-Scan mit Semgrep.",
+      "info": "Zweck: Findet Sicherheitsmuster im Code. Prüft: `semgrep scan --config auto --error`. Bestanden, wenn: Keine Findings. Nicht bestanden, wenn: Findings gemeldet werden. Anpassen: Semgrep-Regeln/Config. Hinweis: Wird übersprungen, wenn Semgrep nicht installiert ist."
     },
     "gitleaks": {
       "label": "Gitleaks",
-      "summary": "Scannt das Repo auf versehentlich committete Secrets (API-Keys, Passwörter).",
-      "info": "Kontext: Gitleaks erkennt bekannte Secret-Muster in der Codebasis und im Git-Verlauf. Lösung: gitleaks detect wird ausgeführt. Bestanden: Keine Treffer. Nicht bestanden: Mindestens ein Secret gefunden. Tool muss installiert sein (z. B. Homebrew oder gitleaks.io)."
+      "summary": "Findet Secrets im Repository.",
+      "info": "Zweck: Verhindert API-Keys oder Passwörter im Code. Prüft: `gitleaks detect` gegen den Arbeitsbaum (nutzt `.gitleaks.toml` falls vorhanden). Bestanden, wenn: Keine Treffer. Nicht bestanden, wenn: Treffer gefunden werden. Anpassen: `.gitleaks.toml`. Hinweis: Wird übersprungen, wenn Gitleaks nicht installiert ist."
     },
     "licenseChecker": {
       "label": "license-checker",
-      "summary": "Prüft Lizenzen der npm-Abhängigkeiten; schlägt bei nicht erlaubten Lizenzen fehl.",
-      "info": "Kontext: Das Tool license-checker listet Lizenzen aller Dependencies. Lösung: npx license-checker wird mit konfigurierbaren erlaubten/verbotenen Lizenzen ausgeführt. Bestanden: Keine verbotenen Lizenzen. Nicht bestanden: Mindestens eine verbotene Lizenz. Über .licensecheckerrc oder CLI-Optionen konfigurierbar."
+      "summary": "Erstellt eine Lizenzübersicht der npm-Abhängigkeiten.",
+      "info": "Zweck: Zeigt, welche Lizenzen eure Dependencies haben. Prüft: `npx license-checker --summary` (liest `.licensecheckerrc`). Bestanden, wenn: Der Befehl läuft (Standard-Runner wertet das Ergebnis nicht als Fehler). Nicht bestanden, wenn: In einem strikten Runner verbotene Lizenzen gefunden werden oder der Befehl fehlschlägt. Anpassen: `.licensecheckerrc` oder CLI-Optionen. Hinweis: `run-checks.sh` erzwingt standardmäßig keinen Fail."
     },
     "architecture": {
       "label": "dependency-cruiser",
-      "summary": "Prüft Abhängigkeitsgraph und Architekturregeln (z. B. keine verbotenen Zyklen).",
-      "info": "Kontext: dependency-cruiser prüft den Modul-Graphen gegen Regeln in .dependency-cruiser.json. Lösung: npx depcruise src (oder dashboard) --output-type err. Bestanden: Keine Verstöße. Nicht bestanden: Zirkuläre oder verbotene Abhängigkeiten. Config aus templates/ oder Projekt anlegen."
+      "summary": "Prüft Architekturregeln und verbotene Abhängigkeiten.",
+      "info": "Zweck: Erzwingt Modulgrenzen und verhindert Zyklen. Prüft: dependency-cruiser gegen `.dependency-cruiser.json`. Bestanden, wenn: Keine Regelverstöße. Nicht bestanden, wenn: Zyklen oder verbotene Abhängigkeiten gefunden werden. Anpassen: `.dependency-cruiser.json`. Hinweis: Wird übersprungen, wenn die Config fehlt."
     },
     "complexity": {
       "label": "Complexity",
-      "summary": "Warnt vor zu hoher zyklomatischer Komplexität pro Funktion.",
-      "info": "Kontext: eslint-plugin-complexity begrenzt Komplexität (z. B. max 10 pro Funktion). Lösung: ESLint wird mit eslint.complexity.json ausgeführt (Projekt oder templates/). Bestanden: Keine Verstöße. Nicht bestanden: Funktionen über dem Schwellwert. Projekt braucht eslint-plugin-complexity und Config."
+      "summary": "Begrenzt die Komplexität einzelner Funktionen.",
+      "info": "Zweck: Hält Funktionen klein und verständlich. Prüft: ESLint mit `eslint-plugin-complexity` und Config. Bestanden, wenn: Keine Funktion über dem Schwellwert. Nicht bestanden, wenn: Schwellwert überschritten. Anpassen: `eslint.complexity.json`. Hinweis: Wird übersprungen, wenn keine Config gefunden wird."
     },
     "mutation": {
       "label": "Stryker",
-      "summary": "Mutationstests: Prüft, ob Tests echte Fehler finden (Mutanten killen).",
-      "info": "Kontext: Stryker verändert Code minimal; bleiben Tests grün, decken sie den Code ggf. nicht ab. Lösung: npx stryker run mit stryker.config.json. Bestanden: Mutations-Score über Schwellwert (z. B. 80 %). Nicht bestanden: Score darunter. Config aus templates/ oder Projekt."
+      "summary": "Misst Testqualität mit Mutationstests.",
+      "info": "Zweck: Prüft, ob Tests echte Fehler erkennen. Prüft: `npx stryker run` mit `stryker.config.json`. Bestanden, wenn: Mutations-Score über dem Schwellwert. Nicht bestanden, wenn: Score darunter oder Lauf fehlschlägt. Anpassen: `stryker.config.json`. Hinweis: Wird übersprungen, wenn die Config fehlt."
     },
     "e2e": {
       "label": "E2E",
-      "summary": "End-to-End-Tests über die ganze App (derzeit nur als Option vorgesehen).",
-      "info": "Kontext: E2E-Tests simulieren echte Nutzer und prüfen die App von vorne bis hinten. Lösung: Dieser Check ist in der Konfiguration vorhanden, wird im Standard-run-checks.sh aber noch nicht ausgeführt. Aktivieren speichert nur die Einstellung; die Tests müssen im Projekt eingerichtet sein (z. B. mit Playwright)."
+      "summary": "Option für End-to-End-Tests (muss im Projekt eingerichtet sein).",
+      "info": "Zweck: Testet komplette Nutzerflüsse. Prüft: Im Standard-Runner nicht ausgeführt; Aktivieren speichert nur die Einstellung. Bestanden, wenn: Abhängig von eurem E2E-Skript. Nicht bestanden, wenn: Abhängig von eurem E2E-Skript. Anpassen: E2E-Kommando im eigenen `run-checks.sh`."
     },
     "healthPing": {
       "label": "Post-Deploy: Health Ping",
-      "summary": "Nach dem Deploy: Prüft, ob die bereitgestellten Supabase Functions erreichbar sind und antworten.",
-      "info": "Kontext: Nach einem Deploy kann die Anwendung trotzdem nicht erreichbar oder falsch konfiguriert sein; ein kurzer Aufruf bestätigt, dass die Funktion antwortet. Lösung: Nach einem Supabase-Deploy werden die konfigurierten Health-URLs der Edge Functions per HTTP aufgerufen (Skript ping-edge-health.sh). Bestanden: Die aufgerufenen Endpoints antworten (z. B. mit HTTP 200). Nicht bestanden: Keine Antwort oder Fehler. Voraussetzung: Korrekter Project Ref und ggf. passende Health-Pfade.",
+      "summary": "Nach dem Deploy: ruft Health-Endpoints auf.",
+      "info": "Zweck: Prüft, ob Functions nach dem Deploy antworten. Prüft: Konfigurierte Health-URLs der Edge Functions. Bestanden, wenn: Alle Endpoints erfolgreich antworten (z. B. HTTP 200). Nicht bestanden, wenn: Timeouts oder Fehlercodes auftreten. Anpassen: Project Ref, Funktionsnamen und Pfade.",
       "defaultFunction": "Standard-Funktion",
       "defaultFunctionTooltip": "Name der Edge Function, die standardmäßig per GET aufgerufen wird. Muss einen Health-Endpoint bereitstellen.",
       "healthFunctions": "Zusätzliche Funktionen (kommasepariert)",
@@ -341,8 +341,8 @@
     },
     "edgeLogs": {
       "label": "Post-Deploy: Edge Logs",
-      "summary": "Lädt nach dem Deploy die neuesten Logs der Edge Functions zur Kontrolle.",
-      "info": "Kontext: Nach einem Deploy zeigen Logs, ob die Funktionen fehlerfrei gestartet sind oder Fehler geworfen haben. Lösung: Nach dem Deploy werden die neuesten Log-Zeilen der konfigurierten Edge Function(s) abgerufen (Skript fetch-edge-logs.sh). Es gibt kein klares Bestanden/Nicht bestanden – die Logs werden nur bereitgestellt; die Bewertung ob alles in Ordnung ist, liegt bei Ihnen.",
+      "summary": "Nach dem Deploy: zeigt die neuesten Edge-Logs.",
+      "info": "Zweck: Schnelle Sichtprüfung nach dem Deploy. Prüft: Ruft die neuesten Logzeilen der Functions ab. Bestanden, wenn: Nicht zutreffend (Logs dienen nur zur Ansicht). Nicht bestanden, wenn: Nicht zutreffend. Anpassen: Funktionsnamen und Log-Limit.",
       "defaultFunction": "Standard-Funktion",
       "defaultFunctionTooltip": "Funktion, deren Logs standardmäßig abgerufen werden.",
       "logFunctions": "Funktionen für Logs (kommasepariert)",

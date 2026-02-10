@@ -89,12 +89,9 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
   if (readEnv("SHIM_RUN_GITLEAKS") !== undefined) checkToggles.gitleaks = readEnv("SHIM_RUN_GITLEAKS")!;
   if (readEnv("SHIM_RUN_LICENSE_CHECKER") !== undefined)
     checkToggles.licenseChecker = readEnv("SHIM_RUN_LICENSE_CHECKER")!;
-  if (readEnv("SHIM_RUN_ARCHITECTURE") !== undefined)
-    checkToggles.architecture = readEnv("SHIM_RUN_ARCHITECTURE")!;
-  if (readEnv("SHIM_RUN_COMPLEXITY") !== undefined)
-    checkToggles.complexity = readEnv("SHIM_RUN_COMPLEXITY")!;
-  if (readEnv("SHIM_RUN_MUTATION") !== undefined)
-    checkToggles.mutation = readEnv("SHIM_RUN_MUTATION")!;
+  if (readEnv("SHIM_RUN_ARCHITECTURE") !== undefined) checkToggles.architecture = readEnv("SHIM_RUN_ARCHITECTURE")!;
+  if (readEnv("SHIM_RUN_COMPLEXITY") !== undefined) checkToggles.complexity = readEnv("SHIM_RUN_COMPLEXITY")!;
+  if (readEnv("SHIM_RUN_MUTATION") !== undefined) checkToggles.mutation = readEnv("SHIM_RUN_MUTATION")!;
 
   const checkModeMatch = rawRc.match(/CHECK_MODE="?(diff|full)"?/);
   const checkMode = checkModeMatch ? checkModeMatch[1] : undefined;

@@ -53,9 +53,13 @@ if (versionInQuotes.test(updated)) {
 }
 
 // 3) Replace first "Version x.y.z" or "version x.y.z" line (common in headings)
-const versionLine = /^(#?\s*(?:Version|version)\s+)(\d+\.\d+\.\d+(?:-[^]\s]*)?)(\s*)$/m;
+const versionLine =
+  /^(#?\s*(?:Version|version)\s+)(\d+\.\d+\.\d+(?:-[^]\s]*)?)(\s*)$/m;
 if (versionLine.test(updated)) {
-  updated = updated.replace(versionLine, (_, prefix, _old, suffix) => `${prefix}${version}${suffix}`);
+  updated = updated.replace(
+    versionLine,
+    (_, prefix, _old, suffix) => `${prefix}${version}${suffix}`,
+  );
 }
 
 if (updated === readme) {

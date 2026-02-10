@@ -30,6 +30,9 @@
   "options": {
     "doNotFollow": { "path": "node_modules" },
     "tsPreCompilationDeps": true,
-    "enhancedResolveOptions": { "exportsFields": ["exports"], "conditionNames": ["import", "require"] }
+    "enhancedResolveOptions": {
+      "exportsFields": ["exports"],
+      "conditionNames": ["import", "require"]
+    }
   }
 }

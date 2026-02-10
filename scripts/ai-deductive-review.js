@@ -3,42 +3,61 @@
  * { score, deductions, verdict }. Threshold 95%; REJECT or score < 95 → fail.
  * API keys from .env (OPENAI_API_KEY, ANTHROPIC_API_KEY).
  */
-const path = require('path');
-const { execSync } = require('child_process');
+const path = require("path");
+const { execSync } = require("child_process");
 
 const LIMIT_BYTES = 51200;
 const THRESHOLD = 95;
 
 function getDiff(projectRoot) {
   const cwd = projectRoot;
-  let out = '';
+  let out = "";
   try {
-    out = execSync('git diff --no-color', { cwd, encoding: 'utf8', maxBuffer: 2 * 1024 * 1024 });
+    out = execSync("git diff --no-color", {
+      cwd,
+      encoding: "utf8",
+      maxBuffer: 2 * 1024 * 1024,
+    });
   } catch (e) {
     // ignore
   }
   try {
-    out += execSync('git diff --cached --no-color', { cwd, encoding: 'utf8', maxBuffer: 2 * 1024 * 1024 });
+    out += execSync("git diff --cached --no-color", {
+      cwd,
+      encoding: "utf8",
+      maxBuffer: 2 * 1024 * 1024,
+    });
   } catch (e) {
     // ignore
   }
   if (!out || !out.trim()) {
     try {
-      execSync('git rev-parse --abbrev-ref --symbolic-full-name @{u}', { cwd, stdio: 'ignore' });
-      out = execSync('git diff --no-color @{u}...HEAD', { cwd, encoding: 'utf8', maxBuffer: 2 * 1024 * 1024 });
+      execSync("git rev-parse --abbrev-ref --symbolic-full-name @{u}", {
+        cwd,
+        stdio: "ignore",
+      });
+      out = execSync("git diff --no-color @{u}...HEAD", {
+        cwd,
+        encoding: "utf8",
+        maxBuffer: 2 * 1024 * 1024,
+      });
     } catch (e1) {
       try {
-        out = execSync('git diff --no-color HEAD~1...HEAD', { cwd, encoding: 'utf8', maxBuffer: 2 * 1024 * 1024 });
+        out = execSync("git diff --no-color HEAD~1...HEAD", {
+          cwd,
+          encoding: "utf8",
+          maxBuffer: 2 * 1024 * 1024,
+        });
       } catch (e2) {
         // ignore
       }
     }
   }
   if (!out || !out.trim()) return null;
-  if (Buffer.byteLength(out, 'utf8') <= LIMIT_BYTES * 2) return out;
+  if (Buffer.byteLength(out, "utf8") <= LIMIT_BYTES * 2) return out;
   const start = out.slice(0, LIMIT_BYTES);
   const end = out.slice(-LIMIT_BYTES);
-  return start + '\n... [truncated] ...\n' + end;
+  return start + "\n... [truncated] ...\n" + end;
 }
 
 const SYSTEM_PROMPT = `You are an extremely strict Senior Software Architect. Your task is to evaluate a code diff.
@@ -84,14 +103,17 @@ function buildUserPrompt(diff) {
 async function callOpenAI(diff) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildUserPrompt(diff) },
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: buildUserPrompt(diff) },
       ],
       max_tokens: 1024,
       temperature: 0.2,
@@ -106,28 +128,29 @@ async function callOpenAI(diff) {
 async function callAnthropic(diff) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: process.env.ANTHROPIC_MODEL || 'claude-3-5-haiku-20241022',
+      model: process.env.ANTHROPIC_MODEL || "claude-3-5-haiku-20241022",
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: buildUserPrompt(diff) }],
+      messages: [{ role: "user", content: buildUserPrompt(diff) }],
     }),
   });
-  if (!res.ok) throw new Error(`Anthropic API ${res.status}: ${await res.text()}`);
+  if (!res.ok)
+    throw new Error(`Anthropic API ${res.status}: ${await res.text()}`);
   const data = await res.json();
   const text = data.content?.[0]?.text?.trim();
   return text;
 }
 
 function parseJson(text) {
-  const stripped = text.replace(/^[\s\S]*?(\{[\s\S]*\})[\s\S]*$/m, '$1');
+  const stripped = text.replace(/^[\s\S]*?(\{[\s\S]*\})[\s\S]*$/m, "$1");
   return JSON.parse(stripped);
 }
 
@@ -152,18 +175,26 @@ async function runAsync(projectRoot) {
   try {
     json = parseJson(text);
   } catch (e) {
-    return { ok: false, message: 'AI returned invalid JSON', suggestion: 'Retry or check API.', deductions: [] };
+    return {
+      ok: false,
+      message: "AI returned invalid JSON",
+      suggestion: "Retry or check API.",
+      deductions: [],
+    };
   }
   const score = Number(json.score);
-  const verdict = (json.verdict || '').toUpperCase();
+  const verdict = (json.verdict || "").toUpperCase();
   const deductions = Array.isArray(json.deductions) ? json.deductions : [];
-  if (verdict === 'REJECT' || score < THRESHOLD) {
-    const suggestionText =
-      deductions.length
-        ? deductions
-            .map((d) => (d.reason != null ? d.reason : `${d.point || '?'}: -${d.minus ?? d.points ?? 0}`))
-            .join('; ')
-        : 'Address deductions to reach 95%.';
+  if (verdict === "REJECT" || score < THRESHOLD) {
+    const suggestionText = deductions.length
+      ? deductions
+          .map((d) =>
+            d.reason != null
+              ? d.reason
+              : `${d.point || "?"}: -${d.minus ?? d.points ?? 0}`,
+          )
+          .join("; ")
+      : "Address deductions to reach 95%.";
     return {
       ok: false,
       message: `AI review score ${score}% (min ${THRESHOLD}%)`,

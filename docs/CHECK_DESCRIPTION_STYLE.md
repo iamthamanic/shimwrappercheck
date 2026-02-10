@@ -7,11 +7,13 @@ Goal: make each check understandable for non-experts and still precise for exper
 Every check has two fields: `summary` and `info`.
 
 1. `summary`:
+
 - One short sentence in plain language.
 - Do not list steps or thresholds here.
 - Avoid tool names unless they are essential to understand the check.
 
 2. `info`:
+
 - Use a fixed label sequence (all in one paragraph or as short sentences):
   - `Zweck:` Why the check exists (risk it avoids).
   - `Prueft:` What exactly is checked (files, scope, command).
@@ -31,7 +33,9 @@ Every check has two fields: `summary` and `info`.
 ## Examples
 
 `summary`:
+
 - "Findet Regel- und Qualitaetsverstoesse im Code."
 
 `info`:
+
 - "Zweck: Verhindert typische Fehler und Stilbrueche, bevor sie in Produktion landen. Prueft: Projektdateien mit ESLint-Regeln. Bestanden, wenn: Der ESLint-Lauf endet ohne Fehler (Exit 0). Nicht bestanden, wenn: ESLint Fehler meldet (Exit != 0). Anpassen: ESLint-Config und Regeln im Projekt. Hinweis: ..."

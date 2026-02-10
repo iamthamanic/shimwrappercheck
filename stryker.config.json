@@ -7,7 +7,14 @@
     "command": "npm run test:run"
   },
   "mutate": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.jsx"],
-  "ignorePatterns": ["node_modules", "dist", "build", "coverage", "*.test.*", "*.spec.*"],
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "*.test.*",
+    "*.spec.*"
+  ],
   "thresholds": {
     "high": 80,
     "low": 60,

@@ -37,11 +37,11 @@ This doc describes the **desired workflow**, what **already exists**, and what *
 
 ### Summary of desired UX
 
-| When | What |
-|------|------|
-| First time | One CLI → wizard → "Want this? Want that?" (Prettier, Lint, AI review, auth hints, etc.) → confirm → full setup |
-| Later | Open dashboard via link → toggles per check, groups (Supabase vs GitHub), presets (Vibe Code default, custom by drag & drop) |
-| Presets | Vibe Code = GitHub + Supabase, all commands; custom presets = drag provider in, then toggle commands |
+| When       | What                                                                                                                         |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| First time | One CLI → wizard → "Want this? Want that?" (Prettier, Lint, AI review, auth hints, etc.) → confirm → full setup              |
+| Later      | Open dashboard via link → toggles per check, groups (Supabase vs GitHub), presets (Vibe Code default, custom by drag & drop) |
+| Presets    | Vibe Code = GitHub + Supabase, all commands; custom presets = drag provider in, then toggle commands                         |
 
 ---
 
@@ -49,14 +49,14 @@ This doc describes the **desired workflow**, what **already exists**, and what *
 
 ### CLI
 
-| Piece | Status | Notes |
-|-------|--------|--------|
-| **Single entry** | ✅ | `npx shimwrappercheck init` sets up shim + config + hooks. |
-| **Wizard (init)** | ✅ | Asks: Supabase shim? Git wrapper? Which commands for checks/hooks? AI review? Codex/Cursor login? run-checks.sh / ai-code-review.sh / Husky or git pre-push. |
-| **Not a single "setup everything" command** | ⚠️ | User must first `npm i -D shimwrappercheck`, then `npx shimwrappercheck init`. So "one command" could mean: one command that does install + init (e.g. `npx shimwrappercheck setup` or `create-shimwrapper`). |
-| **Prettier / Lint / snake in wizard** | ❌ | Init does **not** ask "Do you want Prettier? Lint? Snake?" – it only asks for run-checks.sh template (which already contains lint/build/test). So no explicit Prettier/Lint/snake toggles in the wizard. |
-| **Auth hints** | ✅ | Init offers "log in to Codex" / "Cursor agent login" if AI review is enabled. |
-| **install** | ✅ | `npx shimwrappercheck install` drops PATH shims (supabase, git, shim). |
+| Piece                                       | Status | Notes                                                                                                                                                                                                         |
+| ------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Single entry**                            | ✅     | `npx shimwrappercheck init` sets up shim + config + hooks.                                                                                                                                                    |
+| **Wizard (init)**                           | ✅     | Asks: Supabase shim? Git wrapper? Which commands for checks/hooks? AI review? Codex/Cursor login? run-checks.sh / ai-code-review.sh / Husky or git pre-push.                                                  |
+| **Not a single "setup everything" command** | ⚠️     | User must first `npm i -D shimwrappercheck`, then `npx shimwrappercheck init`. So "one command" could mean: one command that does install + init (e.g. `npx shimwrappercheck setup` or `create-shimwrapper`). |
+| **Prettier / Lint / snake in wizard**       | ❌     | Init does **not** ask "Do you want Prettier? Lint? Snake?" – it only asks for run-checks.sh template (which already contains lint/build/test). So no explicit Prettier/Lint/snake toggles in the wizard.      |
+| **Auth hints**                              | ✅     | Init offers "log in to Codex" / "Cursor agent login" if AI review is enabled.                                                                                                                                 |
+| **install**                                 | ✅     | `npx shimwrappercheck install` drops PATH shims (supabase, git, shim).                                                                                                                                        |
 
 ### Config (today)
 
@@ -66,17 +66,17 @@ This doc describes the **desired workflow**, what **already exists**, and what *
 
 ### Dashboard (today)
 
-| Feature | Status | Notes |
-|---------|--------|--------|
-| **Open via link** | ✅ | User can run dashboard locally and open in browser; README has the link. No "open dashboard" link printed by CLI after init (could be added). |
-| **Status** | ✅ | Shows: config exists, AGENTS.md, run-checks script, Husky, Git hook, Supabase. |
-| **Run checks** | ✅ | Button "Nur Checks ausführen". |
-| **Edit .shimwrappercheckrc** | ✅ | Config page = raw text editor. |
-| **Edit AGENTS.md** | ✅ | Agents page = raw text editor. |
-| **On/off toggles per check** | ❌ | No UI to enable/disable individual checks (e.g. "run lint", "run AI review"). |
-| **Grouping (Supabase vs GitHub)** | ❌ | No UI grouping "Supabase commands" vs "Git commands". |
-| **Presets** | ❌ | No presets (Vibe Code, custom), no drag & drop. |
-| **"Which commands" per provider** | ❌ | No UI to select which Supabase commands (functions, db, migration, …) or Git commands (push, commit, …) run checks/hooks; that’s only in raw .shimwrappercheckrc. |
+| Feature                           | Status | Notes                                                                                                                                                             |
+| --------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Open via link**                 | ✅     | User can run dashboard locally and open in browser; README has the link. No "open dashboard" link printed by CLI after init (could be added).                     |
+| **Status**                        | ✅     | Shows: config exists, AGENTS.md, run-checks script, Husky, Git hook, Supabase.                                                                                    |
+| **Run checks**                    | ✅     | Button "Nur Checks ausführen".                                                                                                                                    |
+| **Edit .shimwrappercheckrc**      | ✅     | Config page = raw text editor.                                                                                                                                    |
+| **Edit AGENTS.md**                | ✅     | Agents page = raw text editor.                                                                                                                                    |
+| **On/off toggles per check**      | ❌     | No UI to enable/disable individual checks (e.g. "run lint", "run AI review").                                                                                     |
+| **Grouping (Supabase vs GitHub)** | ❌     | No UI grouping "Supabase commands" vs "Git commands".                                                                                                             |
+| **Presets**                       | ❌     | No presets (Vibe Code, custom), no drag & drop.                                                                                                                   |
+| **"Which commands" per provider** | ❌     | No UI to select which Supabase commands (functions, db, migration, …) or Git commands (push, commit, …) run checks/hooks; that’s only in raw .shimwrappercheckrc. |
 
 ### Run-checks and checks
 
@@ -127,6 +127,7 @@ This doc describes the **desired workflow**, what **already exists**, and what *
   - **Checks**: list of check types (lint, prettier, build, test, ai-review, …) with on/off. This could stay in .shimwrappercheckrc as new keys (e.g. SHIM_CHECK_LINT=1, SHIM_CHECK_AI_REVIEW=1) or a small JSON that run-checks.sh or the shim reads.
 
 So we need:
+
 - A way to **store presets** (e.g. JSON in repo or in .shimwrappercheckrc include, or a new file like `.shimwrappercheck-presets.json`).
 - A way to **map preset + toggles** to existing env vars (SHIM_ENFORCE_COMMANDS, SHIM_HOOK_COMMANDS, SHIM_GIT_ENFORCE_COMMANDS, SHIM_CHECKS_ARGS) so the existing bins don’t need a full rewrite.
 
@@ -134,16 +135,16 @@ So we need:
 
 ## 4. What still has to be done (concise)
 
-| # | Area | To do |
-|---|------|--------|
-| 1 | **CLI: single entry** | Add a single command (e.g. `npx shimwrappercheck setup`) that installs package if needed and runs init wizard. |
-| 2 | **Wizard: Prettier / Lint / snake** | Extend init (or setup) to ask "Prettier? Lint? Snake?" (or a small set of check categories) and write run-checks.sh or config so those run/skip. |
-| 3 | **Wizard: auth** | Keep current "log in to Codex / Cursor" prompts; optionally print dashboard link at end. |
-| 4 | **Dashboard: presets** | Introduce presets (data model + storage). Default preset "Vibe Code" = GitHub + Supabase, all commands. UI: select preset, "Create new preset", drag & drop providers into preset. |
-| 5 | **Dashboard: grouping** | Supabase section (commands + toggles), GitHub section (commands + toggles). Each command has "run checks" on/off (and optionally "run hooks" for Supabase). |
-| 6 | **Dashboard: check toggles** | On/off for: Lint, Prettier, Build, Test, (Snyk?), Backend checks, AI review. Persist to config / run-checks args so run-checks.sh respects them. |
-| 7 | **Config ↔ presets** | When user selects preset or toggles, write .shimwrappercheckrc (and optional presets file) so existing shim bins work without change. |
-| 8 | **CLI → dashboard link** | After init/setup, print dashboard URL (local or deployed). |
+| #   | Area                                | To do                                                                                                                                                                              |
+| --- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **CLI: single entry**               | Add a single command (e.g. `npx shimwrappercheck setup`) that installs package if needed and runs init wizard.                                                                     |
+| 2   | **Wizard: Prettier / Lint / snake** | Extend init (or setup) to ask "Prettier? Lint? Snake?" (or a small set of check categories) and write run-checks.sh or config so those run/skip.                                   |
+| 3   | **Wizard: auth**                    | Keep current "log in to Codex / Cursor" prompts; optionally print dashboard link at end.                                                                                           |
+| 4   | **Dashboard: presets**              | Introduce presets (data model + storage). Default preset "Vibe Code" = GitHub + Supabase, all commands. UI: select preset, "Create new preset", drag & drop providers into preset. |
+| 5   | **Dashboard: grouping**             | Supabase section (commands + toggles), GitHub section (commands + toggles). Each command has "run checks" on/off (and optionally "run hooks" for Supabase).                        |
+| 6   | **Dashboard: check toggles**        | On/off for: Lint, Prettier, Build, Test, (Snyk?), Backend checks, AI review. Persist to config / run-checks args so run-checks.sh respects them.                                   |
+| 7   | **Config ↔ presets**                | When user selects preset or toggles, write .shimwrappercheckrc (and optional presets file) so existing shim bins work without change.                                              |
+| 8   | **CLI → dashboard link**            | After init/setup, print dashboard URL (local or deployed).                                                                                                                         |
 
 ---
 

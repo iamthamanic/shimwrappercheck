@@ -39,10 +39,14 @@ export function generateScriptFromRules(rules: ProjectRuleForm[]): string {
     if (r.type === "forbidden_pattern" && r.pattern.trim()) {
       const pat = escapeForBash(r.pattern.trim());
       lines.push(`# rule ${i + 1}: forbidden_pattern`);
-      lines.push(`if grep -rFl '${pat}' . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" 2>/dev/null | grep -q .; then echo "Projektregel verletzt: verbotenes Muster"; exit 1; fi`);
+      lines.push(
+        `if grep -rFl '${pat}' . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" 2>/dev/null | grep -q .; then echo "Projektregel verletzt: verbotenes Muster"; exit 1; fi`
+      );
     } else if (r.type === "max_lines" && r.maxLines > 0) {
       lines.push(`# rule ${i + 1}: max_lines ${r.maxLines}`);
-      lines.push(`find . -type f \\( -name "*.ts" -o -name "*.tsx" \\) 2>/dev/null | while read f; do n=$(wc -l < "$f" 2>/dev/null || echo 0); if [ "$n" -gt ${r.maxLines} ]; then echo "Projektregel verletzt: $f hat $n Zeilen (max ${r.maxLines})"; exit 1; fi; done`);
+      lines.push(
+        `find . -type f \\( -name "*.ts" -o -name "*.tsx" \\) 2>/dev/null | while read f; do n=$(wc -l < "$f" 2>/dev/null || echo 0); if [ "$n" -gt ${r.maxLines} ]; then echo "Projektregel verletzt: $f hat $n Zeilen (max ${r.maxLines})"; exit 1; fi; done`
+      );
     }
   }
   lines.push("exit 0");
