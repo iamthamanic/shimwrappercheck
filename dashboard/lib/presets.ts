@@ -196,6 +196,9 @@ export function buildRcContent(settings: SettingsData): string {
   lines.push(`SHIM_RUN_SAST=${t.sast ? 1 : 0}`);
   lines.push(`SHIM_RUN_GITLEAKS=${t.gitleaks ? 1 : 0}`);
   lines.push(`SHIM_RUN_LICENSE_CHECKER=${t.licenseChecker ? 1 : 0}`);
+  lines.push(`SHIM_RUN_ARCHITECTURE=${t.architecture ? 1 : 0}`);
+  lines.push(`SHIM_RUN_COMPLEXITY=${t.complexity ? 1 : 0}`);
+  lines.push(`SHIM_RUN_MUTATION=${t.mutation ? 1 : 0}`);
 
   const cs = settings.checkSettings;
   if (!t.snyk) lines.push("SKIP_SNYK=1");

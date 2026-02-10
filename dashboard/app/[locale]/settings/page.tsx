@@ -74,6 +74,13 @@ export default function SettingsPage() {
         } else {
           setSettings(data);
           setMessage(null);
+          if (data.presetsLastUpdated) {
+            const t = new Date(data.presetsLastUpdated);
+            if (!isNaN(t.getTime())) {
+              setTriggerCommandosLastUpdated(t);
+              setMyChecksLastUpdated(t);
+            }
+          }
         }
       })
       .catch((err) => {

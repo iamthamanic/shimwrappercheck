@@ -20,7 +20,7 @@ CLI-Shim, der Projekt-Checks ausführt, bevor ein echtes CLI-Kommando (z. B. S
 
 ### Dashboard (Web-UI)
 
-- **Check Library**: Alle integrierten Checks mit Filter (Frontend / Backend / Enforce / Hooks), Suche, Drag & Drop in „My Shim“. Pro Check: **Tool-Status** (ob z. B. ESLint/Deno installiert ist) und **Copy-Paste-Befehl** zum Nachinstallieren.
+- **Check Library**: Alle integrierten Checks mit Filter (Frontend / Backend / Enforce / Hooks), Suche, Drag & Drop in „My Shim“. Pro Check: **Tool-Status** (ob z. B. ESLint/Deno installiert ist) und **Copy-Paste-Befehl** zum Nachinstallieren. Check-Infos folgen einem festen Schema (Zweck/Prueft/Bestanden/Nicht bestanden/Anpassen/Hinweis).
 - **My Shim (Sidebar)**:
   - **Trigger Commandos**: Tags pro Tab (Enforce / Hooks) – z. B. `git push`, `supabase functions deploy`. Neue Tags mit **Enter** bestätigen; Speichern schreibt `.shimwrappercheckrc` und Presets.
   - **My Checks**: Reihenfolge der aktiven Checks, Suchen, Entfernen, Drag zum Sortieren; „aktualisiert“-Zeitstempel.
@@ -41,6 +41,7 @@ CLI-Shim, der Projekt-Checks ausführt, bevor ein echtes CLI-Kommando (z. B. S
 
 - **Presets**: `.shimwrappercheck-presets.json` (Presets, Trigger-Befehle, Check-Reihenfolge, Toggles). Dashboard schreibt zusätzlich `.shimwrappercheckrc` für die Shell-Skripte.
 - **Env & RC**: Alle Optionen per Umgebungsvariablen oder `.shimwrappercheckrc` steuerbar.
+- **Check-Tools (pro Projekt):** Optional `.shimwrapper/checktools/` mit eigener `package.json` (ESLint, Prettier, TypeScript, Vitest, Vite). Beim `init` anlegbar; danach `npx shimwrappercheck install-tools`. `run-checks.sh` verwendet diese Binaries, wenn vorhanden – so sind die Tools pro Projekt getrennt (Variante B).
 
 ---
 
@@ -203,7 +204,17 @@ Nur den interaktiven Init ausführen (ohne erneutes Installieren):
 npx shimwrappercheck init
 ```
 
-Erkennung von Supabase/Git, Abfrage der Befehle für Checks/Hooks, Pre-Push-Hooks, AI-Review (streng: Senior-Architekt-Checkliste, Score ≥ 95 %), Erzeugen von `.shimwrappercheckrc`.
+Erkennung von Supabase/Git, Abfrage der Befehle für Checks/Hooks, Pre-Push-Hooks, AI-Review (streng: Senior-Architekt-Checkliste, Score ≥ 95 %), Erzeugen von `.shimwrappercheckrc`. Optional: Anlegen von `.shimwrapper/checktools/` (Check-Tools pro Projekt).
+
+### Check-Tools (projektlos)
+
+Wenn beim `init` der Ordner `.shimwrapper/checktools/` angelegt wurde (oder manuell mit `package.json` aus `templates/checktools-package.json`), Tools dort installieren:
+
+```bash
+npx shimwrappercheck install-tools
+```
+
+`run-checks.sh` nutzt dann ESLint, Prettier, tsc, Vitest und Vite aus diesem Ordner, falls vorhanden; sonst Projekt-`node_modules` bzw. npm-Skripte.
 
 ## Wie es funktioniert
 

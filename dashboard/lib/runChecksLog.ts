@@ -23,6 +23,9 @@ export const CHECK_LOG_MARKERS: Record<string, string[]> = {
   sast: ["Semgrep..."],
   gitleaks: ["Gitleaks..."],
   licenseChecker: ["license-checker..."],
+  architecture: ["Architecture (dependency-cruiser)...", "Skipping Architecture"],
+  complexity: ["Complexity (eslint-plugin-complexity)...", "Skipping Complexity"],
+  mutation: ["Mutation (Stryker)...", "Skipping Mutation"],
 };
 
 export interface LastRunLog {

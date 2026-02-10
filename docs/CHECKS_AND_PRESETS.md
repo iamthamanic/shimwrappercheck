@@ -12,6 +12,10 @@ New checks appear in the **Check Library** and can be added to **My Checks** onc
 
 After that, the new check shows up in the Check Library and can be dragged into My Checks. **Enforce** vs **Hooks** in the UI is determined by each check’s `role`: enforce checks run before the command, hook checks run after deploy.
 
+## Check descriptions
+
+Check texts must be understandable for non-experts and still precise for experts. Use the fixed structure and wording rules described in `docs/CHECK_DESCRIPTION_STYLE.md`.
+
 ## Presets: per project, no accounts
 
 - **Presets are stored in the project** (in the config that backs the dashboard, e.g. `.shimwrappercheckrc` or the same JSON the API uses). There are no user accounts; nothing is stored “globally” on a server.

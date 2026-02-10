@@ -48,3 +48,14 @@ nextjs-portal > * {
     opacity: 0;
   }
 }
+
+@keyframes scan-confetti-out {
+  0% {
+    transform: translate(-50%, -50%);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty)));
+    opacity: 0;
+  }
+}

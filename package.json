@@ -49,5 +49,11 @@
   },
   "dependencies": {
     "dotenv": "^17.2.4"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "^9.5.1",
+    "prettier": "^3.8.1",
+    "snyk": "^1.1302.1",
+    "typescript": "^5.9.3"
   }
 }

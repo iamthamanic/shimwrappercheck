@@ -10,8 +10,13 @@ import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import confetti from "canvas-confetti";
 import type { CheckDef } from "@/lib/checks";
+import {
+  generateScriptFromRules,
+  parseRulesFromScript,
+  type ProjectRuleForm,
+} from "@/lib/projectRulesScript";
 
-export type ToolStatus = { installed: boolean; label?: string; command?: string };
+export type ToolStatus = { installed: boolean; label?: string; command?: string; repo?: string };
 
 function CopyButton({ text }: { text: string }) {
   const t = useTranslations("common");
@@ -75,11 +80,130 @@ export default function CheckCard({
 }) {
   const t = useTranslations("common");
   const tChecks = useTranslations("checks");
+  const isProjectRules = def.id === "projectRules";
   const [tab, setTab] = useState<"info" | "settings" | "logs">("info");
   const [modalOpen, setModalOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const activeBadgeRef = useRef<HTMLSpanElement>(null);
+  const projectRulesFetchedRef = useRef(false);
+  const [projectRulesRaw, setProjectRulesRaw] = useState("");
+  const [projectRulesLoading, setProjectRulesLoading] = useState(false);
+  const [projectRulesSaving, setProjectRulesSaving] = useState(false);
+  const [projectRulesMessage, setProjectRulesMessage] = useState<{ type: "success" | "error"; text: string } | null>(
+    null
+  );
+  const [projectRulesSubTab, setProjectRulesSubTab] = useState<"form" | "script">("form");
+  const [projectRulesFormRules, setProjectRulesFormRules] = useState<ProjectRuleForm[]>([]);
+
+  useEffect(() => {
+    if (modalOpen) setTab("info");
+  }, [modalOpen]);
+
+  useEffect(() => {
+    if (!modalOpen) projectRulesFetchedRef.current = false;
+  }, [modalOpen]);
+  useEffect(() => {
+    if (!detailsOpen) projectRulesFetchedRef.current = false;
+  }, [detailsOpen]);
+
+  const saveProjectRules = () => {
+    setProjectRulesSaving(true);
+    setProjectRulesMessage(null);
+    fetch("/api/project-rules", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ raw: projectRulesRaw }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setProjectRulesSaving(false);
+        if (data.error) setProjectRulesMessage({ type: "error", text: data.error });
+        else setProjectRulesMessage({ type: "success", text: t("projectRulesSaved") });
+      })
+      .catch(() => {
+        setProjectRulesSaving(false);
+        setProjectRulesMessage({ type: "error", text: t("saveFailed") });
+      });
+  };
+
+  const saveProjectRulesFromForm = () => {
+    const raw = generateScriptFromRules(projectRulesFormRules);
+    setProjectRulesRaw(raw);
+    setProjectRulesSaving(true);
+    setProjectRulesMessage(null);
+    fetch("/api/project-rules", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ raw }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setProjectRulesSaving(false);
+        if (data.error) setProjectRulesMessage({ type: "error", text: data.error });
+        else setProjectRulesMessage({ type: "success", text: t("projectRulesSaved") });
+      })
+      .catch(() => {
+        setProjectRulesSaving(false);
+        setProjectRulesMessage({ type: "error", text: t("saveFailed") });
+      });
+  };
+
+  const addProjectRule = (type: "forbidden_pattern" | "max_lines") => {
+    const id = `rule-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    if (type === "forbidden_pattern") setProjectRulesFormRules((prev) => [...prev, { id, type, pattern: "" }]);
+    else setProjectRulesFormRules((prev) => [...prev, { id, type, maxLines: 300 }]);
+  };
+
+  const updateProjectRule = (id: string, patch: Partial<ProjectRuleForm>) => {
+    setProjectRulesFormRules((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        if (patch.type === "forbidden_pattern") return { id: r.id, type: "forbidden_pattern" as const, pattern: "pattern" in patch ? (patch.pattern ?? "") : (r.type === "forbidden_pattern" ? r.pattern : "") };
+        if (patch.type === "max_lines") return { id: r.id, type: "max_lines" as const, maxLines: "maxLines" in patch ? (patch.maxLines ?? 300) : (r.type === "max_lines" ? r.maxLines : 300) };
+        if (r.type === "forbidden_pattern" && "pattern" in patch) return { ...r, pattern: patch.pattern ?? r.pattern };
+        if (r.type === "max_lines" && "maxLines" in patch) return { ...r, maxLines: patch.maxLines ?? r.maxLines };
+        return r;
+      })
+    );
+  };
+
+  const removeProjectRule = (id: string) => {
+    setProjectRulesFormRules((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  useEffect(() => {
+    if (
+      isProjectRules &&
+      (tab === "settings" || modalOpen) &&
+      !projectRulesFetchedRef.current
+    ) {
+      projectRulesFetchedRef.current = true;
+      setProjectRulesLoading(true);
+      setProjectRulesMessage(null);
+      const ac = new AbortController();
+      const timeoutId = setTimeout(() => ac.abort(), 12_000);
+      fetch("/api/project-rules", { signal: ac.signal })
+        .then((r) => {
+          if (!r.ok) throw new Error(r.statusText || "Request failed");
+          return r.json();
+        })
+        .then((data) => {
+          clearTimeout(timeoutId);
+          const raw = data?.raw ?? "";
+          setProjectRulesRaw(raw);
+          const parsed = parseRulesFromScript(raw);
+          if (parsed && parsed.length >= 0) setProjectRulesFormRules(parsed);
+          setProjectRulesLoading(false);
+        })
+        .catch((err) => {
+          clearTimeout(timeoutId);
+          setProjectRulesLoading(false);
+          projectRulesFetchedRef.current = false;
+          if (err?.name !== "AbortError") setProjectRulesMessage({ type: "error", text: t("saveFailed") });
+        });
+    }
+  }, [isProjectRules, tab, modalOpen, t]);
 
   useEffect(() => {
     if (statusTag !== "active") return;
@@ -364,7 +488,7 @@ export default function CheckCard({
                 <p className="font-medium text-white mb-2">{checkSummary}</p>
                 <p className="whitespace-pre-wrap text-neutral-400 text-xs">{checkInfo}</p>
                 {toolStatus && (
-                  <div className="mt-3 pt-2 border-t border-white/10 text-xs">
+                  <div className="mt-3 pt-2 border-t border-white/10 text-xs flex flex-wrap items-center gap-1.5">
                     <span className="text-neutral-400">{t("toolLabel")}: </span>
                     {toolStatus.installed ? (
                       <span className="text-green-500">✓ {toolStatus.label ?? t("toolPresent")}</span>
@@ -372,7 +496,7 @@ export default function CheckCard({
                       <>
                         <span className="text-amber-500">✗ {toolStatus.label ?? t("toolNotFound")}</span>
                         {toolStatus.command && (
-                          <span className="ml-2 inline-flex items-center gap-1 flex-wrap">
+                          <span className="inline-flex items-center gap-1 flex-wrap">
                             <code className="bg-black/30 px-1.5 py-0.5 rounded text-[11px] break-all">
                               {toolStatus.command}
                             </code>
@@ -381,82 +505,239 @@ export default function CheckCard({
                         )}
                       </>
                     )}
+                    {toolStatus.repo && (
+                      <a
+                        href={toolStatus.repo}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-xs btn-ghost text-violet-400 hover:text-violet-300 border border-violet-500/50 hover:border-violet-400"
+                        title="GitHub"
+                      >
+                        GitHub
+                      </a>
+                    )}
                   </div>
                 )}
               </>
             )}
             {tab === "settings" && (
               <div className="space-y-2">
-                {def.settings.map((s) => {
-                  if (s.type === "boolean" && s.key === "enabled") return null;
-                  const val = checkSettings?.[s.key] ?? s.default;
-                  return (
-                    <div key={s.key}>
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <label className="text-xs text-neutral-400">{getSettingLabel(s)}</label>
-                        {getSettingTooltip(s) && (
-                          <span className="tooltip tooltip-right" data-tip={getSettingTooltip(s)}>
+                {isProjectRules ? (
+                  <>
+                    <div className="flex gap-0 border-b border-white/10 mb-2">
+                      <button
+                        type="button"
+                        className={`flex-1 py-1.5 px-2 text-xs font-medium ${projectRulesSubTab === "form" ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/5"}`}
+                        onClick={() => setProjectRulesSubTab("form")}
+                      >
+                        {t("projectRulesForm")}
+                      </button>
+                      <button
+                        type="button"
+                        className={`flex-1 py-1.5 px-2 text-xs font-medium ${projectRulesSubTab === "script" ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/5"}`}
+                        onClick={() => setProjectRulesSubTab("script")}
+                      >
+                        {t("projectRulesScript")}
+                      </button>
+                    </div>
+                    {projectRulesSubTab === "form" && (
+                      <div className="space-y-2 min-h-[8rem]">
+                        {projectRulesFormRules.length === 0 && (
+                          <p className="text-neutral-400 text-xs mb-2">{t("projectRulesFormEmptyHint")}</p>
+                        )}
+                        {projectRulesFormRules.map((rule) => (
+                          <div
+                            key={rule.id}
+                            className="flex flex-wrap items-end gap-2 p-2 rounded bg-neutral-900/50 border border-neutral-600"
+                          >
+                            <select
+                              className="select select-sm bg-neutral-800 border-neutral-600 text-white text-xs w-36"
+                              value={rule.type}
+                              onChange={(e) => {
+                                const t = e.target.value as "forbidden_pattern" | "max_lines";
+                                if (t === "forbidden_pattern") updateProjectRule(rule.id, { type: t, pattern: "" });
+                                else updateProjectRule(rule.id, { type: t, maxLines: 300 });
+                              }}
+                            >
+                              <option value="forbidden_pattern">{t("projectRulesRuleTypeForbiddenPattern")}</option>
+                              <option value="max_lines">{t("projectRulesRuleTypeMaxLines")}</option>
+                            </select>
+                            {rule.type === "forbidden_pattern" && (
+                              <input
+                                type="text"
+                                className="input input-sm bg-neutral-800 border-neutral-600 text-white text-xs flex-1 min-w-0"
+                                placeholder={t("projectRulesPatternPlaceholder")}
+                                value={rule.pattern}
+                                onChange={(e) => updateProjectRule(rule.id, { pattern: e.target.value })}
+                              />
+                            )}
+                            {rule.type === "max_lines" && (
+                              <input
+                                type="number"
+                                min={1}
+                                className="input input-sm bg-neutral-800 border-neutral-600 text-white text-xs w-20"
+                                placeholder={t("projectRulesMaxLinesPlaceholder")}
+                                value={rule.maxLines}
+                                onChange={(e) =>
+                                  updateProjectRule(rule.id, { maxLines: Math.max(1, parseInt(e.target.value, 10) || 300) })
+                                }
+                              />
+                            )}
                             <button
                               type="button"
-                              className="btn btn-ghost btn-xs btn-circle text-white/50 hover:text-white/80"
-                              aria-label={t("info")}
+                              className="btn btn-ghost btn-xs text-error"
+                              onClick={() => removeProjectRule(rule.id)}
+                              aria-label={t("remove")}
                             >
-                              <svg
-                                className="w-3.5 h-3.5"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                              >
-                                <circle cx="12" cy="12" r="10" />
-                                <path d="M12 16v-4M12 8h.01" />
-                              </svg>
+                              ×
                             </button>
-                          </span>
+                          </div>
+                        ))}
+                        <div className="flex flex-wrap gap-2 items-center">
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-xs"
+                            onClick={() => addProjectRule("forbidden_pattern")}
+                          >
+                            + {t("projectRulesAddRule")}
+                          </button>
+                          {projectRulesFormRules.length > 0 && (
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-xs"
+                              disabled={projectRulesSaving}
+                              onClick={saveProjectRulesFromForm}
+                            >
+                              {projectRulesSaving ? t("saving") : t("save")}
+                            </button>
+                          )}
+                        </div>
+                        {projectRulesMessage && projectRulesSubTab === "form" && (
+                          <p
+                            className={`text-xs ${projectRulesMessage.type === "success" ? "text-success" : "text-error"}`}
+                          >
+                            {projectRulesMessage.text}
+                          </p>
                         )}
                       </div>
-                      {s.type === "boolean" && (
-                        <input
-                          type="checkbox"
-                          className="toggle toggle-sm ml-2"
-                          checked={val as boolean}
-                          onChange={(e) => onSettingsChange?.({ [s.key]: e.target.checked })}
-                        />
-                      )}
-                      {s.type === "number" && (
-                        <input
-                          type="number"
-                          className="input input-sm input-bordered bg-neutral-900 border-neutral-600 text-white w-full mt-1"
-                          value={val != null ? String(val) : ""}
-                          onChange={(e) =>
-                            onSettingsChange?.({ [s.key]: e.target.value ? Number(e.target.value) : s.default })
-                          }
-                        />
-                      )}
-                      {s.type === "string" && (
-                        <input
-                          type="text"
-                          className="input input-sm input-bordered bg-neutral-900 border-neutral-600 text-white w-full mt-1"
-                          value={val != null ? String(val) : ""}
-                          onChange={(e) => onSettingsChange?.({ [s.key]: e.target.value })}
-                        />
-                      )}
-                      {s.type === "select" && (
-                        <select
-                          className="select select-sm select-bordered bg-neutral-900 border-neutral-600 text-white w-full mt-1"
-                          value={val != null ? String(val) : ""}
-                          onChange={(e) => onSettingsChange?.({ [s.key]: e.target.value })}
-                        >
-                          {s.options?.map((o) => (
-                            <option key={o.value} value={o.value}>
-                              {getSelectOptionLabel(s, o)}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                  );
-                })}
+                    )}
+                    {projectRulesSubTab === "script" && (
+                      <>
+                        {projectRulesLoading ? (
+                          <div className="min-h-[120px] flex items-center gap-2 text-neutral-500 text-xs">
+                            <span className="loading loading-spinner loading-sm" />
+                            <span>{t("loading")}</span>
+                          </div>
+                        ) : (
+                          <>
+                            <textarea
+                              className="textarea textarea-sm w-full font-mono text-xs min-h-[120px] bg-neutral-900 border-neutral-600 text-white resize-y"
+                              value={projectRulesRaw}
+                              onChange={(e) => {
+                                setProjectRulesRaw(e.target.value);
+                                setProjectRulesMessage(null);
+                              }}
+                              placeholder={t("projectRulesScriptPlaceholder")}
+                              spellCheck={false}
+                            />
+                            {projectRulesMessage && (
+                              <p
+                                className={`text-xs mt-1 ${projectRulesMessage.type === "success" ? "text-success" : "text-error"}`}
+                              >
+                                {projectRulesMessage.text}
+                              </p>
+                            )}
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-xs mt-2"
+                              disabled={projectRulesSaving}
+                              onClick={saveProjectRules}
+                            >
+                              {projectRulesSaving ? t("saving") : t("save")}
+                            </button>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {def.settings
+                      .filter((s) => !(s.type === "boolean" && s.key === "enabled"))
+                      .map((s) => {
+                        const val = checkSettings?.[s.key] ?? s.default;
+                        return (
+                          <div key={s.key}>
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <label className="text-xs text-neutral-400">{getSettingLabel(s)}</label>
+                              {getSettingTooltip(s) && (
+                                <span className="tooltip tooltip-right" data-tip={getSettingTooltip(s)}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-ghost btn-xs btn-circle text-white/50 hover:text-white/80"
+                                    aria-label={t("info")}
+                                  >
+                                    <svg
+                                      className="w-3.5 h-3.5"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth={2}
+                                    >
+                                      <circle cx="12" cy="12" r="10" />
+                                      <path d="M12 16v-4M12 8h.01" />
+                                    </svg>
+                                  </button>
+                                </span>
+                              )}
+                            </div>
+                            {s.type === "boolean" && (
+                              <input
+                                type="checkbox"
+                                className="toggle toggle-sm ml-2"
+                                checked={val as boolean}
+                                onChange={(e) => onSettingsChange?.({ [s.key]: e.target.checked })}
+                              />
+                            )}
+                            {s.type === "number" && (
+                              <input
+                                type="number"
+                                className="input input-sm input-bordered bg-neutral-900 border-neutral-600 text-white w-full mt-1"
+                                value={val != null ? String(val) : ""}
+                                onChange={(e) =>
+                                  onSettingsChange?.({ [s.key]: e.target.value ? Number(e.target.value) : s.default })
+                                }
+                              />
+                            )}
+                            {s.type === "string" && (
+                              <input
+                                type="text"
+                                className="input input-sm input-bordered bg-neutral-900 border-neutral-600 text-white w-full mt-1"
+                                value={val != null ? String(val) : ""}
+                                onChange={(e) => onSettingsChange?.({ [s.key]: e.target.value })}
+                              />
+                            )}
+                            {s.type === "select" && (
+                              <select
+                                className="select select-sm select-bordered bg-neutral-900 border-neutral-600 text-white w-full mt-1"
+                                value={val != null ? String(val) : ""}
+                                onChange={(e) => onSettingsChange?.({ [s.key]: e.target.value })}
+                              >
+                                {s.options?.map((o) => (
+                                  <option key={o.value} value={o.value}>
+                                    {getSelectOptionLabel(s, o)}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        );
+                      })}
+                    {def.settings.filter((s) => !(s.type === "boolean" && s.key === "enabled")).length === 0 && (
+                      <p className="text-neutral-500 text-xs">{t("settingsNoExtra")}</p>
+                    )}
+                  </>
+                )}
               </div>
             )}
             {tab === "logs" && (
@@ -484,7 +765,9 @@ export default function CheckCard({
             aria-labelledby="check-modal-title"
           >
             <div className="fixed inset-0 bg-black/60" onClick={() => setModalOpen(false)} aria-hidden />
-            <div className="modal-box max-w-2xl max-h-[90vh] overflow-hidden flex flex-col bg-neutral-800 border border-neutral-600 relative z-[2147483647] shadow-2xl">
+            <div
+              className={`modal-box overflow-hidden flex flex-col bg-neutral-800 border border-neutral-600 relative z-[2147483647] shadow-2xl ${isProjectRules ? "max-w-4xl max-h-[95vh]" : "max-w-2xl max-h-[90vh]"}`}
+            >
               <div className="flex items-center justify-between gap-2 border-b border-neutral-600 pb-3 mb-3">
                 <h3 id="check-modal-title" className="text-lg font-semibold text-white">
                   {checkLabel}
@@ -529,7 +812,7 @@ export default function CheckCard({
                     <p className="font-medium text-white text-lg mb-3">{checkSummary}</p>
                     <p className="whitespace-pre-wrap text-neutral-300 mb-4">{checkInfo}</p>
                     {toolStatus && (
-                      <div className="pt-3 border-t border-white/10 text-sm">
+                      <div className="pt-3 border-t border-white/10 text-sm flex flex-wrap items-center gap-2">
                         <span className="text-neutral-400">{t("toolLabel")}: </span>
                         {toolStatus.installed ? (
                           <span className="text-green-500">✓ {toolStatus.label ?? t("toolPresent")}</span>
@@ -537,7 +820,7 @@ export default function CheckCard({
                           <>
                             <span className="text-amber-500">✗ {toolStatus.label ?? t("toolNotFound")}</span>
                             {toolStatus.command && (
-                              <span className="ml-2 inline-flex items-center gap-1 flex-wrap">
+                              <span className="inline-flex items-center gap-1 flex-wrap">
                                 <code className="bg-black/30 px-1.5 py-0.5 rounded text-sm break-all">
                                   {toolStatus.command}
                                 </code>
@@ -546,82 +829,248 @@ export default function CheckCard({
                             )}
                           </>
                         )}
+                        {toolStatus.repo && (
+                          <a
+                            href={toolStatus.repo}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-sm btn-ghost text-violet-400 hover:text-violet-300 border border-violet-500/50 hover:border-violet-400"
+                            title="GitHub"
+                          >
+                            GitHub
+                          </a>
+                        )}
                       </div>
                     )}
                   </>
                 )}
                 {tab === "settings" && (
                   <div className="space-y-4">
-                    {def.settings.map((s) => {
-                      if (s.type === "boolean" && s.key === "enabled") return null;
-                      const val = checkSettings?.[s.key] ?? s.default;
-                      return (
-                        <div key={s.key}>
-                          <div className="flex items-center gap-1 flex-wrap mb-1">
-                            <label className="text-sm text-neutral-300 block">{getSettingLabel(s)}</label>
-                            {getSettingTooltip(s) && (
-                              <span className="tooltip tooltip-right" data-tip={getSettingTooltip(s)}>
+                    {isProjectRules ? (
+                      <div className="flex flex-col min-h-0 flex-1">
+                        <div className="flex gap-0 border-b border-neutral-600 mb-3">
+                          <button
+                            type="button"
+                            className={`flex-1 py-2 px-3 text-sm font-medium ${projectRulesSubTab === "form" ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/5"}`}
+                            onClick={() => setProjectRulesSubTab("form")}
+                          >
+                            {t("projectRulesForm")}
+                          </button>
+                          <button
+                            type="button"
+                            className={`flex-1 py-2 px-3 text-sm font-medium ${projectRulesSubTab === "script" ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/5"}`}
+                            onClick={() => setProjectRulesSubTab("script")}
+                          >
+                            {t("projectRulesScript")}
+                          </button>
+                        </div>
+                        {projectRulesSubTab === "form" && (
+                          <div className="space-y-4">
+                            {projectRulesFormRules.length === 0 && (
+                              <p className="text-neutral-400 text-sm mb-2">{t("projectRulesFormEmptyHint")}</p>
+                            )}
+                            {projectRulesFormRules.map((rule) => (
+                              <div
+                                key={rule.id}
+                                className="flex flex-wrap items-end gap-3 p-3 rounded-lg bg-neutral-900/50 border border-neutral-600"
+                              >
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-xs text-neutral-400">{t("projectRulesRuleTypeLabel")}</label>
+                                  <select
+                                    className="select select-sm bg-neutral-800 border-neutral-600 text-white"
+                                    value={rule.type}
+                                    onChange={(e) => {
+                                      const typ = e.target.value as "forbidden_pattern" | "max_lines";
+                                      if (typ === "forbidden_pattern") updateProjectRule(rule.id, { type: typ, pattern: "" });
+                                      else updateProjectRule(rule.id, { type: typ, maxLines: 300 });
+                                    }}
+                                  >
+                                    <option value="forbidden_pattern">{t("projectRulesRuleTypeForbiddenPattern")}</option>
+                                    <option value="max_lines">{t("projectRulesRuleTypeMaxLines")}</option>
+                                  </select>
+                                </div>
+                                {rule.type === "forbidden_pattern" && (
+                                  <div className="flex-1 min-w-[200px] flex flex-col gap-1">
+                                    <label className="text-xs text-neutral-400">{t("projectRulesPatternLabel")}</label>
+                                    <input
+                                      type="text"
+                                      className="input input-sm input-bordered bg-neutral-800 border-neutral-600 text-white w-full"
+                                      placeholder={t("projectRulesPatternPlaceholder")}
+                                      value={rule.pattern}
+                                      onChange={(e) => updateProjectRule(rule.id, { pattern: e.target.value })}
+                                    />
+                                  </div>
+                                )}
+                                {rule.type === "max_lines" && (
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-xs text-neutral-400">{t("projectRulesMaxLinesLabel")}</label>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      className="input input-sm input-bordered bg-neutral-800 border-neutral-600 text-white w-24"
+                                      placeholder={t("projectRulesMaxLinesPlaceholder")}
+                                      value={rule.maxLines}
+                                      onChange={(e) =>
+                                        updateProjectRule(rule.id, { maxLines: Math.max(1, parseInt(e.target.value, 10) || 300) })
+                                      }
+                                    />
+                                  </div>
+                                )}
                                 <button
                                   type="button"
-                                  className="btn btn-ghost btn-xs btn-circle text-white/50 hover:text-white/80"
-                                  aria-label={t("info")}
+                                  className="btn btn-ghost btn-sm text-error"
+                                  onClick={() => removeProjectRule(rule.id)}
+                                  aria-label={t("remove")}
                                 >
-                                  <svg
-                                    className="w-3.5 h-3.5"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth={2}
-                                  >
-                                    <circle cx="12" cy="12" r="10" />
-                                    <path d="M12 16v-4M12 8h.01" />
-                                  </svg>
+                                  ×
                                 </button>
-                              </span>
+                              </div>
+                            ))}
+                            <div className="flex flex-wrap gap-3 items-center">
+                              <button
+                                type="button"
+                                className="btn btn-outline btn-sm"
+                                onClick={() => addProjectRule("forbidden_pattern")}
+                              >
+                                + {t("projectRulesAddRule")}
+                              </button>
+                              {projectRulesFormRules.length > 0 && (
+                                <button
+                                  type="button"
+                                  className="btn btn-primary btn-sm"
+                                  disabled={projectRulesSaving}
+                                  onClick={saveProjectRulesFromForm}
+                                >
+                                  {projectRulesSaving ? t("saving") : t("save")}
+                                </button>
+                              )}
+                            </div>
+                            {projectRulesMessage && (
+                              <p
+                                className={`text-sm ${projectRulesMessage.type === "success" ? "text-success" : "text-error"}`}
+                              >
+                                {projectRulesMessage.text}
+                              </p>
                             )}
                           </div>
-                          {s.type === "boolean" && (
-                            <input
-                              type="checkbox"
-                              className="toggle toggle-sm"
-                              checked={val as boolean}
-                              onChange={(e) => onSettingsChange?.({ [s.key]: e.target.checked })}
-                            />
-                          )}
-                          {s.type === "number" && (
-                            <input
-                              type="number"
-                              className="input input-bordered bg-neutral-900 border-neutral-600 text-white w-full"
-                              value={val != null ? String(val) : ""}
-                              onChange={(e) =>
-                                onSettingsChange?.({ [s.key]: e.target.value ? Number(e.target.value) : s.default })
-                              }
-                            />
-                          )}
-                          {s.type === "string" && (
-                            <input
-                              type="text"
-                              className="input input-bordered bg-neutral-900 border-neutral-600 text-white w-full"
-                              value={val != null ? String(val) : ""}
-                              onChange={(e) => onSettingsChange?.({ [s.key]: e.target.value })}
-                            />
-                          )}
-                          {s.type === "select" && (
-                            <select
-                              className="select select-bordered bg-neutral-900 border-neutral-600 text-white w-full"
-                              value={val != null ? String(val) : ""}
-                              onChange={(e) => onSettingsChange?.({ [s.key]: e.target.value })}
-                            >
-                              {s.options?.map((o) => (
-                                <option key={o.value} value={o.value}>
-                                  {getSelectOptionLabel(s, o)}
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
-                      );
-                    })}
+                        )}
+                        {projectRulesSubTab === "script" && (
+                          <>
+                            {projectRulesLoading ? (
+                              <div className="flex items-center gap-2 text-neutral-400">
+                                <span className="loading loading-spinner loading-sm" />
+                                <span>{t("loading")}</span>
+                              </div>
+                            ) : (
+                              <>
+                                <textarea
+                                  className="textarea w-full font-mono text-sm min-h-[280px] bg-neutral-900 border-neutral-600 text-white resize-y"
+                                  value={projectRulesRaw}
+                                  onChange={(e) => {
+                                    setProjectRulesRaw(e.target.value);
+                                    setProjectRulesMessage(null);
+                                  }}
+                                  placeholder={t("projectRulesScriptPlaceholder")}
+                                  spellCheck={false}
+                                />
+                                {projectRulesMessage && (
+                                  <p
+                                    className={`mt-2 text-sm ${projectRulesMessage.type === "success" ? "text-success" : "text-error"}`}
+                                  >
+                                    {projectRulesMessage.text}
+                                  </p>
+                                )}
+                                <button
+                                  type="button"
+                                  className="btn btn-primary btn-sm mt-3"
+                                  disabled={projectRulesSaving}
+                                  onClick={saveProjectRules}
+                                >
+                                  {projectRulesSaving ? t("saving") : t("save")}
+                                </button>
+                              </>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        {def.settings
+                          .filter((s) => !(s.type === "boolean" && s.key === "enabled"))
+                          .map((s) => {
+                            const val = checkSettings?.[s.key] ?? s.default;
+                            return (
+                              <div key={s.key}>
+                                <div className="flex items-center gap-1 flex-wrap mb-1">
+                                  <label className="text-sm text-neutral-300 block">{getSettingLabel(s)}</label>
+                                  {getSettingTooltip(s) && (
+                                    <span className="tooltip tooltip-right" data-tip={getSettingTooltip(s)}>
+                                      <button
+                                        type="button"
+                                        className="btn btn-ghost btn-xs btn-circle text-white/50 hover:text-white/80"
+                                        aria-label={t("info")}
+                                      >
+                                        <svg
+                                          className="w-3.5 h-3.5"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth={2}
+                                        >
+                                          <circle cx="12" cy="12" r="10" />
+                                          <path d="M12 16v-4M12 8h.01" />
+                                        </svg>
+                                      </button>
+                                    </span>
+                                  )}
+                                </div>
+                                {s.type === "boolean" && (
+                                  <input
+                                    type="checkbox"
+                                    className="toggle toggle-sm"
+                                    checked={val as boolean}
+                                    onChange={(e) => onSettingsChange?.({ [s.key]: e.target.checked })}
+                                  />
+                                )}
+                                {s.type === "number" && (
+                                  <input
+                                    type="number"
+                                    className="input input-bordered bg-neutral-900 border-neutral-600 text-white w-full"
+                                    value={val != null ? String(val) : ""}
+                                    onChange={(e) =>
+                                      onSettingsChange?.({ [s.key]: e.target.value ? Number(e.target.value) : s.default })
+                                    }
+                                  />
+                                )}
+                                {s.type === "string" && (
+                                  <input
+                                    type="text"
+                                    className="input input-bordered bg-neutral-900 border-neutral-600 text-white w-full"
+                                    value={val != null ? String(val) : ""}
+                                    onChange={(e) => onSettingsChange?.({ [s.key]: e.target.value })}
+                                  />
+                                )}
+                                {s.type === "select" && (
+                                  <select
+                                    className="select select-bordered bg-neutral-900 border-neutral-600 text-white w-full"
+                                    value={val != null ? String(val) : ""}
+                                    onChange={(e) => onSettingsChange?.({ [s.key]: e.target.value })}
+                                  >
+                                    {s.options?.map((o) => (
+                                      <option key={o.value} value={o.value}>
+                                        {getSelectOptionLabel(s, o)}
+                                      </option>
+                                    ))}
+                                  </select>
+                                )}
+                              </div>
+                            );
+                          })}
+                        {def.settings.filter((s) => !(s.type === "boolean" && s.key === "enabled")).length === 0 && (
+                          <p className="text-neutral-500 text-sm">{t("settingsNoExtra")}</p>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
                 {tab === "logs" && (

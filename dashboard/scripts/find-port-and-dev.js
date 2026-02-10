@@ -1,18 +1,97 @@
 #!/usr/bin/env node
 /**
- * Starts Next dev: uses .shimwrappercheck-ui.json (portAuto/port) if present,
- * otherwise finds first free port from 3000 upward.
+ * Starts Next dev: uses .shimwrappercheck-ui.json (portAuto/port) if present.
+ * Finds first free port from startPort. Writes .shimwrappercheck-dashboard.lock with port.
+ * If lock exists and that port responds on /api/info → "Dashboard already running at URL".
+ * Use --restart to kill the existing process and start a new one.
  */
 const path = require("path");
 const fs = require("fs");
-const { spawn } = require("child_process");
+const { spawn, execSync } = require("child_process");
 const net = require("net");
+const http = require("http");
+
+const LOCK_FILE = ".shimwrappercheck-dashboard.lock";
 
 function getProjectRoot() {
   const cwd = process.cwd();
   const name = path.basename(cwd);
   if (name === "dashboard") return path.resolve(cwd, "..");
   return cwd;
+}
+
+function getLockPath() {
+  return path.join(getProjectRoot(), LOCK_FILE);
+}
+
+function readLock() {
+  try {
+    const p = getLockPath();
+    if (fs.existsSync(p)) {
+      const data = JSON.parse(fs.readFileSync(p, "utf8"));
+      if (typeof data.port === "number" && data.port > 0) return data.port;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function writeLock(port) {
+  try {
+    fs.writeFileSync(getLockPath(), JSON.stringify({ port }) + "\n", "utf8");
+  } catch {
+    // ignore
+  }
+}
+
+function removeLock() {
+  try {
+    const p = getLockPath();
+    if (fs.existsSync(p)) fs.unlinkSync(p);
+  } catch {
+    // ignore
+  }
+}
+
+function isDashboardRunning(port) {
+  return new Promise((resolve) => {
+    const req = http.get(
+      `http://127.0.0.1:${port}/api/info`,
+      { timeout: 2000 },
+      (res) => {
+        let body = "";
+        res.on("data", (chunk) => (body += chunk));
+        res.on("end", () => {
+          try {
+            const data = JSON.parse(body);
+            resolve(typeof data.version === "string");
+          } catch {
+            resolve(false);
+          }
+        });
+      }
+    );
+    req.on("error", () => resolve(false));
+    req.on("timeout", () => {
+      req.destroy();
+      resolve(false);
+    });
+  });
+}
+
+function killProcessOnPort(port) {
+  try {
+    if (process.platform === "win32") return false;
+    const pid = execSync(`lsof -ti :${port}`, { encoding: "utf8" }).trim();
+    if (pid) {
+      execSync(`kill ${pid}`, { stdio: "ignore" });
+      return true;
+    }
+  } catch {
+    // no process or lsof/kill failed (e.g. Windows)
+  }
+  return false;
 }
 
 function readUiConfig() {
@@ -32,6 +111,7 @@ function readUiConfig() {
   return { portAuto: true, port: 3000 };
 }
 
+const wantRestart = process.argv.includes("--restart");
 const uiConfig = readUiConfig();
 const startPort = parseInt(process.env.PORT || String(uiConfig.port || 3000), 10);
 
@@ -46,20 +126,47 @@ function tryPort(port, cb) {
 
 function runDev(port) {
   const url = `http://localhost:${port}`;
-  // Dev script: show URL for user (no shell to avoid DEP0190 and proper arg escaping)
   process.stdout.write(`Dashboard: ${url}\n`);
   const cwd = path.join(__dirname, "..");
   const nextBin = path.join(cwd, "node_modules", "next", "dist", "bin", "next");
+  writeLock(port);
   const child = spawn(process.execPath, [nextBin, "dev", "-p", String(port)], {
     cwd,
     stdio: "inherit",
     env: { ...process.env, PORT: String(port) },
   });
-  child.on("exit", (code) => process.exit(code || 0));
+  child.on("exit", (code) => {
+    removeLock();
+    process.exit(code || 0);
+  });
 }
 
-if (uiConfig.portAuto) {
-  tryPort(startPort, runDev);
-} else {
-  runDev(startPort);
+async function main() {
+  const lockedPort = readLock();
+  if (lockedPort != null) {
+    const running = await isDashboardRunning(lockedPort);
+    if (running) {
+      const url = `http://localhost:${lockedPort}`;
+      if (wantRestart) {
+        killProcessOnPort(lockedPort);
+        removeLock();
+        process.stdout.write(`Stopped dashboard on port ${lockedPort}. Starting new instance...\n`);
+        await new Promise((r) => setTimeout(r, 500));
+      } else {
+        process.stdout.write(`Dashboard already running: ${url}\n`);
+        process.stdout.write(`To restart, run: npm run dashboard -- --restart\n`);
+        process.exit(0);
+      }
+    } else {
+      removeLock();
+    }
+  }
+
+  if (uiConfig.portAuto) {
+    tryPort(startPort, runDev);
+  } else {
+    runDev(startPort);
+  }
 }
+
+main();

@@ -11,7 +11,8 @@ It can be edited via the dashboard (Config → AGENTS.md) so agents and humans s
 
 - Use `npx supabase ...` or `npm run supabase:checked -- ...` so checks run before deploy.
 - Use `npx git push` or `npm run git:checked -- push` so checks run before push.
-- Run `npx shimwrappercheck init` for setup; `npx shimwrappercheck install` for PATH shims.
+- Run `npx shimwrappercheck init` for setup; `npx shimwrappercheck install` for PATH shims (installed shims call `shimwrappercheck@latest` so they stay current).
+- **Check-Tools (Variante B):** Tools (ESLint, Prettier, TypeScript, Vitest, Vite) können **projektlos** in `.shimwrapper/checktools/` liegen. Beim `init` optional anlegen; danach `npx shimwrappercheck install-tools` (oder `npm install` in `.shimwrapper/checktools`). `run-checks.sh` nutzt diese Binaries, wenn vorhanden; sonst Projekt-`node_modules`/npm-Skripte. So bleiben Checks pro Projekt getrennt.
 
 ## Dashboard
 

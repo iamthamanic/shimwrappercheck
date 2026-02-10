@@ -17,6 +17,22 @@
     "settingsLabel": "Einstellungen",
     "logs": "Logs",
     "noLogYet": "Noch kein Log für diesen Check. Checks ausführen, um Ausgabe zu sehen.",
+    "settingsNoExtra": "Keine weiteren Einstellungen. Der Check wird nur über „Aktiv“ (in My Checks) ein- oder ausgeschaltet.",
+    "projectRulesTab": "Regeln",
+    "projectRulesForm": "Formular",
+    "projectRulesScript": "Skript",
+    "projectRulesScriptPlaceholder": "Skript bearbeiten (wird als scripts/checks/project-rules.sh gespeichert). Exit 0 = bestanden.",
+    "projectRulesFormPlaceholder": "Regeln per Formular (z. B. verbotene Imports) kommen in einer späteren Version. Nutze die Skript-Ansicht.",
+    "projectRulesSaved": "Skript gespeichert.",
+    "projectRulesAddRule": "Regel hinzufügen",
+    "projectRulesRuleTypeForbiddenPattern": "Verbotenes Muster",
+    "projectRulesRuleTypeMaxLines": "Max. Zeilen pro Datei",
+    "projectRulesPatternLabel": "Muster (z. B. ../ oder from '@/../')",
+    "projectRulesPatternPlaceholder": "z. B. ../",
+    "projectRulesMaxLinesLabel": "Max. Zeilen",
+    "projectRulesMaxLinesPlaceholder": "300",
+    "projectRulesRuleTypeLabel": "Regeltyp",
+    "projectRulesFormEmptyHint": "Noch keine Regeln. Klicke auf „Regel hinzufügen“, dann Speichern.",
     "active": "Aktiv",
     "inactive": "Inaktiv",
     "copy": "Kopieren",
@@ -87,7 +103,11 @@
     "title": "Meine Trigger-Commandos"
   },
   "checkLibrary": {
-    "title": "Check-Bibliothek"
+    "title": "Check-Bibliothek",
+    "scanCodebase": "Suggest Checks",
+    "scanCodebaseScanning": "Scanne…",
+    "scanError": "Scan fehlgeschlagen. Bitte erneut versuchen.",
+    "clickToDismiss": "Klicken zum Schließen"
   },
   "myChecks": {
     "title": "Meine Checks"
@@ -287,19 +307,19 @@
       "info": "Kontext: Das Tool license-checker listet Lizenzen aller Dependencies. Lösung: npx license-checker wird mit konfigurierbaren erlaubten/verbotenen Lizenzen ausgeführt. Bestanden: Keine verbotenen Lizenzen. Nicht bestanden: Mindestens eine verbotene Lizenz. Über .licensecheckerrc oder CLI-Optionen konfigurierbar."
     },
     "architecture": {
-      "label": "Architecture",
-      "summary": "Prüft Einhaltung von Architekturregeln (derzeit nur als Option vorgesehen).",
-      "info": "Kontext: Architekturregeln (z. B. keine verbotenen Abhängigkeiten, Schichtenordnung) halten die Codebase strukturiert. Lösung: Dieser Check ist in der Konfiguration vorhanden, wird im Standard-run-checks.sh aber noch nicht ausgeführt. Aktivieren speichert nur die Einstellung; die Prüfung muss im Projekt umgesetzt werden (z. B. mit dependency-cruiser)."
+      "label": "dependency-cruiser",
+      "summary": "Prüft Abhängigkeitsgraph und Architekturregeln (z. B. keine verbotenen Zyklen).",
+      "info": "Kontext: dependency-cruiser prüft den Modul-Graphen gegen Regeln in .dependency-cruiser.json. Lösung: npx depcruise src (oder dashboard) --output-type err. Bestanden: Keine Verstöße. Nicht bestanden: Zirkuläre oder verbotene Abhängigkeiten. Config aus templates/ oder Projekt anlegen."
     },
     "complexity": {
       "label": "Complexity",
-      "summary": "Warnt vor zu komplexem Code (derzeit nur als Option vorgesehen).",
-      "info": "Kontext: Sehr verschachtelter oder langer Code ist fehleranfällig und schwer wartbar. Lösung: Dieser Check ist in der Konfiguration vorhanden, wird im Standard-run-checks.sh aber noch nicht ausgeführt. Aktivieren speichert nur die Einstellung; die Prüfung muss im Projekt umgesetzt werden (z. B. mit eslint-plugin-complexity)."
+      "summary": "Warnt vor zu hoher zyklomatischer Komplexität pro Funktion.",
+      "info": "Kontext: eslint-plugin-complexity begrenzt Komplexität (z. B. max 10 pro Funktion). Lösung: ESLint wird mit eslint.complexity.json ausgeführt (Projekt oder templates/). Bestanden: Keine Verstöße. Nicht bestanden: Funktionen über dem Schwellwert. Projekt braucht eslint-plugin-complexity und Config."
     },
     "mutation": {
-      "label": "Mutation",
-      "summary": "Prüft, ob Tests echte Fehler finden (derzeit nur als Option vorgesehen).",
-      "info": "Kontext: Mutationstests ändern den Code minimal; wenn die Tests trotzdem grün bleiben, decken sie den geänderten Teil möglicherweise nicht ab. Lösung: Dieser Check ist in der Konfiguration vorhanden, wird im Standard-run-checks.sh aber noch nicht ausgeführt. Aktivieren speichert nur die Einstellung; die Prüfung muss im Projekt umgesetzt werden (z. B. mit Stryker)."
+      "label": "Stryker",
+      "summary": "Mutationstests: Prüft, ob Tests echte Fehler finden (Mutanten killen).",
+      "info": "Kontext: Stryker verändert Code minimal; bleiben Tests grün, decken sie den Code ggf. nicht ab. Lösung: npx stryker run mit stryker.config.json. Bestanden: Mutations-Score über Schwellwert (z. B. 80 %). Nicht bestanden: Score darunter. Config aus templates/ oder Projekt."
     },
     "e2e": {
       "label": "E2E",

@@ -6,7 +6,7 @@
  */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
@@ -36,6 +36,9 @@ function DraggableLibraryCard({
   onToggle,
   toolStatus,
   logSegment,
+  suggestedReason,
+  onDismissSuggestion,
+  dismissSuggestionLabel,
 }: {
   def: CheckDef;
   dragHandleTitle: string;
@@ -44,6 +47,9 @@ function DraggableLibraryCard({
   onToggle: (v: boolean) => void;
   toolStatus?: ToolStatus;
   logSegment?: string;
+  suggestedReason?: string;
+  onDismissSuggestion?: () => void;
+  dismissSuggestionLabel?: string;
 }) {
   const dragData: CheckDragData = {
     orderIndex: null,
@@ -60,10 +66,31 @@ function DraggableLibraryCard({
     <li
       ref={setNodeRef}
       style={style}
-      className={`list-none ${isDragging ? "opacity-0 pointer-events-none" : ""}`}
+      className={`list-none relative ${isDragging ? "opacity-0 pointer-events-none" : ""}`}
       data-check-card
     >
-      <CheckCard
+      <div className="relative">
+        {suggestedReason && (
+          <span
+            className="absolute top-2 right-2 z-10 max-w-[min(85%,12rem)] rounded-md bg-violet-600/95 text-white text-xs px-2 py-1 shadow-lg border border-violet-400/50"
+            title={suggestedReason}
+          >
+            <span className="line-clamp-2 block pr-5">{suggestedReason}</span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDismissSuggestion?.();
+              }}
+              className="absolute top-0.5 right-0.5 w-4 h-4 flex items-center justify-center rounded hover:bg-violet-500/80 text-white/90"
+              aria-label={dismissSuggestionLabel}
+            >
+              ×
+            </button>
+          </span>
+        )}
+        <CheckCard
         def={def}
         enabled={false}
         onToggle={onToggle}
@@ -86,6 +113,7 @@ function DraggableLibraryCard({
         toolStatus={toolStatus}
         logSegment={logSegment}
       />
+      </div>
     </li>
   );
 }
@@ -108,6 +136,13 @@ export default function AvailableChecks({
   const [filterAll, setFilterAll] = useState(true);
   const [filter, setFilter] = useState<FilterState>({ frontend: false, backend: false, enforce: false, hooks: false });
   const [toolStatusMap, setToolStatusMap] = useState<Record<string, ToolStatus>>({});
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [suggestedReasons, setSuggestedReasons] = useState<Record<string, string> | null>(null);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const scanAbortRef = useRef<AbortController | null>(null);
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: CHECK_LIBRARY_DROPPABLE_ID });
   const dropHighlight = isOver;
@@ -117,6 +152,16 @@ export default function AvailableChecks({
       .then((r) => r.json())
       .then((data) => setToolStatusMap(data.tools ?? {}))
       .catch(() => setToolStatusMap({}));
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      scanAbortRef.current?.abort();
+    };
   }, []);
 
   const order = settings?.checkOrder ?? [];
@@ -169,6 +214,68 @@ export default function AvailableChecks({
     }
   };
 
+  const handleScanCodebase = () => {
+    if (isScanning) return;
+    setIsScanning(true);
+    setScanError(null);
+    setShowConfetti(false);
+    setScanProgress(0);
+    progressIntervalRef.current = setInterval(() => {
+      setScanProgress((p) => Math.min(p + 5, 90));
+    }, 200);
+
+    const abort = new AbortController();
+    scanAbortRef.current = abort;
+    const timeoutId = setTimeout(() => abort.abort(), 8000);
+
+    fetch("/api/scan-codebase", { signal: abort.signal })
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error((data as { error?: string }).error || "Scan failed");
+        return data;
+      })
+      .then((data) => {
+        const err = (data as { error?: string }).error;
+        if (err) {
+          setScanError(err);
+          return;
+        }
+        const recs = ((data as { recommendations?: Record<string, string> }).recommendations) ?? {};
+        setSuggestedReasons(recs);
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 1000);
+      })
+      .catch((err) => setScanError(err instanceof Error ? err.message : tCheckLib("scanError")))
+      .finally(() => {
+        scanAbortRef.current = null;
+        clearTimeout(timeoutId);
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+        setScanProgress(100);
+        setTimeout(() => {
+          setIsScanning(false);
+          setScanProgress(0);
+        }, 350);
+      });
+  };
+
+  const dismissSuggestion = (id: string) => {
+    setSuggestedReasons((prev) => {
+      if (!prev) return null;
+      const next = { ...prev };
+      delete next[id];
+      return Object.keys(next).length ? next : null;
+    });
+  };
+
+  useEffect(() => {
+    if (!scanError) return;
+    const t = setTimeout(() => setScanError(null), 4000);
+    return () => clearTimeout(t);
+  }, [scanError]);
+
   return (
     <div
       ref={setDropRef}
@@ -199,6 +306,46 @@ export default function AvailableChecks({
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
             />
           </svg>
+        </div>
+      </div>
+      <div className="shrink-0 py-2 flex justify-end items-center gap-3 flex-wrap">
+        {scanError && <span className="text-sm text-red-400">{scanError}</span>}
+        <div className="relative inline-block overflow-visible">
+          {showConfetti &&
+            [...Array(8)].map((_, i) => {
+              const deg = (i * 360) / 8;
+              const r = 18;
+              const x = r * Math.cos((deg * Math.PI) / 180);
+              const y = r * Math.sin((deg * Math.PI) / 180);
+              return (
+                <span
+                  key={i}
+                  className="absolute left-1/2 top-1/2 w-1 h-1 rounded-full bg-violet-400/70 pointer-events-none"
+                  style={
+                    {
+                      "--tx": `${x}px`,
+                      "--ty": `${y}px`,
+                      animation: "scan-confetti-out 0.75s ease-out forwards",
+                    } as React.CSSProperties
+                  }
+                />
+              );
+            })}
+          <button
+            type="button"
+            onClick={handleScanCodebase}
+            disabled={isScanning}
+            className="btn btn-sm !bg-violet-600 !border-violet-600 text-white hover:!bg-violet-500 hover:!border-violet-500 disabled:!bg-violet-600 disabled:!border-violet-600 disabled:opacity-90 flex items-center gap-2"
+          >
+            {isScanning ? (
+              <>
+                <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin shrink-0" />
+                <span>{tCheckLib("scanCodebaseScanning")} {scanProgress}%</span>
+              </>
+            ) : (
+              tCheckLib("scanCodebase")
+            )}
+          </button>
         </div>
       </div>
       <div className="flex flex-wrap gap-4 items-center shrink-0 py-3">
@@ -272,6 +419,9 @@ export default function AvailableChecks({
                 onToggle={(v) => handleToggle(def.id, v)}
                 toolStatus={toolStatusMap[def.id]}
                 logSegment={runChecksSegments[def.id]}
+                suggestedReason={suggestedReasons?.[def.id]}
+                onDismissSuggestion={() => dismissSuggestion(def.id)}
+                dismissSuggestionLabel={tCheckLib("clickToDismiss")}
               />
             ))}
           </ul>

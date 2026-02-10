@@ -1,0 +1,12 @@
+{
+  "name": "shimwrapper-checktools",
+  "description": "Project-local check tools for shimwrappercheck (lint, format, typecheck, test, build). Install with: npm install",
+  "private": true,
+  "devDependencies": {
+    "eslint": "^9",
+    "prettier": "^3",
+    "typescript": "^5",
+    "vitest": "^2",
+    "vite": "^6"
+  }
+}

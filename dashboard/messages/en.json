@@ -17,6 +17,22 @@
     "settingsLabel": "Settings",
     "logs": "Logs",
     "noLogYet": "No log for this check yet. Run checks to see output.",
+    "settingsNoExtra": "No extra settings. This check is only toggled via „Active“ in My Checks.",
+    "projectRulesTab": "Rules",
+    "projectRulesForm": "Form",
+    "projectRulesScript": "Script",
+    "projectRulesScriptPlaceholder": "Edit script (saved as scripts/checks/project-rules.sh). Exit 0 = pass.",
+    "projectRulesFormPlaceholder": "Form-based rules (e.g. forbidden imports) coming in a later version. Use the Script view.",
+    "projectRulesSaved": "Script saved.",
+    "projectRulesAddRule": "Add rule",
+    "projectRulesRuleTypeForbiddenPattern": "Forbidden pattern",
+    "projectRulesRuleTypeMaxLines": "Max lines per file",
+    "projectRulesPatternLabel": "Pattern (e.g. ../ or from '@/../')",
+    "projectRulesPatternPlaceholder": "e.g. ../",
+    "projectRulesMaxLinesLabel": "Max lines",
+    "projectRulesMaxLinesPlaceholder": "300",
+    "projectRulesRuleTypeLabel": "Rule type",
+    "projectRulesFormEmptyHint": "No rules yet. Click „Add rule“, then Save.",
     "active": "Active",
     "inactive": "Inactive",
     "copy": "Copy",
@@ -87,7 +103,11 @@
     "title": "My Trigger Commandos"
   },
   "checkLibrary": {
-    "title": "Check Library"
+    "title": "Check Library",
+    "scanCodebase": "Suggest Checks",
+    "scanCodebaseScanning": "Scanning…",
+    "scanError": "Scan failed. Try again.",
+    "clickToDismiss": "Click to dismiss"
   },
   "myChecks": {
     "title": "My Checks"
@@ -287,19 +307,19 @@
       "info": "Context: The license-checker tool lists licenses of all dependencies. Solution: npx license-checker is run with configurable allowed/disallowed licenses. Pass: No disallowed licenses. Fail: At least one disallowed license. Configurable via .licensecheckerrc or CLI options."
     },
     "architecture": {
-      "label": "Architecture",
-      "summary": "Checks that architecture rules are followed (currently only available as an option).",
-      "info": "Context: Architecture rules (e.g. no forbidden dependencies, layer order) keep the codebase structured. Solution: This check exists in config but is not run by the default run-checks.sh. Enabling it only stores the preference; the check must be implemented in the project (e.g. with dependency-cruiser)."
+      "label": "dependency-cruiser",
+      "summary": "Checks dependency graph and architecture rules (e.g. no forbidden cycles).",
+      "info": "Context: dependency-cruiser validates the module graph against rules in .dependency-cruiser.json. Solution: npx depcruise src (or dashboard) --output-type err. Pass: No violations. Fail: Circular or forbidden dependencies. Add config from templates/ or project."
     },
     "complexity": {
       "label": "Complexity",
-      "summary": "Warns about overly complex code (currently only available as an option).",
-      "info": "Context: Very nested or long code is error-prone and hard to maintain. Solution: This check exists in config but is not run by the default run-checks.sh. Enabling it only stores the preference; the check must be implemented in the project (e.g. with eslint-plugin-complexity)."
+      "summary": "Warns about excessive cyclomatic complexity per function.",
+      "info": "Context: eslint-plugin-complexity enforces a complexity limit (e.g. max 10 per function). Solution: ESLint is run with eslint.complexity.json (project or templates/). Pass: No violations. Fail: Functions over the threshold. Project needs eslint-plugin-complexity and config."
     },
     "mutation": {
-      "label": "Mutation",
-      "summary": "Checks whether tests actually catch bugs (currently only available as an option).",
-      "info": "Context: Mutation tests change code slightly; if tests still pass, they may not cover the changed part. Solution: This check exists in config but is not run by the default run-checks.sh. Enabling it only stores the preference; the check must be implemented in the project (e.g. with Stryker)."
+      "label": "Stryker",
+      "summary": "Mutation testing: checks whether tests actually catch bugs (kill mutants).",
+      "info": "Context: Stryker mutates code slightly; if tests still pass, they may not cover the change. Solution: npx stryker run with stryker.config.json. Pass: Mutation score above threshold (e.g. 80%). Fail: Score below. Add config from templates/ or project."
     },
     "e2e": {
       "label": "E2E",

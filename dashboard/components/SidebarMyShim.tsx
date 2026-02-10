@@ -36,6 +36,13 @@ export default function SidebarMyShim() {
       .then((data) => {
         if (data && Array.isArray(data.presets) && data.checkToggles && typeof data.activePresetId === "string") {
           setSettings(data as SettingsData);
+          if (data.presetsLastUpdated) {
+            const t = new Date(data.presetsLastUpdated);
+            if (!isNaN(t.getTime())) {
+              setTriggerCommandosLastUpdated(t);
+              setMyChecksLastUpdated(t);
+            }
+          }
         } else {
           setSettings(null);
         }

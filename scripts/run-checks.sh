@@ -19,6 +19,13 @@ if [[ -f "$ROOT_DIR/.shimwrappercheckrc" ]]; then
   set +a
 fi
 
+# Project root for .shimwrapper/checktools (consumer project when script runs from node_modules)
+PROJECT_ROOT="${SHIM_PROJECT_ROOT:-$ROOT_DIR}"
+CHECKTOOLS_BIN=""
+if [[ -d "$PROJECT_ROOT/.shimwrapper/checktools/node_modules/.bin" ]]; then
+  CHECKTOOLS_BIN="$PROJECT_ROOT/.shimwrapper/checktools/node_modules/.bin"
+fi
+
 run_frontend=false
 run_backend=false
 run_ai_review=true
@@ -27,6 +34,9 @@ run_i18n_check=true
 run_sast=true
 run_gitleaks=true
 run_license_checker=true
+run_architecture=true
+run_complexity=true
+run_mutation=true
 
 if [[ $# -eq 0 ]]; then
   run_frontend=true
@@ -44,7 +54,10 @@ else
       --no-sast) run_sast=false ;;
       --no-gitleaks) run_gitleaks=false ;;
       --no-license-checker) run_license_checker=false ;;
-      *) echo "Unknown option: $arg. Use --frontend, --backend, --no-frontend, --no-backend, --no-ai-review, --no-explanation-check, --no-i18n-check, --no-sast, --no-gitleaks, --no-license-checker." >&2; exit 1 ;;
+      --no-architecture) run_architecture=false ;;
+      --no-complexity) run_complexity=false ;;
+      --no-mutation) run_mutation=false ;;
+      *) echo "Unknown option: $arg. Use --frontend, --backend, --no-frontend, --no-backend, --no-ai-review, --no-explanation-check, --no-i18n-check, --no-sast, --no-gitleaks, --no-license-checker, --no-architecture, --no-complexity, --no-mutation." >&2; exit 1 ;;
     esac
   done
 fi
@@ -73,22 +86,33 @@ run_i18n_check_rc="${SHIM_RUN_I18N_CHECK:-1}"
 run_sast_rc="${SHIM_RUN_SAST:-0}"
 run_gitleaks_rc="${SHIM_RUN_GITLEAKS:-0}"
 run_license_checker_rc="${SHIM_RUN_LICENSE_CHECKER:-0}"
+run_architecture_rc="${SHIM_RUN_ARCHITECTURE:-0}"
+run_complexity_rc="${SHIM_RUN_COMPLEXITY:-0}"
+run_mutation_rc="${SHIM_RUN_MUTATION:-0}"
 
 # Wenn SHIM_CHECK_ORDER gesetzt ist: Checks genau in dieser Reihenfolge ausführen (wie in My Checks).
 run_one() {
   local id="$1"
   case "$id" in
     prettier) [[ "$run_prettier" = "1" ]] && { echo "Prettier...";
-      (npm run format:check 2>/dev/null) || npx prettier --check .; } ;;
-    lint) [[ "$run_lint" = "1" ]] && { echo "Lint..."; npm run lint; } ;;
+      if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/prettier" ]]; then "$CHECKTOOLS_BIN/prettier" --check .;
+      else (npm run format:check 2>/dev/null) || npx prettier --check .; fi; } ;;
+    lint) [[ "$run_lint" = "1" ]] && { echo "Lint...";
+      if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/eslint" ]]; then "$CHECKTOOLS_BIN/eslint" .;
+      else npm run lint; fi; } ;;
     typecheck) [[ "$run_typecheck" = "1" ]] && { echo "TypeScript check...";
-      (npm run typecheck 2>/dev/null) || npx tsc --noEmit; } ;;
+      if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/tsc" ]]; then "$CHECKTOOLS_BIN/tsc" --noEmit;
+      else (npm run typecheck 2>/dev/null) || npx tsc --noEmit; fi; } ;;
     projectRules) [[ "$run_project_rules" = "1" ]] && { echo "Projektregeln...";
       if [[ -f "$ROOT_DIR/scripts/checks/project-rules.sh" ]]; then bash "$ROOT_DIR/scripts/checks/project-rules.sh";
       else echo "Skipping Projektregeln: scripts/checks/project-rules.sh not found." >&2; fi; } ;;
     checkMockData) [[ "$run_check_mock_data" = "1" ]] && { echo "Check mock data..."; npm run check:mock-data; } ;;
-    testRun) [[ "$run_test_run" = "1" ]] && { echo "Test run..."; npm run build; npm run test:run; } ;;
-    viteBuild) [[ "$run_vite_build" = "1" ]] && { echo "Vite build..."; npm run build; } ;;
+    testRun) [[ "$run_test_run" = "1" ]] && { echo "Test run...";
+      if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/vite" ]] && [[ -x "$CHECKTOOLS_BIN/vitest" ]]; then "$CHECKTOOLS_BIN/vite" build && "$CHECKTOOLS_BIN/vitest" run;
+      else npm run build; npm run test:run; fi; } ;;
+    viteBuild) [[ "$run_vite_build" = "1" ]] && { echo "Vite build...";
+      if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/vite" ]]; then "$CHECKTOOLS_BIN/vite" build;
+      else npm run build; fi; } ;;
     npmAudit) [[ "$run_npm_audit" = "1" ]] && { echo "npm audit..."; npm audit --audit-level="${SHIM_AUDIT_LEVEL:-high}"; } ;;
     snyk) if [[ "$run_snyk" = "1" ]] && [[ -z "${SKIP_SNYK:-}" ]]; then
             if command -v snyk >/dev/null 2>&1; then echo "Snyk..."; snyk test;
@@ -115,6 +139,23 @@ run_one() {
             else echo "Skipping Gitleaks: not installed (e.g. brew install gitleaks)." >&2; fi; fi ;;
     licenseChecker) if [[ "$run_license_checker_rc" = "1" ]] && [[ "$run_license_checker" = true ]]; then
             echo "license-checker..."; npx license-checker --summary 2>/dev/null || true; fi ;;
+    architecture) if [[ "$run_architecture_rc" = "1" ]] && [[ "$run_architecture" = true ]]; then
+            if [[ -f "$ROOT_DIR/.dependency-cruiser.json" ]]; then
+              echo "Architecture (dependency-cruiser)...";
+              depcruise_entry="src"; [[ -d "$ROOT_DIR/dashboard" ]] && [[ ! -d "$ROOT_DIR/src" ]] && depcruise_entry="dashboard";
+              npx depcruise "$depcruise_entry" --output-type err;
+            else echo "Skipping Architecture: .dependency-cruiser.json not found." >&2; fi; fi ;;
+    complexity) if [[ "$run_complexity_rc" = "1" ]] && [[ "$run_complexity" = true ]]; then
+            echo "Complexity (eslint-plugin-complexity)...";
+            if [[ -f "$ROOT_DIR/eslint.complexity.json" ]]; then
+              npx eslint . -c "$ROOT_DIR/eslint.complexity.json";
+            elif [[ -f "$ROOT_DIR/node_modules/shimwrappercheck/templates/eslint.complexity.json" ]]; then
+              npx eslint . -c "$ROOT_DIR/node_modules/shimwrappercheck/templates/eslint.complexity.json";
+            else echo "Skipping Complexity: add eslint.complexity.json or install shimwrappercheck and eslint-plugin-complexity." >&2; fi; fi ;;
+    mutation) if [[ "$run_mutation_rc" = "1" ]] && [[ "$run_mutation" = true ]]; then
+            if [[ -f "$ROOT_DIR/stryker.config.json" ]]; then
+              echo "Mutation (Stryker)..."; npx stryker run;
+            else echo "Skipping Mutation: stryker.config.json not found." >&2; fi; fi ;;
     *) echo "Unknown check id: $id" >&2 ;;
   esac
 }
@@ -133,9 +174,9 @@ else
       elif [[ -f "$ROOT_DIR/scripts/update-readme.js" ]]; then node "$ROOT_DIR/scripts/update-readme.js";
       else echo "Skipping Update README: no scripts/update-readme.js (use shimwrappercheck script or add own)." >&2; fi
     fi
-    [[ "$run_prettier" = "1" ]] && { echo "Prettier..."; (npm run format:check 2>/dev/null) || npx prettier --check .; }
-    [[ "$run_lint" = "1" ]] && { echo "Lint..."; npm run lint; }
-    [[ "$run_typecheck" = "1" ]] && { echo "TypeScript check..."; (npm run typecheck 2>/dev/null) || npx tsc --noEmit; }
+    [[ "$run_prettier" = "1" ]] && { echo "Prettier..."; if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/prettier" ]]; then "$CHECKTOOLS_BIN/prettier" --check .; else (npm run format:check 2>/dev/null) || npx prettier --check .; fi; }
+    [[ "$run_lint" = "1" ]] && { echo "Lint..."; if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/eslint" ]]; then "$CHECKTOOLS_BIN/eslint" .; else npm run lint; fi; }
+    [[ "$run_typecheck" = "1" ]] && { echo "TypeScript check..."; if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/tsc" ]]; then "$CHECKTOOLS_BIN/tsc" --noEmit; else (npm run typecheck 2>/dev/null) || npx tsc --noEmit; fi; }
     if     [[ "$run_project_rules" = "1" ]] && [[ -f "$ROOT_DIR/scripts/checks/project-rules.sh" ]]; then
       echo "Projektregeln..."; bash "$ROOT_DIR/scripts/checks/project-rules.sh";
     fi
@@ -145,10 +186,19 @@ else
     fi
     [[ "$run_check_mock_data" = "1" ]] && { echo "Check mock data..."; npm run check:mock-data; }
     if [[ "$run_vite_build" = "1" ]] || [[ "$run_test_run" = "1" ]]; then
-      [[ "$run_vite_build" = "1" ]] && echo "Vite build..."
-      npm run build
+      if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/vite" ]]; then
+        [[ "$run_vite_build" = "1" ]] && { echo "Vite build..."; "$CHECKTOOLS_BIN/vite" build; }
+        if [[ "$run_test_run" = "1" ]]; then
+          echo "Test run..."
+          [[ "$run_vite_build" != "1" ]] && "$CHECKTOOLS_BIN/vite" build
+          if [[ -x "$CHECKTOOLS_BIN/vitest" ]]; then "$CHECKTOOLS_BIN/vitest" run; else npm run test:run; fi
+        fi
+      else
+        [[ "$run_vite_build" = "1" ]] && echo "Vite build..."
+        npm run build
+        [[ "$run_test_run" = "1" ]] && { echo "Test run..."; npm run test:run; }
+      fi
     fi
-    [[ "$run_test_run" = "1" ]] && { echo "Test run..."; npm run test:run; }
     if [[ "$run_npm_audit" = "1" ]]; then
       echo "Running frontend security (npm audit)..."
       npm audit --audit-level="${SHIM_AUDIT_LEVEL:-high}"

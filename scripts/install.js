@@ -251,7 +251,7 @@ function supabaseShim() {
     pathWithoutBin(),
     'REAL_BIN="$(PATH="$PATH_NO_BIN" command -v supabase || true)"',
     'if [[ -n "$REAL_BIN" ]]; then export SUPABASE_REAL_BIN="$REAL_BIN"; fi',
-    'exec npx --yes --package shimwrappercheck -- supabase "$@"',
+    'exec npx --yes shimwrappercheck@latest -- supabase "$@"',
     ''
   ].join('\n');
 }
@@ -262,7 +262,7 @@ function gitShim() {
     pathWithoutBin(),
     'REAL_BIN="$(PATH="$PATH_NO_BIN" command -v git || true)"',
     'if [[ -n "$REAL_BIN" ]]; then export SHIM_GIT_REAL_BIN="$REAL_BIN"; fi',
-    'exec npx --yes --package shimwrappercheck -- git "$@"',
+    'exec npx --yes shimwrappercheck@latest -- git "$@"',
     ''
   ].join('\n');
 }
@@ -270,7 +270,7 @@ function gitShim() {
 function genericShim() {
   return [
     shimHeader(),
-    'exec npx --yes --package shimwrappercheck -- shim "$@"',
+    'exec npx --yes shimwrappercheck@latest -- shim "$@"',
     ''
   ].join('\n');
 }

@@ -264,6 +264,34 @@ async function main() {
     }
   }
 
+  const createChecktools = await askYesNo(
+    'Check-Tools Ordner anlegen (.shimwrapper/checktools/) – Tools pro Projekt, getrennt vom Repo?',
+    false
+  );
+  if (createChecktools) {
+    const checktoolsDir = path.join(projectRoot, '.shimwrapper', 'checktools');
+    const checktoolsPkg = path.join(checktoolsDir, 'package.json');
+    if (!exists(checktoolsPkg)) {
+      ensureDir(checktoolsDir);
+      const tpl = path.join(templatesDir, 'checktools-package.json');
+      if (exists(tpl)) {
+        fs.copyFileSync(tpl, checktoolsPkg);
+        console.log('  angelegt: .shimwrapper/checktools/package.json');
+      } else {
+        const defaultPkg = {
+          name: 'shimwrapper-checktools',
+          private: true,
+          devDependencies: { eslint: '^9', prettier: '^3', typescript: '^5', vitest: '^2', vite: '^6' },
+        };
+        fs.writeFileSync(checktoolsPkg, JSON.stringify(defaultPkg, null, 2) + '\n');
+        console.log('  angelegt: .shimwrapper/checktools/package.json');
+      }
+      console.log('  Danach: npx shimwrappercheck install-tools (oder npm install in .shimwrapper/checktools)');
+    } else {
+      console.log('  .shimwrapper/checktools/package.json existiert bereits.');
+    }
+  }
+
   if (hasGit) {
     let hookInstalled = false;
     if (hasHusky) {
