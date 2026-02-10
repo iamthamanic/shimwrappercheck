@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(git rev-parse --show-toplevel)"
 
 if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
   RANGE="@{u}...HEAD"
@@ -23,6 +23,8 @@ run_backend=false
 
 printf "%s\n" "$CHANGED_FILES" | grep -q '^src/' && run_frontend=true
 printf "%s\n" "$CHANGED_FILES" | grep -q '^supabase/functions/' && run_backend=true
+# dashboard/scripts/templates (e.g. shimwrappercheck repo or monorepos)
+printf "%s\n" "$CHANGED_FILES" | grep -qE '^dashboard/|^scripts/|^templates/' && run_frontend=true
 
 if [[ "$run_frontend" = false ]] && [[ "$run_backend" = false ]]; then
   exit 0
