@@ -47,6 +47,7 @@ export default function CheckCard({
   orderBadgeHighlight,
   toolStatus,
   logSegment,
+  isRunningCheck,
 }: {
   def: CheckDef;
   enabled: boolean;
@@ -73,6 +74,8 @@ export default function CheckCard({
   toolStatus?: ToolStatus;
   /** Last run log segment for this check (from GET /api/run-checks/log). Shown in Logs tab. */
   logSegment?: string;
+  /** When true, show a spinner top-right (this check is currently running). */
+  isRunningCheck?: boolean;
 }) {
   const t = useTranslations("common");
   const tChecks = useTranslations("checks");
@@ -366,11 +369,19 @@ export default function CheckCard({
 
   return (
     <div
-      className={`border rounded-lg overflow-hidden transition-all duration-300 ${
+      className={`relative border rounded-lg overflow-hidden transition-all duration-300 ${
         celebrate ? "border-green-500 ring-2 ring-green-500/50" : borderClass
       }`}
       data-check-card
     >
+      {isRunningCheck && (
+        <span
+          className="absolute top-2 right-2 z-10 flex items-center justify-center w-6 h-6 text-green-400"
+          aria-hidden
+        >
+          <span className="loading loading-spinner loading-sm" />
+        </span>
+      )}
       <div
         className={`flex items-center gap-2 py-2 pr-3 border-b flex-wrap ${borderBottomClass} ${dragHandle != null ? "pl-0" : "pl-3"}`}
       >

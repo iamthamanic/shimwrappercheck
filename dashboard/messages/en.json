@@ -107,7 +107,9 @@
     "scanCodebase": "Suggest Checks",
     "scanCodebaseScanning": "Scanning…",
     "scanError": "Scan failed. Try again.",
-    "clickToDismiss": "Click to dismiss"
+    "clickToDismiss": "Click to dismiss",
+    "whySuggested": "Why suggested",
+    "close": "Close"
   },
   "myChecks": {
     "title": "My Checks"

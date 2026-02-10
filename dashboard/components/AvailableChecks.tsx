@@ -39,6 +39,8 @@ function DraggableLibraryCard({
   suggestedReason,
   onDismissSuggestion,
   dismissSuggestionLabel,
+  whySuggestedLabel,
+  closeLabel,
 }: {
   def: CheckDef;
   dragHandleTitle: string;
@@ -50,7 +52,30 @@ function DraggableLibraryCard({
   suggestedReason?: string;
   onDismissSuggestion?: () => void;
   dismissSuggestionLabel?: string;
+  whySuggestedLabel?: string;
+  closeLabel?: string;
 }) {
+  const [suggestionModalOpen, setSuggestionModalOpen] = useState(false);
+  const tooltipWrapRef = useRef<HTMLDivElement>(null);
+  const closeSuggestionModal = () => {
+    setSuggestionModalOpen(false);
+    onDismissSuggestion?.();
+  };
+  useEffect(() => {
+    if (!suggestionModalOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeSuggestionModal();
+    };
+    const onMouseDown = (e: MouseEvent) => {
+      if (tooltipWrapRef.current && !tooltipWrapRef.current.contains(e.target as Node)) closeSuggestionModal();
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onMouseDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onMouseDown);
+    };
+  }, [suggestionModalOpen]);
   const dragData: CheckDragData = {
     orderIndex: null,
     leftTags: [...def.tags, def.role],
@@ -66,29 +91,50 @@ function DraggableLibraryCard({
     <li
       ref={setNodeRef}
       style={style}
-      className={`list-none relative ${isDragging ? "opacity-0 pointer-events-none" : ""}`}
+      className={`list-none relative overflow-hidden ${isDragging ? "opacity-0 pointer-events-none" : ""}`}
       data-check-card
     >
-      <div className="relative">
+      <div className="relative overflow-hidden">
         {suggestedReason && (
-          <span
-            className="absolute top-2 right-2 z-10 max-w-[min(85%,12rem)] rounded-md bg-violet-600/95 text-white text-xs px-2 py-1 shadow-lg border border-violet-400/50"
-            title={suggestedReason}
-          >
-            <span className="line-clamp-2 block pr-5">{suggestedReason}</span>
+          <div ref={tooltipWrapRef} className="absolute top-2 right-2 z-10 flex flex-col items-end gap-0.5">
             <button
               type="button"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                onDismissSuggestion?.();
+                setSuggestionModalOpen((v) => !v);
               }}
-              className="absolute top-0.5 right-0.5 w-4 h-4 flex items-center justify-center rounded hover:bg-violet-500/80 text-white/90"
-              aria-label={dismissSuggestionLabel}
+              className="w-6 h-6 flex items-center justify-center rounded-full bg-violet-600/95 text-white shadow border border-violet-400/50 hover:bg-violet-500 shrink-0"
+              title={whySuggestedLabel}
+              aria-label={whySuggestedLabel}
+              aria-expanded={suggestionModalOpen}
             >
-              ×
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+                <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
+              </svg>
             </button>
-          </span>
+            {suggestionModalOpen && (
+              <div
+                className="absolute right-0 top-8 w-56 max-w-[calc(100vw-2rem)] rounded-md bg-violet-600/95 text-white text-xs shadow-lg border border-violet-400/50 p-2.5 z-20"
+                role="tooltip"
+                id={`suggestion-tooltip-${def.id}`}
+              >
+                <p className="text-white/95 leading-snug">{suggestedReason}</p>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeSuggestionModal();
+                  }}
+                  className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center rounded hover:bg-violet-500/80 text-white/90 text-sm leading-none"
+                  aria-label={closeLabel}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+          </div>
         )}
         <CheckCard
           def={def}
@@ -335,12 +381,12 @@ export default function AvailableChecks({
             type="button"
             onClick={handleScanCodebase}
             disabled={isScanning}
-            className="btn btn-sm !bg-violet-600 !border-violet-600 text-white hover:!bg-violet-500 hover:!border-violet-500 disabled:!bg-violet-600 disabled:!border-violet-600 disabled:opacity-90 flex items-center gap-2"
+            className="btn btn-sm !bg-violet-600 !border-violet-600 text-white hover:!bg-violet-500 hover:!border-violet-500 disabled:!bg-violet-600 disabled:!border-violet-600 disabled:!text-white disabled:opacity-90 flex items-center gap-2"
           >
             {isScanning ? (
               <>
                 <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin shrink-0" />
-                <span>
+                <span className="text-white">
                   {tCheckLib("scanCodebaseScanning")} {scanProgress}%
                 </span>
               </>
@@ -424,6 +470,8 @@ export default function AvailableChecks({
                 suggestedReason={suggestedReasons?.[def.id]}
                 onDismissSuggestion={() => dismissSuggestion(def.id)}
                 dismissSuggestionLabel={tCheckLib("clickToDismiss")}
+                whySuggestedLabel={tCheckLib("whySuggested")}
+                closeLabel={tCheckLib("close")}
               />
             ))}
           </ul>

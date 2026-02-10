@@ -151,12 +151,51 @@ function nextPortInRange(startPort, minPort, maxPort, offset) {
 
 function canListenOnPort(port) {
   return new Promise((resolve) => {
-    const server = net.createServer();
-    server.once("error", () => resolve(false));
-    server.once("listening", () => {
-      server.close(() => resolve(true));
-    });
-    server.listen(port, "127.0.0.1");
+    let resolved = false;
+
+    const finish = (result) => {
+      if (resolved) return;
+      resolved = true;
+      resolve(result);
+    };
+
+    const tryListen = (host, onUnsupported) => {
+      const server = net.createServer();
+      server.once("error", (err) => {
+        const code = err && err.code ? err.code : "UNKNOWN";
+        if (
+          (code === "EADDRNOTAVAIL" || code === "EAFNOSUPPORT") &&
+          typeof onUnsupported === "function"
+        ) {
+          onUnsupported();
+          return;
+        }
+        finish({ free: false, code });
+      });
+      server.once("listening", () => {
+        server.close(() => finish({ free: true }));
+      });
+      if (typeof host === "string") {
+        server.listen(port, host);
+      } else {
+        server.listen(port);
+      }
+    };
+
+    const hosts = ["::", "127.0.0.1", "::1"];
+    let index = 0;
+
+    const nextHost = () => {
+      if (index >= hosts.length) {
+        finish({ free: true });
+        return;
+      }
+      const host = hosts[index];
+      index += 1;
+      tryListen(host, () => nextHost());
+    };
+
+    nextHost();
   });
 }
 
@@ -165,8 +204,13 @@ async function findAvailablePort(startPort) {
   const range = maxPort - minPort + 1;
   for (let offset = 0; offset < range; offset += 1) {
     const candidate = nextPortInRange(startPort, minPort, maxPort, offset);
-    const free = await canListenOnPort(candidate);
-    if (free) return candidate;
+    const result = await canListenOnPort(candidate);
+    if (result.free) return candidate;
+    if (result.code === "EPERM" || result.code === "EACCES") {
+      throw new Error(
+        "Cannot bind to ports (EPERM/EACCES). This environment blocks opening sockets; start the dashboard locally or outside the sandbox."
+      );
+    }
   }
   throw new Error(`No free ports available between ${minPort} and ${maxPort}.`);
 }

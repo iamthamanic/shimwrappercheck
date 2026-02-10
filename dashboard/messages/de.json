@@ -107,7 +107,9 @@
     "scanCodebase": "Suggest Checks",
     "scanCodebaseScanning": "Scanne…",
     "scanError": "Scan fehlgeschlagen. Bitte erneut versuchen.",
-    "clickToDismiss": "Klicken zum Schließen"
+    "clickToDismiss": "Klicken zum Schließen",
+    "whySuggested": "Warum vorgeschlagen",
+    "close": "Schließen"
   },
   "myChecks": {
     "title": "Meine Checks"

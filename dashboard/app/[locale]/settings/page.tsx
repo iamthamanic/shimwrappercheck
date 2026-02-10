@@ -45,7 +45,6 @@ export default function SettingsPage() {
   const [uiConfigSaving, setUiConfigSaving] = useState(false);
   const [status, setStatus] = useState<Status | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
-  const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<{ stdout: string; stderr: string; code: number } | null>(null);
   const [triggerCommandosLastUpdated, setTriggerCommandosLastUpdated] = useState<Date | null>(null);
   const [myChecksLastUpdated, setMyChecksLastUpdated] = useState<Date | null>(null);
@@ -55,7 +54,7 @@ export default function SettingsPage() {
   const [exportFileName, setExportFileName] = useState("");
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameValue, setRenameValue] = useState("");
-  const { refetch: refetchRunChecksLog } = useRunChecksLog();
+  const { refetch: refetchRunChecksLog, running, setRunning, setCurrentCheckId } = useRunChecksLog();
 
   const SETTINGS_FETCH_MS = 12_000;
 
@@ -126,18 +125,57 @@ export default function SettingsPage() {
   }, []);
 
   const runChecks = () => {
-    setRunning(true);
     setRunResult(null);
-    fetch("/api/run-checks", { method: "POST" })
-      .then((r) => r.json())
-      .then((data) => {
-        setRunResult({ stdout: data.stdout ?? "", stderr: data.stderr ?? "", code: data.code ?? 1 });
+    setRunning(true);
+    setCurrentCheckId(null);
+    fetch("/api/run-checks", { method: "POST", headers: { Accept: "text/event-stream" } })
+      .then(async (r) => {
+        if (!r.body) throw new Error("No body");
+        const reader = r.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        let doneData: { code?: number; stdout?: string; stderr?: string } = {};
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const parts = buf.split("\n\n");
+          buf = parts.pop() ?? "";
+          for (const block of parts) {
+            let blockEvent = "";
+            const lines = block.split("\n");
+            for (const line of lines) {
+              if (line.startsWith("event: ")) blockEvent = line.slice(7).trim();
+              else if (line.startsWith("data: ")) {
+                try {
+                  const data = JSON.parse(line.slice(6)) as {
+                    checkId?: string;
+                    code?: number;
+                    stdout?: string;
+                    stderr?: string;
+                  };
+                  if (blockEvent === "currentCheck" && data.checkId) setCurrentCheckId(data.checkId);
+                  else if (blockEvent === "done") doneData = data;
+                } catch {
+                  // ignore
+                }
+              }
+            }
+          }
+        }
+        setRunResult({
+          stdout: doneData.stdout ?? "",
+          stderr: doneData.stderr ?? "",
+          code: doneData.code ?? 1,
+        });
         setRunning(false);
+        setCurrentCheckId(null);
         refetchRunChecksLog();
       })
       .catch(() => {
         setRunResult({ stdout: "", stderr: tSettings("runChecksRequestFailed"), code: 1 });
         setRunning(false);
+        setCurrentCheckId(null);
       });
   };
 

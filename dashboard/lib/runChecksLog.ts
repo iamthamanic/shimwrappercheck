@@ -28,6 +28,18 @@ export const CHECK_LOG_MARKERS: Record<string, string[]> = {
   mutation: ["Mutation (Stryker)...", "Skipping Mutation"],
 };
 
+const CHECK_IDS = Object.keys(CHECK_LOG_MARKERS);
+
+/** Returns the check id if the line is a start marker for a check, else null. Used for live progress. */
+export function getCheckIdFromLine(line: string): string | null {
+  const t = line.trim();
+  for (const id of CHECK_IDS) {
+    const markers = CHECK_LOG_MARKERS[id];
+    if (markers?.some((m) => t.includes(m))) return id;
+  }
+  return null;
+}
+
 export interface LastRunLog {
   full: string;
   segments: Record<string, string>;
@@ -42,16 +54,8 @@ export function parseLastRunLog(stdout: string, stderr: string): Omit<LastRunLog
   const full = [stdout.trim(), stderr.trim()].filter(Boolean).join("\n\n");
   const lines = full.split("\n");
   const segments: Record<string, string> = {};
-  const checkIds = Object.keys(CHECK_LOG_MARKERS);
 
-  const matchesCheck = (line: string): string | null => {
-    const t = line.trim();
-    for (const id of checkIds) {
-      const markers = CHECK_LOG_MARKERS[id];
-      if (markers?.some((m) => t.includes(m))) return id;
-    }
-    return null;
-  };
+  const matchesCheck = (line: string): string | null => getCheckIdFromLine(line);
 
   let currentCheckId: string | null = null;
   let currentLines: string[] = [];

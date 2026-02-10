@@ -73,6 +73,7 @@ function SortableMyCheckCard({
   removeTitle,
   removeLabel,
   highlightOrderBadge,
+  isRunningCheck,
 }: {
   def: CheckDef;
   orderIndex: number;
@@ -85,6 +86,7 @@ function SortableMyCheckCard({
   removeTitle: string;
   removeLabel: string;
   highlightOrderBadge?: boolean;
+  isRunningCheck?: boolean;
 }) {
   const order = settings?.checkOrder ?? [];
   const dragData: CheckDragData = {
@@ -100,24 +102,25 @@ function SortableMyCheckCard({
 
   return (
     <li ref={setNodeRef} style={style} className={`list-none ${isDragging ? "opacity-0 pointer-events-none" : ""}`}>
-      <CheckCard
-        def={def}
-        orderIndex={orderIndex}
-        orderBadgeHighlight={highlightOrderBadge}
-        enabled={true}
-        onToggle={() => {}}
-        checkSettings={(settings?.checkSettings as Record<string, Record<string, unknown>>)?.[def.id]}
-        onSettingsChange={(partial) => onSettingsChange(def.id, partial)}
-        dragHandle={
-          <span
-            {...listeners}
-            {...attributes}
-            className="w-6 h-full min-h-6 flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none text-neutral-400 hover:text-white"
-            title={dragLabel}
-          >
-            ⋮⋮
-          </span>
-        }
+        <CheckCard
+          def={def}
+          orderIndex={orderIndex}
+          orderBadgeHighlight={highlightOrderBadge}
+          enabled={true}
+          onToggle={() => {}}
+          checkSettings={(settings?.checkSettings as Record<string, Record<string, unknown>>)?.[def.id]}
+          onSettingsChange={(partial) => onSettingsChange(def.id, partial)}
+          isRunningCheck={isRunningCheck}
+          dragHandle={
+            <span
+              {...listeners}
+              {...attributes}
+              className="w-6 h-full min-h-6 flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none text-neutral-400 hover:text-white"
+              title={dragLabel}
+            >
+              ⋮⋮
+            </span>
+          }
         leftTags={[...def.tags, def.role]}
         statusTag="active"
         inlineStyle
@@ -156,7 +159,7 @@ export default function MyShimChecks({
 }) {
   const t = useTranslations("common");
   const tMyChecks = useTranslations("myChecks");
-  const { segments: runChecksSegments } = useRunChecksLog();
+  const { segments: runChecksSegments, running: runChecksRunning, currentCheckId } = useRunChecksLog();
   const [search, setSearch] = useState("");
   const [toolStatusMap, setToolStatusMap] = useState<Record<string, ToolStatus>>({});
   const [explode, setExplode] = useState(false);
@@ -234,6 +237,7 @@ export default function MyShimChecks({
             removeTitle={t("removeFromMyShim")}
             removeLabel={t("remove")}
             highlightOrderBadge={def.id === lastMovedId}
+            isRunningCheck={runChecksRunning && currentCheckId === def.id}
           />
           <DropSlot
             index={i === filtered.length - 1 ? order.length : idxInOrder + 1}
