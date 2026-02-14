@@ -164,8 +164,8 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     label: "AI Review",
     tags: ["frontend", "backend"],
     role: "enforce",
-    summary: "KI-Review mit fester Architektur- und Security-Checkliste.",
-    info: "Zweck: Zweitmeinung zu Architektur, Sicherheit und Wartbarkeit. Prüft: Codex bewertet Snippets (geänderten Code), den Full-Scan oder den Mix-Loop und liefert Score + Verdict. Bestanden, wenn: Verdict `ACCEPT` und Score >= Mindestwert (Standard 95). Nicht bestanden, wenn: `REJECT` oder Score darunter. Anpassen: `CHECK_MODE`, Mindestscore, Timeout. Hinweis: Reviews liegen in `.shimwrapper/reviews/`.",
+    summary: "KI-Review mit fester Checkliste (SOLID, DRY, Security, Robustheit, Wartbarkeit).",
+    info: "Zweck: Zweitmeinung zu Architektur, Sicherheit und Wartbarkeit. Prüft: Codex bewertet anhand fester Checkliste (SOLID, DRY, Performance, Sicherheit, Robustheit, Wartbarkeit); Snippets (geänderten Code), Full-Scan oder Mix-Loop; Score + Verdict. Bestanden, wenn: Verdict `ACCEPT` und Score >= Mindestwert (Standard 95). Nicht bestanden, wenn: `REJECT` oder Score darunter. Anpassen: `CHECK_MODE`, Mindestscore, Timeout. Hinweis: Reviews liegen in `.shimwrapper/reviews/`.",
     settings: [
       { key: "enabled", label: "Aktiv", type: "boolean", default: true },
       { key: "timeoutSec", label: "Timeout (Sekunden)", type: "number", default: 180 },

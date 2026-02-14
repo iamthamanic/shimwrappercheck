@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import fs from "fs";
 import { getProjectRoot } from "@/lib/projectRoot";
+import { validateReviewOutputPathSegment } from "@/lib/safeReviewPath";
 import {
   type SettingsData,
   type Preset,
@@ -235,13 +236,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "presets array required" }, { status: 400 });
     }
 
+    const rawReviewPath = typeof body.reviewOutputPath === "string" ? body.reviewOutputPath.trim() : "";
+    if (rawReviewPath && !validateReviewOutputPathSegment(rawReviewPath)) {
+      return NextResponse.json(
+        { error: "Invalid reviewOutputPath: use a relative path without '..' or leading slash; only letters, numbers, dots, hyphens, underscores." },
+        { status: 400 }
+      );
+    }
+    const reviewOutputPath = rawReviewPath ? rawReviewPath : DEFAULT_SETTINGS.reviewOutputPath;
     const settings: SettingsData = {
       presets: body.presets,
       activePresetId: body.activePresetId ?? DEFAULT_SETTINGS.activePresetId,
       checkToggles: { ...DEFAULT_SETTINGS.checkToggles, ...body.checkToggles },
       checkSettings: body.checkSettings ?? undefined,
       checkOrder: Array.isArray(body.checkOrder) ? body.checkOrder : undefined,
-      reviewOutputPath: typeof body.reviewOutputPath === "string" ? body.reviewOutputPath : DEFAULT_SETTINGS.reviewOutputPath,
+      reviewOutputPath,
     };
 
     const root = getProjectRoot();

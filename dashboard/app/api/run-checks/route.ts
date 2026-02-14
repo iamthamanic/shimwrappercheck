@@ -4,6 +4,7 @@
  * When review mode is on for a check, writes a .md report to reviewOutputPath.
  * If Accept: text/event-stream: streams SSE events (currentCheck, done) for live progress.
  * Vercel-compatible; uses SHIM_PROJECT_ROOT. Runs in project root.
+ * Rate limited to avoid CPU/I/O exhaustion from repeated runs.
  */
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
@@ -13,6 +14,8 @@ import { promisify } from "util";
 import { getProjectRoot } from "@/lib/projectRoot";
 import { getCheckIdFromLine, parseLastRunLog } from "@/lib/runChecksLog";
 import { DEFAULT_SETTINGS } from "@/lib/presets";
+import { safeReviewOutputDir } from "@/lib/safeReviewPath";
+import { getClientIp, isRunChecksRateLimited } from "@/lib/runChecksRateLimit";
 
 const PRESETS_FILE = ".shimwrappercheck-presets.json";
 
@@ -86,7 +89,11 @@ function readReviewSettings(root: string): {
 function writeReviewReports(root: string, stdout: string, stderr: string): void {
   try {
     const { reviewOutputPath, checkSettings } = readReviewSettings(root);
-    const outDir = path.join(root, reviewOutputPath.trim() || "reports");
+    const outDir = safeReviewOutputDir(root, reviewOutputPath);
+    if (outDir == null) {
+      console.warn("run-checks: reviewOutputPath rejected (path traversal or invalid)", reviewOutputPath);
+      return;
+    }
     const { segments } = parseLastRunLog(stdout, stderr);
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 19).replace(/[-:T]/g, "").slice(0, 15);
@@ -108,6 +115,29 @@ function writeReviewReports(root: string, stdout: string, stderr: string): void 
 export async function POST(request: NextRequest) {
   const accept = request.headers.get("accept") ?? "";
   const streamResponse = accept.includes("text/event-stream");
+
+  const ip = getClientIp(request);
+  if (isRunChecksRateLimited(ip)) {
+    const payload = {
+      error: "Rate limited. Please wait before running checks again.",
+      stdout: "",
+      stderr: "",
+      code: 429,
+    };
+    if (streamResponse) {
+      const body = new ReadableStream({
+        start(c) {
+          c.enqueue(new TextEncoder().encode(`event: done\ndata: ${JSON.stringify(payload)}\n\n`));
+          c.close();
+        },
+      });
+      return new Response(body, {
+        status: 429,
+        headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-store" },
+      });
+    }
+    return NextResponse.json(payload, { status: 429 });
+  }
 
   try {
     const root = getProjectRoot();

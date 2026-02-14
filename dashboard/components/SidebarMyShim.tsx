@@ -103,7 +103,9 @@ export default function SidebarMyShim() {
           window.dispatchEvent(new CustomEvent("trigger-commandos-saved"));
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.warn("SidebarMyShim: save trigger commandos failed", err instanceof Error ? err.message : "Unknown error");
+      });
   }, []);
 
   const saveSettingsForMyChecks = useCallback((next: SettingsData) => {
@@ -117,7 +119,9 @@ export default function SidebarMyShim() {
         setMyChecksLastUpdated(new Date());
         if (typeof window !== "undefined") window.dispatchEvent(new Event("settings-updated"));
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.warn("SidebarMyShim: save settings for My Checks failed", err instanceof Error ? err.message : "Unknown error");
+      });
   }, []);
 
   const activePreset = settings?.presets?.find((p) => p.id === settings.activePresetId);
@@ -159,7 +163,9 @@ export default function SidebarMyShim() {
           .then((data) => {
             if (data?.presets?.length) apply(data);
           })
-          .catch(() => {});
+          .catch((err) => {
+            console.warn("SidebarMyShim: fetch settings for drop fallback failed", err instanceof Error ? err.message : "Unknown error");
+          });
       }
     };
     el.addEventListener("dragover", handleDragOver, false);

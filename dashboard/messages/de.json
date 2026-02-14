@@ -274,7 +274,7 @@
     },
     "aiReview": {
       "label": "AI Review",
-      "summary": "KI-Review mit fester Architektur- und Security-Checkliste.",
+      "summary": "KI-Review mit fester Checkliste (SOLID, DRY, Security, Robustheit, Wartbarkeit).",
       "info": "Zweck: Zweitmeinung zu Architektur, Sicherheit und Wartbarkeit. Prüft: Codex bewertet Snippets (geänderten Code), Full-Scan oder den Mix-Loop und liefert Score + Verdict. Bestanden, wenn: Verdict `ACCEPT` und Score >= Mindestwert (Standard 95). Nicht bestanden, wenn: `REJECT` oder Score darunter. Anpassen: `CHECK_MODE`, Mindestscore, Timeout. Hinweis: Reviews liegen in `.shimwrapper/reviews/`; Codex-CLI erforderlich.",
       "timeoutSec": "Timeout (Sekunden)",
       "timeoutSecTooltip": "Maximale Laufzeit des AI-Reviews in Sekunden. Bei Timeout gilt der Check als fehlgeschlagen. Bei großen Diffs oder vollem Codebase-Modus ggf. erhöhen.",

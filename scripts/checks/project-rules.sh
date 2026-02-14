@@ -2,6 +2,7 @@
 # shimwrappercheck-project-rules v1
 # RULES_JSON [{"type":"max_lines","maxLines":300},{"type":"forbidden_regex","pattern":"#[0-9a-fA-F]{3,8}\\b"},{"type":"forbidden_regex","pattern":"\\b(rgb|rgba|hsl|hsla)\\s*\\("},{"type":"forbidden_regex","pattern":"style=\\{\\{"},{"type":"forbidden_regex","pattern":"from\\s+['\"]\\.\\./\\.\\./"},{"type":"forbidden_regex","pattern":"(:\\s*any\\b|as\\s+any\\b)"}]
 # Edit via dashboard (Projektregeln → Einstellungen → Formular) or here.
+# Qualitätsregeln (u. a. SOLID, DRY) werden zusätzlich im AI-Review geprüft (scripts/ai-code-review.sh / AGENTS.md).
 set -e
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"

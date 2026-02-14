@@ -86,7 +86,7 @@ function DragOverlayCard({
       data-check-card
     >
       {/* Header: order, handle, badge (always visible), name, tags, Details, expand */}
-      <div className="flex items-center gap-2 py-2 pr-3 border-b border-white/20 flex-wrap pl-0">
+      <div className="flex items-center gap-2 py-2 pr-3 pl-3 border-b border-white/20 flex-wrap">
         {orderIndex != null && orderIndex > 0 && (
           <span
             className="flex items-center justify-center w-6 h-6 rounded bg-white/20 text-white text-xs font-semibold shrink-0 ml-2"

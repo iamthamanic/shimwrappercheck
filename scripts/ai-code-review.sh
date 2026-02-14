@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # AI code review: Codex only (Cursor disabled). Called from run-checks.sh.
-# Prompt: Senior-Software-Architekt, 100 Punkte, Checkliste (SOLID, Performance, Sicherheit, Robustheit, Wartbarkeit), JSON score/deductions/verdict.
+# Prompt: Senior-Software-Architekt, 100 Punkte, Checkliste (SOLID, DRY, Performance, Sicherheit, Robustheit, Wartbarkeit), JSON score/deductions/verdict.
 # When verdict is REJECT: address all checklist points per affected file in one pass — see AGENTS.md and docs/AI_REVIEW_WHY_NEW_ERRORS_AFTER_FIXES.md.
 # Codex: codex in PATH; use session after codex login (ChatGPT account, no API key in terminal).
 # CHECK_MODE controls which diff the AI gets:
@@ -13,6 +13,20 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 CHECK_MODE="${CHECK_MODE:-snippet}"
 [[ "$CHECK_MODE" == "diff" ]] && CHECK_MODE=snippet
+
+# Use real git for diffs (PATH may point to a shim). Only allow trusted binaries (no arbitrary GIT_CMD from env).
+if [[ "${GIT_CMD:-}" = "/usr/bin/git" ]] && [[ -x /usr/bin/git ]]; then
+  GIT_CMD="/usr/bin/git"
+elif [[ "${GIT_CMD:-}" = "git" ]] && command -v git >/dev/null 2>&1; then
+  GIT_CMD="git"
+elif [[ -x /usr/bin/git ]]; then
+  GIT_CMD="/usr/bin/git"
+elif command -v git >/dev/null 2>&1; then
+  GIT_CMD="git"
+else
+  echo "Skipping AI review: no git found (need /usr/bin/git or git in PATH)." >&2
+  exit 1
+fi
 
 DIFF_FILE=""
 cleanup() {
@@ -46,7 +60,7 @@ if [[ "$CHECK_MODE" == "full" ]]; then
   REVIEW_TIME="$(date +%H:%M:%S)"
   REVIEW_FILE="$REVIEWS_DIR/review-${CHECK_MODE}-${REVIEW_DATE}-$(date +%H-%M-%S).md"
   BRANCH=""
-  [[ -n "${GIT_BRANCH:-}" ]] && BRANCH="$GIT_BRANCH" || BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")"
+  [[ -n "${GIT_BRANCH:-}" ]] && BRANCH="$GIT_BRANCH" || BRANCH="$("$GIT_CMD" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")"
   OVERALL_PASS=1
 
   PROMPT_HEAD=$(cat << 'PROMPT_HEAD_END'
@@ -80,6 +94,7 @@ Starte mit 100 Punkten. Gehe die folgende Checkliste durch und ziehe für jeden 
 - Edge Cases: null, undefined, [], extrem lange Strings? (Abzug: -10)
 
 5. Wartbarkeit & Lesbarkeit
+- DRY (Don't Repeat Yourself): Deutlich duplizierte Logik/Blöcke (z. B. gleiche Validierung, gleicher API-Call an mehreren Stellen) ohne gemeinsame Funktion/Helfer? (Abzug: -5)
 - Naming: Variablennamen beschreibend oder data, info, item? (Abzug: -5)
 - Side Effects: Funktion verändert unvorhersehbar globale Zustände? (Abzug: -10)
 - Kommentar-Qualität: Erklärt der Kommentar das "Warum" oder nur das "Was"? (Abzug: -2)
@@ -94,7 +109,7 @@ PROMPT_HEAD_END
 
   for chunk_dir in $CHUNK_DIRS; do
     CHUNK_DIFF=$(mktemp)
-    git diff --no-color "$EMPTY_TREE"..HEAD -- "$chunk_dir" >> "$CHUNK_DIFF" 2>/dev/null || true
+    "$GIT_CMD" diff --no-color "$EMPTY_TREE"..HEAD -- "$chunk_dir" >> "$CHUNK_DIFF" 2>/dev/null || true
     CHUNK_PASS=1
     CHUNK_VERDICT="ACCEPT"
     CHUNK_RATING=100
@@ -225,20 +240,19 @@ ${CHUNK_CONTENT}"
     echo "Codex AI review: FAIL (one or more chunks failed)" >&2
   fi
   exit $([[ $OVERALL_PASS -eq 1 ]] && echo 0 || echo 1)
-fi
 
-# Snippet path (CHECK_MODE=snippet)
-git diff --no-color >> "$DIFF_FILE" 2>/dev/null || true
-git diff --cached --no-color >> "$DIFF_FILE" 2>/dev/null || true
-if [[ ! -s "$DIFF_FILE" ]] && command -v git >/dev/null 2>&1; then
+# Snippet path (CHECK_MODE=snippet). Git exit 0=has diff, 1=no diff; other=error (do not swallow).
+"$GIT_CMD" diff --no-color >> "$DIFF_FILE" 2>/dev/null; r=$?; [[ $r -ne 0 && $r -ne 1 ]] && { echo "AI review: git diff (unstaged) failed (exit $r)." >&2; exit 1; }
+"$GIT_CMD" diff --cached --no-color >> "$DIFF_FILE" 2>/dev/null; r=$?; [[ $r -ne 0 && $r -ne 1 ]] && { echo "AI review: git diff (cached) failed (exit $r)." >&2; exit 1; }
+if [[ ! -s "$DIFF_FILE" ]]; then
   RANGE=""
-  if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+  if "$GIT_CMD" rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
     RANGE="@{u}...HEAD"
-  elif git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+  elif "$GIT_CMD" rev-parse --verify HEAD~1 >/dev/null 2>&1; then
     RANGE="HEAD~1...HEAD"
   fi
   if [[ -n "$RANGE" ]]; then
-    git diff --no-color "$RANGE" >> "$DIFF_FILE" 2>/dev/null || true
+    "$GIT_CMD" diff --no-color "$RANGE" >> "$DIFF_FILE" 2>/dev/null; r=$?; [[ $r -ne 0 && $r -ne 1 ]] && { echo "AI review: git diff (range) failed (exit $r)." >&2; exit 1; }
   fi
 fi
 if [[ ! -s "$DIFF_FILE" ]]; then
@@ -290,6 +304,7 @@ Starte mit 100 Punkten. Gehe die folgende Checkliste durch und ziehe für jeden 
 - Edge Cases: null, undefined, [], extrem lange Strings? (Abzug: -10)
 
 5. Wartbarkeit & Lesbarkeit
+- DRY (Don't Repeat Yourself): Deutlich duplizierte Logik/Blöcke (z. B. gleiche Validierung, gleicher API-Call an mehreren Stellen) ohne gemeinsame Funktion/Helfer? (Abzug: -5)
 - Naming: Variablennamen beschreibend oder data, info, item? (Abzug: -5)
 - Side Effects: Funktion verändert unvorhersehbar globale Zustände? (Abzug: -10)
 - Kommentar-Qualität: Erklärt der Kommentar das "Warum" oder nur das "Was"? (Abzug: -2)
@@ -424,7 +439,7 @@ REVIEW_DATE="$(date +%d.%m.%Y)"
 REVIEW_TIME="$(date +%H:%M:%S)"
 REVIEW_FILE="$REVIEWS_DIR/review-${CHECK_MODE}-${REVIEW_DATE}-$(date +%H-%M-%S).md"
 BRANCH=""
-[[ -n "${GIT_BRANCH:-}" ]] && BRANCH="$GIT_BRANCH" || BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")"
+[[ -n "${GIT_BRANCH:-}" ]] && BRANCH="$GIT_BRANCH" || BRANCH="$("$GIT_CMD" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")"
 {
   echo "# AI Code Review — Date $REVIEW_DATE  Time $REVIEW_TIME"
   echo ""
@@ -441,7 +456,7 @@ BRANCH=""
   echo "- ⚡ Performance & Ressourcen"
   echo "- 🔐 Sicherheit (inkl. IDOR, Data Leakage, Rate Limiting, Path Traversal/File-IO, Command Injection)"
   echo "- 🛡️ Robustheit & Error Handling"
-  echo "- 🧹 Wartbarkeit & Lesbarkeit"
+  echo "- 🧹 Wartbarkeit & Lesbarkeit (inkl. DRY)"
   echo ""
   if [[ "$REVIEW_DEDUCTIONS_COUNT" -gt 0 ]]; then
     echo "## ⚠️ Findings to address"
@@ -479,3 +494,4 @@ if [[ $PASS -ne 1 ]]; then
 fi
 
 [[ $PASS -eq 1 ]] && exit 0 || exit 1
+fi

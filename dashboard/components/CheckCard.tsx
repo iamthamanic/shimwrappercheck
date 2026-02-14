@@ -438,7 +438,7 @@ export default function CheckCard({
         data-check-card
       >
         <div
-          className={`flex items-center gap-2 py-2 pr-3 border-b border-dashed flex-wrap ${borderBottomClass} pl-0`}
+          className={`flex items-center gap-2 py-2 pr-3 pl-3 border-b border-dashed flex-wrap ${borderBottomClass}`}
         >
           {orderIndex != null && (
             <span
@@ -498,7 +498,7 @@ export default function CheckCard({
         </span>
       )}
       <div
-        className={`flex items-center gap-2 py-2 pr-3 border-b flex-wrap ${borderBottomClass} ${dragHandle != null ? "pl-0" : "pl-3"}`}
+        className={`flex items-center gap-2 py-2 pr-3 pl-3 border-b flex-wrap ${borderBottomClass}`}
       >
         {orderIndex != null && (
           <span
