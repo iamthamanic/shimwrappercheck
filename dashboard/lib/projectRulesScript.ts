@@ -5,6 +5,7 @@
 
 export type ProjectRuleForm =
   | { id: string; type: "forbidden_pattern"; pattern: string }
+  | { id: string; type: "forbidden_regex"; pattern: string }
   | { id: string; type: "max_lines"; maxLines: number; glob?: string };
 
 const RULES_MARKER = "# RULES_JSON ";
@@ -23,6 +24,7 @@ export function generateScriptFromRules(rules: ProjectRuleForm[]): string {
       glob: "glob" in r ? r.glob : undefined,
     }))
   );
+  const escapeForRegex = (s: string) => s.replace(/'/g, "'\"'\"'");
   const lines: string[] = [
     "#!/usr/bin/env bash",
     "# shimwrappercheck-project-rules v1",
@@ -40,7 +42,13 @@ export function generateScriptFromRules(rules: ProjectRuleForm[]): string {
       const pat = escapeForBash(r.pattern.trim());
       lines.push(`# rule ${i + 1}: forbidden_pattern`);
       lines.push(
-        `if grep -rFl '${pat}' . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" 2>/dev/null | grep -q .; then echo "Projektregel verletzt: verbotenes Muster"; exit 1; fi`
+        `if grep -rFl --exclude-dir=node_modules --exclude-dir=.next '${pat}' . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.scss" --include="*.css" 2>/dev/null | grep -q .; then echo "Projektregel verletzt: verbotenes Muster"; exit 1; fi`
+      );
+    } else if (r.type === "forbidden_regex" && r.pattern.trim()) {
+      const pat = escapeForRegex(r.pattern.trim());
+      lines.push(`# rule ${i + 1}: forbidden_regex`);
+      lines.push(
+        `if grep -rE --exclude-dir=node_modules --exclude-dir=.next --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.scss" --include="*.css" '${pat}' . 2>/dev/null | grep -q .; then echo "Projektregel verletzt: verbotenes Muster (Regex)"; exit 1; fi`
       );
     } else if (r.type === "max_lines" && r.maxLines > 0) {
       lines.push(`# rule ${i + 1}: max_lines ${r.maxLines}`);
@@ -66,6 +74,8 @@ export function parseRulesFromScript(raw: string): ProjectRuleForm[] | null {
       const id = `rule-${i}-${Math.random().toString(36).slice(2, 9)}`;
       if (item.type === "forbidden_pattern")
         return { id, type: "forbidden_pattern" as const, pattern: item.pattern ?? "" };
+      if (item.type === "forbidden_regex")
+        return { id, type: "forbidden_regex" as const, pattern: item.pattern ?? "" };
       if (item.type === "max_lines")
         return { id, type: "max_lines" as const, maxLines: item.maxLines ?? 300, glob: item.glob };
       return { id, type: "forbidden_pattern" as const, pattern: "" };

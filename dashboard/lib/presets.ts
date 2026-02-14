@@ -75,6 +75,8 @@ export interface SettingsData {
   checkToggles: CheckToggles;
   checkSettings?: CheckSettings;
   checkOrder?: string[];
+  /** Directory path where review reports (findings) are saved as .md when review mode is on for a check. */
+  reviewOutputPath?: string;
 }
 
 const VIBE_CODE_ID = "vibe-code";
@@ -126,6 +128,7 @@ export const DEFAULT_SETTINGS: SettingsData = {
   activePresetId: VIBE_CODE_ID,
   checkToggles: DEFAULT_CHECK_TOGGLES,
   checkOrder: [],
+  reviewOutputPath: "reports",
 };
 
 /** Build .shimwrappercheckrc content from active preset + check toggles */

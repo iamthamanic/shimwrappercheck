@@ -11,6 +11,7 @@ import { useTranslations } from "next-intl";
 import confetti from "canvas-confetti";
 import type { CheckDef } from "@/lib/checks";
 import { generateScriptFromRules, parseRulesFromScript, type ProjectRuleForm } from "@/lib/projectRulesScript";
+import PortalTooltip from "@/components/PortalTooltip";
 
 export type ToolStatus = { installed: boolean; label?: string; command?: string; repo?: string };
 
@@ -48,6 +49,7 @@ export default function CheckCard({
   toolStatus,
   logSegment,
   isRunningCheck,
+  templateMode,
 }: {
   def: CheckDef;
   enabled: boolean;
@@ -76,6 +78,8 @@ export default function CheckCard({
   logSegment?: string;
   /** When true, show a spinner top-right (this check is currently running). */
   isRunningCheck?: boolean;
+  /** Nur Karten-Header anzeigen, keine Buttons/Details (z. B. Idealreihenfolge-Vorlage). */
+  templateMode?: boolean;
 }) {
   const t = useTranslations("common");
   const tChecks = useTranslations("checks");
@@ -86,6 +90,8 @@ export default function CheckCard({
   const [celebrate, setCelebrate] = useState(false);
   const activeBadgeRef = useRef<HTMLSpanElement>(null);
   const projectRulesFetchedRef = useRef(false);
+  /** Tracks whether form rules were set from parsing script ("parsed") or from user edit ("user"). Used to avoid sync loop. */
+  const formRulesSourceRef = useRef<"parsed" | "user">("user");
   const [projectRulesRaw, setProjectRulesRaw] = useState("");
   const [projectRulesLoading, setProjectRulesLoading] = useState(false);
   const [projectRulesSaving, setProjectRulesSaving] = useState(false);
@@ -148,13 +154,32 @@ export default function CheckCard({
       });
   };
 
-  const addProjectRule = (type: "forbidden_pattern" | "max_lines") => {
+  const loadDefaultProjectRules = () => {
+    fetch("/api/project-rules?default=1")
+      .then((r) => r.json())
+      .then((data) => {
+        if (typeof data?.raw === "string") {
+          setProjectRulesRaw(data.raw);
+          const formRules = parseRulesFromScript(data.raw);
+          if (formRules && formRules.length > 0) {
+            formRulesSourceRef.current = "parsed";
+            setProjectRulesFormRules(formRules);
+          }
+        }
+        setProjectRulesMessage(null);
+      })
+      .catch(() => setProjectRulesMessage({ type: "error", text: t("saveFailed") }));
+  };
+
+  const addProjectRule = (type: "forbidden_pattern" | "forbidden_regex" | "max_lines") => {
+    formRulesSourceRef.current = "user";
     const id = `rule-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    if (type === "forbidden_pattern") setProjectRulesFormRules((prev) => [...prev, { id, type, pattern: "" }]);
-    else setProjectRulesFormRules((prev) => [...prev, { id, type, maxLines: 300 }]);
+    if (type === "max_lines") setProjectRulesFormRules((prev) => [...prev, { id, type, maxLines: 300 }]);
+    else setProjectRulesFormRules((prev) => [...prev, { id, type, pattern: "" }]);
   };
 
   const updateProjectRule = (id: string, patch: Partial<ProjectRuleForm>) => {
+    formRulesSourceRef.current = "user";
     setProjectRulesFormRules((prev) =>
       prev.map((r) => {
         if (r.id !== id) return r;
@@ -164,13 +189,20 @@ export default function CheckCard({
             type: "forbidden_pattern" as const,
             pattern: "pattern" in patch ? (patch.pattern ?? "") : r.type === "forbidden_pattern" ? r.pattern : "",
           };
+        if (patch.type === "forbidden_regex")
+          return {
+            id: r.id,
+            type: "forbidden_regex" as const,
+            pattern: "pattern" in patch ? (patch.pattern ?? "") : r.type === "forbidden_regex" ? r.pattern : "",
+          };
         if (patch.type === "max_lines")
           return {
             id: r.id,
             type: "max_lines" as const,
             maxLines: "maxLines" in patch ? (patch.maxLines ?? 300) : r.type === "max_lines" ? r.maxLines : 300,
           };
-        if (r.type === "forbidden_pattern" && "pattern" in patch) return { ...r, pattern: patch.pattern ?? r.pattern };
+        if ((r.type === "forbidden_pattern" || r.type === "forbidden_regex") && "pattern" in patch)
+          return { ...r, pattern: patch.pattern ?? r.pattern };
         if (r.type === "max_lines" && "maxLines" in patch) return { ...r, maxLines: patch.maxLines ?? r.maxLines };
         return r;
       })
@@ -178,6 +210,7 @@ export default function CheckCard({
   };
 
   const removeProjectRule = (id: string) => {
+    formRulesSourceRef.current = "user";
     setProjectRulesFormRules((prev) => prev.filter((r) => r.id !== id));
   };
 
@@ -198,7 +231,10 @@ export default function CheckCard({
           const raw = data?.raw ?? "";
           setProjectRulesRaw(raw);
           const parsed = parseRulesFromScript(raw);
-          if (parsed && parsed.length >= 0) setProjectRulesFormRules(parsed);
+          if (parsed && parsed.length > 0) {
+            formRulesSourceRef.current = "parsed";
+            setProjectRulesFormRules(parsed);
+          }
           setProjectRulesLoading(false);
         })
         .catch((err) => {
@@ -210,29 +246,53 @@ export default function CheckCard({
     }
   }, [isProjectRules, tab, modalOpen, t]);
 
+  /** Script → Form: when script text changes (debounced), parse and update form if script has RULES_JSON. */
+  useEffect(() => {
+    if (!isProjectRules) return;
+    const t = setTimeout(() => {
+      const parsed = parseRulesFromScript(projectRulesRaw);
+      if (parsed && parsed.length > 0) {
+        formRulesSourceRef.current = "parsed";
+        setProjectRulesFormRules(parsed);
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [isProjectRules, projectRulesRaw]);
+
+  /** Form → Script: when form rules change from user edit, regenerate script so both views stay in sync. */
+  useEffect(() => {
+    if (!isProjectRules || formRulesSourceRef.current !== "user") return;
+    if (!projectRulesFetchedRef.current) return;
+    const generated = generateScriptFromRules(projectRulesFormRules);
+    setProjectRulesRaw(generated);
+  }, [isProjectRules, projectRulesFormRules]);
+
   useEffect(() => {
     if (statusTag !== "active") return;
     const onActivated = (e: Event) => {
       const detail = (e as CustomEvent<{ checkId: string }>).detail;
       if (detail?.checkId !== def.id) return;
+      if (typeof window === "undefined") return;
+      let x = 0.5;
+      let y = 0.5;
       const el = activeBadgeRef.current;
-      if (el && typeof window !== "undefined") {
+      if (el) {
         const rect = el.getBoundingClientRect();
-        const x = (rect.left + rect.width / 2) / window.innerWidth;
-        const y = (rect.top + rect.height / 2) / window.innerHeight;
-        confetti({
-          particleCount: 40,
-          spread: 360,
-          angle: 90,
-          startVelocity: 6,
-          scalar: 0.35,
-          origin: { x, y },
-          colors: ["#22c55e", "#16a34a", "#15803d", "#4ade80", "#86efac"],
-          ticks: 60,
-        });
-        setCelebrate(true);
-        setTimeout(() => setCelebrate(false), 600);
+        x = (rect.left + rect.width / 2) / window.innerWidth;
+        y = (rect.top + rect.height / 2) / window.innerHeight;
       }
+      confetti({
+        particleCount: 40,
+        spread: 80,
+        angle: 90,
+        startVelocity: 4,
+        scalar: 0.28,
+        origin: { x, y },
+        colors: ["#22c55e", "#16a34a", "#15803d", "#4ade80", "#86efac"],
+        ticks: 60,
+      });
+      setCelebrate(true);
+      setTimeout(() => setCelebrate(false), 600);
     };
     window.addEventListener("check-activated", onActivated);
     return () => window.removeEventListener("check-activated", onActivated);
@@ -241,13 +301,15 @@ export default function CheckCard({
   const getSettingLabel = (s: { key: string; label: string }) =>
     s.key === "enabled"
       ? t("active")
-      : (() => {
-          try {
-            return tChecks(`${def.id}.${s.key}`);
-          } catch {
-            return s.label;
-          }
-        })();
+      : s.key === "reviewMode"
+        ? t("reviewModeLabel")
+        : (() => {
+            try {
+              return tChecks(`${def.id}.${s.key}`);
+            } catch {
+              return s.label;
+            }
+          })();
   /** Translated label for select options (e.g. aiReview.checkMode mix/snippet/full). */
   const getSelectOptionLabel = (s: { key: string }, o: { value: string; label: string }): string => {
     if (def.id === "aiReview" && s.key === "checkMode") {
@@ -302,7 +364,7 @@ export default function CheckCard({
               <div className="flex items-center gap-1 flex-wrap">
                 <label className="text-xs text-neutral-400">{getSettingLabel(s)}</label>
                 {getSettingTooltip(s) && (
-                  <span className="tooltip tooltip-right" data-tip={getSettingTooltip(s)}>
+                  <PortalTooltip content={getSettingTooltip(s)!} placement="right">
                     <button
                       type="button"
                       className="btn btn-ghost btn-xs btn-circle text-white/50 hover:text-white/80"
@@ -319,7 +381,7 @@ export default function CheckCard({
                         <path d="M12 16v-4M12 8h.01" />
                       </svg>
                     </button>
-                  </span>
+                  </PortalTooltip>
                 )}
               </div>
               {s.type === "boolean" && (
@@ -368,6 +430,57 @@ export default function CheckCard({
 
   const borderClass = inlineStyle ? "border-white/80 bg-[#0f0f0f]" : "border-neutral-600 bg-neutral-800/80";
   const borderBottomClass = inlineStyle ? "border-white/20" : "border-neutral-600";
+
+  if (templateMode) {
+    return (
+      <div
+        className={`relative border border-dashed rounded-lg overflow-hidden transition-all duration-300 opacity-25 ${borderClass}`}
+        data-check-card
+      >
+        <div
+          className={`flex items-center gap-2 py-2 pr-3 border-b border-dashed flex-wrap ${borderBottomClass} pl-0`}
+        >
+          {orderIndex != null && (
+            <span
+              className="flex items-center justify-center w-6 h-6 rounded text-white text-xs font-semibold shrink-0 bg-white/20 ml-2"
+              title={`${t("runOrder")}: ${orderIndex}`}
+            >
+              {orderIndex}
+            </span>
+          )}
+          <div className="shrink-0 flex items-stretch border-r border-white/20 self-stretch rounded-l-lg bg-white/5 pl-1.5 pr-1.5 min-h-[2.25rem] w-6 justify-center items-center">
+            <span className="text-neutral-500/50 select-none text-xs">⋮⋮</span>
+          </div>
+          <span className="font-medium text-sm truncate pl-1">{checkLabel}</span>
+          {leftTags?.length ? (
+            <span className="flex gap-0.5 shrink-0">
+              {leftTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="text-[9px] leading-tight px-1 py-0.5 rounded border border-white/40 bg-white/5 capitalize"
+                >
+                  {tag}
+                </span>
+              ))}
+            </span>
+          ) : null}
+        </div>
+        <div
+          className={`flex items-center gap-2 py-2 pr-3 pl-3 border-t border-dashed ${borderBottomClass} min-h-[2.25rem]`}
+          aria-hidden
+        >
+          <span className="text-xs text-white/50">{t("details")}</span>
+          <svg className="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+          <span className="text-xs text-white/50 ml-auto">{t("remove")}</span>
+          <svg className="w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -418,7 +531,7 @@ export default function CheckCard({
         {statusTag ? (
           <span
             ref={statusTag === "active" ? activeBadgeRef : undefined}
-            className={`text-[9px] leading-tight px-1 py-0.5 rounded shrink-0 transition-transform duration-300 ${
+            className={`text-[9px] leading-tight px-1 py-0.5 rounded shrink-0 transition-transform duration-300 mx-1 ${
               statusTag === "active" ? "bg-green-600/80 text-white" : "bg-red-600/80 text-white"
             } ${celebrate ? "scale-125" : ""}`}
           >
@@ -557,6 +670,9 @@ export default function CheckCard({
                     </div>
                     {projectRulesSubTab === "form" && (
                       <div className="space-y-2 min-h-[8rem]">
+                        {projectRulesRaw.trim() !== "" && parseRulesFromScript(projectRulesRaw) === null && (
+                          <p className="text-amber-500/90 text-xs mb-2">{t("projectRulesScriptNotParseableHint")}</p>
+                        )}
                         {projectRulesFormRules.length === 0 && (
                           <p className="text-neutral-400 text-xs mb-2">{t("projectRulesFormEmptyHint")}</p>
                         )}
@@ -569,15 +685,16 @@ export default function CheckCard({
                               className="select select-sm bg-neutral-800 border-neutral-600 text-white text-xs w-36"
                               value={rule.type}
                               onChange={(e) => {
-                                const t = e.target.value as "forbidden_pattern" | "max_lines";
-                                if (t === "forbidden_pattern") updateProjectRule(rule.id, { type: t, pattern: "" });
-                                else updateProjectRule(rule.id, { type: t, maxLines: 300 });
+                                const t = e.target.value as "forbidden_pattern" | "forbidden_regex" | "max_lines";
+                                if (t === "max_lines") updateProjectRule(rule.id, { type: t, maxLines: 300 });
+                                else updateProjectRule(rule.id, { type: t, pattern: "" });
                               }}
                             >
                               <option value="forbidden_pattern">{t("projectRulesRuleTypeForbiddenPattern")}</option>
+                              <option value="forbidden_regex">{t("projectRulesRuleTypeForbiddenRegex")}</option>
                               <option value="max_lines">{t("projectRulesRuleTypeMaxLines")}</option>
                             </select>
-                            {rule.type === "forbidden_pattern" && (
+                            {(rule.type === "forbidden_pattern" || rule.type === "forbidden_regex") && (
                               <input
                                 type="text"
                                 className="input input-sm bg-neutral-800 border-neutral-600 text-white text-xs flex-1 min-w-0"
@@ -647,6 +764,9 @@ export default function CheckCard({
                           </div>
                         ) : (
                           <>
+                            {projectRulesRaw.trim() === "" && (
+                              <p className="text-xs text-neutral-500 mb-2">{t("projectRulesScriptEmptyHint")}</p>
+                            )}
                             <textarea
                               className="textarea textarea-sm w-full font-mono text-xs min-h-[120px] bg-neutral-900 border-neutral-600 text-white resize-y"
                               value={projectRulesRaw}
@@ -664,14 +784,23 @@ export default function CheckCard({
                                 {projectRulesMessage.text}
                               </p>
                             )}
-                            <button
-                              type="button"
-                              className="btn btn-primary btn-xs mt-2"
-                              disabled={projectRulesSaving}
-                              onClick={saveProjectRules}
-                            >
-                              {projectRulesSaving ? t("saving") : t("save")}
-                            </button>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-xs border border-white/30"
+                                onClick={loadDefaultProjectRules}
+                              >
+                                {t("projectRulesLoadDefault")}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-primary btn-xs"
+                                disabled={projectRulesSaving}
+                                onClick={saveProjectRules}
+                              >
+                                {projectRulesSaving ? t("saving") : t("save")}
+                              </button>
+                            </div>
                           </>
                         )}
                       </>
@@ -688,7 +817,7 @@ export default function CheckCard({
                             <div className="flex items-center gap-1 flex-wrap">
                               <label className="text-xs text-neutral-400">{getSettingLabel(s)}</label>
                               {getSettingTooltip(s) && (
-                                <span className="tooltip tooltip-right" data-tip={getSettingTooltip(s)}>
+                                <PortalTooltip content={getSettingTooltip(s)!} placement="right">
                                   <button
                                     type="button"
                                     className="btn btn-ghost btn-xs btn-circle text-white/50 hover:text-white/80"
@@ -705,7 +834,7 @@ export default function CheckCard({
                                       <path d="M12 16v-4M12 8h.01" />
                                     </svg>
                                   </button>
-                                </span>
+                                </PortalTooltip>
                               )}
                             </div>
                             {s.type === "boolean" && (
@@ -883,6 +1012,9 @@ export default function CheckCard({
                         </div>
                         {projectRulesSubTab === "form" && (
                           <div className="space-y-4">
+                            {projectRulesRaw.trim() !== "" && parseRulesFromScript(projectRulesRaw) === null && (
+                              <p className="text-amber-500/90 text-sm mb-2">{t("projectRulesScriptNotParseableHint")}</p>
+                            )}
                             {projectRulesFormRules.length === 0 && (
                               <p className="text-neutral-400 text-sm mb-2">{t("projectRulesFormEmptyHint")}</p>
                             )}
@@ -897,19 +1029,20 @@ export default function CheckCard({
                                     className="select select-sm bg-neutral-800 border-neutral-600 text-white"
                                     value={rule.type}
                                     onChange={(e) => {
-                                      const typ = e.target.value as "forbidden_pattern" | "max_lines";
-                                      if (typ === "forbidden_pattern")
-                                        updateProjectRule(rule.id, { type: typ, pattern: "" });
-                                      else updateProjectRule(rule.id, { type: typ, maxLines: 300 });
+                                      const typ = e.target.value as "forbidden_pattern" | "forbidden_regex" | "max_lines";
+                                      if (typ === "max_lines")
+                                        updateProjectRule(rule.id, { type: typ, maxLines: 300 });
+                                      else updateProjectRule(rule.id, { type: typ, pattern: "" });
                                     }}
                                   >
                                     <option value="forbidden_pattern">
                                       {t("projectRulesRuleTypeForbiddenPattern")}
                                     </option>
+                                    <option value="forbidden_regex">{t("projectRulesRuleTypeForbiddenRegex")}</option>
                                     <option value="max_lines">{t("projectRulesRuleTypeMaxLines")}</option>
                                   </select>
                                 </div>
-                                {rule.type === "forbidden_pattern" && (
+                                {(rule.type === "forbidden_pattern" || rule.type === "forbidden_regex") && (
                                   <div className="flex-1 min-w-[200px] flex flex-col gap-1">
                                     <label className="text-xs text-neutral-400">{t("projectRulesPatternLabel")}</label>
                                     <input
@@ -985,6 +1118,9 @@ export default function CheckCard({
                               </div>
                             ) : (
                               <>
+                                {projectRulesRaw.trim() === "" && (
+                                  <p className="text-sm text-neutral-500 mb-2">{t("projectRulesScriptEmptyHint")}</p>
+                                )}
                                 <textarea
                                   className="textarea w-full font-mono text-sm min-h-[280px] bg-neutral-900 border-neutral-600 text-white resize-y"
                                   value={projectRulesRaw}
@@ -1002,14 +1138,23 @@ export default function CheckCard({
                                     {projectRulesMessage.text}
                                   </p>
                                 )}
-                                <button
-                                  type="button"
-                                  className="btn btn-primary btn-sm mt-3"
-                                  disabled={projectRulesSaving}
-                                  onClick={saveProjectRules}
-                                >
-                                  {projectRulesSaving ? t("saving") : t("save")}
-                                </button>
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                  <button
+                                    type="button"
+                                    className="btn btn-ghost btn-sm border border-white/30"
+                                    onClick={loadDefaultProjectRules}
+                                  >
+                                    {t("projectRulesLoadDefault")}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-primary btn-sm"
+                                    disabled={projectRulesSaving}
+                                    onClick={saveProjectRules}
+                                  >
+                                    {projectRulesSaving ? t("saving") : t("save")}
+                                  </button>
+                                </div>
                               </>
                             )}
                           </>
@@ -1026,7 +1171,7 @@ export default function CheckCard({
                                 <div className="flex items-center gap-1 flex-wrap mb-1">
                                   <label className="text-sm text-neutral-300 block">{getSettingLabel(s)}</label>
                                   {getSettingTooltip(s) && (
-                                    <span className="tooltip tooltip-right" data-tip={getSettingTooltip(s)}>
+                                    <PortalTooltip content={getSettingTooltip(s)!} placement="right">
                                       <button
                                         type="button"
                                         className="btn btn-ghost btn-xs btn-circle text-white/50 hover:text-white/80"
@@ -1043,7 +1188,7 @@ export default function CheckCard({
                                           <path d="M12 16v-4M12 8h.01" />
                                         </svg>
                                       </button>
-                                    </span>
+                                    </PortalTooltip>
                                   )}
                                 </div>
                                 {s.type === "boolean" && (

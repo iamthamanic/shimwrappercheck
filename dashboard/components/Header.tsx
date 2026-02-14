@@ -5,9 +5,11 @@
  */
 "use client";
 
-import { useTranslations, useLocale } from "next-intl";
+import { useContext } from "react";
+import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { IconSettings } from "@/components/Icons";
+import { LocaleContext } from "@/components/ClientLocaleProvider";
 
 export default function Header() {
   const t = useTranslations("common");
@@ -48,18 +50,29 @@ export default function Header() {
 }
 
 function LocaleSwitcher() {
-  const pathname = usePathname();
-  const locale = useLocale();
+  const { locale, setLocale } = useContext(LocaleContext);
   const activeClass = "px-2 py-1 bg-white text-black font-medium";
   const inactiveClass = "px-2 py-1 bg-white/10 hover:bg-white/20 text-white";
   return (
-    <div className="flex rounded overflow-hidden border border-white/50 text-xs">
-      <Link href={pathname} locale="de" className={locale === "de" ? activeClass : inactiveClass}>
+    <div className="flex rounded overflow-hidden border border-white/50 text-xs" role="group" aria-label="Sprache wählen">
+      <button
+        type="button"
+        onClick={() => setLocale("de")}
+        className={locale === "de" ? activeClass : inactiveClass}
+        aria-pressed={locale === "de"}
+        aria-label="Deutsch"
+      >
         DE
-      </Link>
-      <Link href={pathname} locale="en" className={locale === "en" ? activeClass : inactiveClass}>
+      </button>
+      <button
+        type="button"
+        onClick={() => setLocale("en")}
+        className={locale === "en" ? activeClass : inactiveClass}
+        aria-pressed={locale === "en"}
+        aria-label="English"
+      >
         EN
-      </Link>
+      </button>
     </div>
   );
 }

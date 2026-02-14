@@ -19,13 +19,16 @@
     "noLogYet": "No log for this check yet. Run checks to see output.",
     "settingsNoExtra": "No extra settings. This check is only toggled via „Active“ in My Checks.",
     "projectRulesTab": "Rules",
-    "projectRulesForm": "Form",
-    "projectRulesScript": "Script",
+    "projectRulesForm": "Form Mode",
+    "projectRulesScript": "Script Mode",
     "projectRulesScriptPlaceholder": "Edit script (saved as scripts/checks/project-rules.sh). Exit 0 = pass.",
+    "projectRulesLoadDefault": "Load standard project rules",
+    "projectRulesScriptEmptyHint": "No script yet. Click „Load standard (AGENTS.md)“ or write your own.",
     "projectRulesFormPlaceholder": "Form-based rules (e.g. forbidden imports) coming in a later version. Use the Script view.",
     "projectRulesSaved": "Script saved.",
     "projectRulesAddRule": "Add rule",
     "projectRulesRuleTypeForbiddenPattern": "Forbidden pattern",
+    "projectRulesRuleTypeForbiddenRegex": "Forbidden pattern (regex)",
     "projectRulesRuleTypeMaxLines": "Max lines per file",
     "projectRulesPatternLabel": "Pattern (e.g. ../ or from '@/../')",
     "projectRulesPatternPlaceholder": "e.g. ../",
@@ -33,6 +36,7 @@
     "projectRulesMaxLinesPlaceholder": "300",
     "projectRulesRuleTypeLabel": "Rule type",
     "projectRulesFormEmptyHint": "No rules yet. Click „Add rule“, then Save.",
+    "projectRulesScriptNotParseableHint": "Script has no RULES_JSON format. Editing the form and saving will overwrite the script.",
     "active": "Active",
     "inactive": "Inactive",
     "copy": "Copy",
@@ -81,11 +85,20 @@
     "dropHereDeactivate": "Drop here – deactivate check",
     "insertHere": "Insert here",
     "noMyChecksYet": "No My Checks yet. Drag from Check Library here.",
-    "dragFromLibrary": "Drag checks from Check Library into the area above to activate them.",
+    "dragFromLibrary": "Grab checks by the ⋮⋮ handle (left on the card) and drag into the area above.",
     "removeFromMyShim": "Remove from My Shim (back to Check Library)",
     "dragToReorder": "Drag to reorder",
     "dashboardTitle": "shimwrappercheck Dashboard",
-    "dashboardDescription": "Config & AGENTS.md for shimwrappercheck"
+    "dashboardDescription": "Config & AGENTS.md for shimwrappercheck",
+    "reviewModeLabel": "Save review report",
+    "reviews": "Reviews",
+    "reviewsIntro": "When review mode is on for a check, a report is saved as .md after each run.",
+    "reviewsOutputPath": "Review reports output path",
+    "reviewsOutputPathHint": "Directory relative to project root. Example: reports or .shimwrapper/reviews",
+    "reviewsCheckListTitle": "All checks",
+    "reviewsCheckListHint": "Turn review mode on or off per check in Templates → My Checks.",
+    "reviewsReportOn": "Report on",
+    "reviewsReportOff": "Report off"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -112,7 +125,10 @@
     "close": "Close"
   },
   "myChecks": {
-    "title": "My Checks"
+    "title": "My Checks",
+    "showIdealOrderTemplate": "Recommended order",
+    "idealOrderHint": "Recommended order – activate checks here or remove them from the list.",
+    "addToMyChecks": "Add"
   },
   "settings": {
     "loadError": "Settings could not be loaded.",

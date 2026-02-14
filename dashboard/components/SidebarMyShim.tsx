@@ -28,7 +28,7 @@ export default function SidebarMyShim() {
   const settingsRef = useRef<SettingsData | null>(settings);
   settingsRef.current = settings;
 
-  const load = useCallback(() => {
+  const load = useCallback((onFulfilled?: () => void) => {
     const ac = new AbortController();
     const timeoutId = setTimeout(() => ac.abort(), 8000);
     fetch("/api/settings", { signal: ac.signal })
@@ -46,6 +46,7 @@ export default function SidebarMyShim() {
         } else {
           setSettings(null);
         }
+        onFulfilled?.();
       })
       .catch(() => setSettings(null))
       .finally(() => clearTimeout(timeoutId));
@@ -65,10 +66,22 @@ export default function SidebarMyShim() {
   }, []);
 
   useEffect(() => {
-    const onMyChecksSaved = () => setMyChecksLastUpdated(new Date());
+    const onMyChecksSaved = (e: Event) => {
+      const addedCheckId = (e as CustomEvent<{ addedCheckId?: string }>).detail?.addedCheckId ?? null;
+      setMyChecksLastUpdated(new Date());
+      if (addedCheckId) {
+        load(() => {
+          if (typeof window !== "undefined") {
+            requestAnimationFrame(() => {
+              window.dispatchEvent(new CustomEvent("check-activated", { detail: { checkId: addedCheckId } }));
+            });
+          }
+        });
+      }
+    };
     window.addEventListener("my-checks-saved", onMyChecksSaved);
     return () => window.removeEventListener("my-checks-saved", onMyChecksSaved);
-  }, []);
+  }, [load]);
 
   useEffect(() => {
     savedRef.current = () => load();

@@ -1,10 +1,11 @@
 /**
- * Locale layout: validates locale, loads messages, provides NextIntlClientProvider.
+ * Locale layout: validates locale, loads messages, provides client-side locale
+ * switch (no reload). NextIntlClientProvider is inside ClientLocaleProvider.
  * Location: app/[locale]/layout.tsx
  */
-import { NextIntlClientProvider } from "next-intl";
 import { hasLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
+import ClientLocaleProvider from "@/components/ClientLocaleProvider";
 import DevConsoleHint from "@/components/DevConsoleHint";
 import Header from "@/components/Header";
 import LayoutContent from "@/components/LayoutContent";
@@ -65,10 +66,16 @@ export default async function LocaleLayout({ children, params }: Props) {
   }
   // Rounded to full minute so server/client serialization matches (avoids hydration mismatch / "1 Issue")
   const now = new Date(Math.floor(Date.now() / 60_000) * 60_000);
+  const safeLocale = locale === "en" ? "en" : "de";
 
   try {
     return (
-      <NextIntlClientProvider messages={messages} locale={locale} timeZone="Europe/Berlin" now={now}>
+      <ClientLocaleProvider
+        initialLocale={safeLocale}
+        messagesByLocale={messagesByLocale}
+        timeZone="Europe/Berlin"
+        now={now}
+      >
         <DevConsoleHint />
         <SetDocumentLang />
         <Header />
@@ -81,7 +88,7 @@ export default async function LocaleLayout({ children, params }: Props) {
             </RunChecksLogProvider>
           </SettingsSavedProvider>
         </div>
-      </NextIntlClientProvider>
+      </ClientLocaleProvider>
     );
   } catch (e) {
     console.error("LocaleLayout render failed:", e);

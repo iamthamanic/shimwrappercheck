@@ -71,6 +71,8 @@ Starte mit 100 Punkten. Gehe die folgende Checkliste durch und ziehe für jeden 
 - IDOR: API akzeptiert ID (z.B. user_id) ohne Prüfung, ob der User diese Ressource sehen darf? (Abzug: -25)
 - Data Leakage: Sensible Daten in Logs oder Frontend? (Abzug: -20)
 - Rate Limiting: Funktion durch massenhafte Aufrufe lahmlegbar? (Abzug: -10)
+- Path Traversal / File-IO: Nutzer-Input landet ungeprueft in Dateipfaden (path.join/readFile/writeFile/copy/symlink)? (Abzug: -25)
+- Command Injection: Nutzer-Input in Shell/Exec/Spawn ohne sichere Trennung/Allowlist? (Abzug: -25)
 
 4. Robustheit & Error Handling
 - Silent Fails: Leere catch-Blöcke, die Fehler verschlucken? (Abzug: -15)
@@ -184,15 +186,21 @@ ${CHUNK_CONTENT}"
       echo "- **Score:** ${CHUNK_RATING}%"
       [[ -n "$CHUNK_NOTE" ]] && echo "- **Note:** $CHUNK_NOTE"
       echo ""
-      echo "### Deductions"
-      echo ""
-      if [[ -n "$CHUNK_DEDUCTIONS" ]] && [[ "$CHUNK_DEDUCTIONS" != "[]" ]]; then
-        echo "$CHUNK_DEDUCTIONS" | jq -r '.[] | "- **\(.point)**: -\(.minus) — \(.reason)"' 2>/dev/null || echo "$CHUNK_DEDUCTIONS"
+      CHUNK_DEDUCTIONS_COUNT=0
+      if [[ -n "$CHUNK_DEDUCTIONS" ]] && [[ "$CHUNK_DEDUCTIONS" != "[]" ]] && command -v jq >/dev/null 2>&1; then
+        CHUNK_DEDUCTIONS_COUNT=$(echo "$CHUNK_DEDUCTIONS" | jq -r "length // 0" 2>/dev/null || echo 0)
+      fi
+      if [[ "$CHUNK_DEDUCTIONS_COUNT" -gt 0 ]]; then
+        echo "### ⚠️ Findings"
+        echo ""
+        echo "$CHUNK_DEDUCTIONS" | jq -r '.[] | "- ❌ **\(.point)**: -\(.minus) — \(.reason)"' 2>/dev/null || echo "$CHUNK_DEDUCTIONS"
       else
-        echo "(none)"
+        echo "### ✅ No findings"
+        echo ""
+        echo "- 🎉 No deductions in this chunk."
       fi
       echo ""
-      echo "### Raw response"
+      echo "### 🧾 Raw response"
       echo ""
       echo '```'
       echo "$CHUNK_RAW"
@@ -273,6 +281,8 @@ Starte mit 100 Punkten. Gehe die folgende Checkliste durch und ziehe für jeden 
 - IDOR: API akzeptiert ID (z.B. user_id) ohne Prüfung, ob der User diese Ressource sehen darf? (Abzug: -25)
 - Data Leakage: Sensible Daten in Logs oder Frontend? (Abzug: -20)
 - Rate Limiting: Funktion durch massenhafte Aufrufe lahmlegbar? (Abzug: -10)
+- Path Traversal / File-IO: Nutzer-Input landet ungeprueft in Dateipfaden (path.join/readFile/writeFile/copy/symlink)? (Abzug: -25)
+- Command Injection: Nutzer-Input in Shell/Exec/Spawn ohne sichere Trennung/Allowlist? (Abzug: -25)
 
 4. Robustheit & Error Handling
 - Silent Fails: Leere catch-Blöcke, die Fehler verschlucken? (Abzug: -15)
@@ -394,6 +404,11 @@ if [[ "$REVIEW_VERDICT" == "ACCEPT" ]] && [[ "$REVIEW_RATING" -ge 95 ]]; then
   PASS=1
 fi
 
+REVIEW_DEDUCTIONS_COUNT=0
+if [[ -n "$REVIEW_DEDUCTIONS" ]] && [[ "$REVIEW_DEDUCTIONS" != "[]" ]] && command -v jq >/dev/null 2>&1; then
+  REVIEW_DEDUCTIONS_COUNT=$(echo "$REVIEW_DEDUCTIONS" | jq -r "length // 0" 2>/dev/null || echo 0)
+fi
+
 # Always print token usage
 if [[ -n "$INPUT_T" && -n "$OUTPUT_T" ]]; then
   TOTAL=$((INPUT_T + OUTPUT_T))
@@ -413,21 +428,33 @@ BRANCH=""
 {
   echo "# AI Code Review — Date $REVIEW_DATE  Time $REVIEW_TIME"
   echo ""
+  echo "## 📊 Review Summary"
   echo "- **Mode:** $CHECK_MODE"
   echo "- **Branch:** $BRANCH"
-  echo "- **Verdict:** $([ "$PASS" -eq 1 ] && echo "PASS" || echo "FAIL") ($REVIEW_VERDICT)"
+  echo "- **Status:** $([ "$PASS" -eq 1 ] && echo "✅ PASS" || echo "❌ FAIL") ($REVIEW_VERDICT)"
   echo "- **Score:** ${REVIEW_RATING}%"
   echo "- **Tokens:** ${INPUT_T:-?} input, ${OUTPUT_T:-?} output"
+  echo "- **Findings:** ${REVIEW_DEDUCTIONS_COUNT}"
   echo ""
-  echo "## Deductions"
+  echo "## 🧭 What was checked"
+  echo "- 🏗️ Architektur & SOLID"
+  echo "- ⚡ Performance & Ressourcen"
+  echo "- 🔐 Sicherheit (inkl. IDOR, Data Leakage, Rate Limiting, Path Traversal/File-IO, Command Injection)"
+  echo "- 🛡️ Robustheit & Error Handling"
+  echo "- 🧹 Wartbarkeit & Lesbarkeit"
   echo ""
-  if [[ -n "$REVIEW_DEDUCTIONS" ]] && [[ "$REVIEW_DEDUCTIONS" != "[]" ]]; then
-    echo "$REVIEW_DEDUCTIONS" | jq -r '.[] | "- **\(.point)**: -\(.minus) — \(.reason)"' 2>/dev/null || echo "$REVIEW_DEDUCTIONS"
+  if [[ "$REVIEW_DEDUCTIONS_COUNT" -gt 0 ]]; then
+    echo "## ⚠️ Findings to address"
+    echo ""
+    echo "$REVIEW_DEDUCTIONS" | jq -r '.[] | "- ❌ **\(.point)**: -\(.minus) — \(.reason)"' 2>/dev/null || echo "$REVIEW_DEDUCTIONS"
   else
-    echo "(none)"
+    echo "## ✅ No findings from AI checklist"
+    echo ""
+    echo "- 🎉 Keine Abzuege. Der AI-Check hat keine Verstoesse in diesem Scope gefunden."
+    echo "- ℹ️ Hinweis: Das ist keine formale Sicherheitsgarantie; SAST/DAST sollten weiterhin laufen."
   fi
   echo ""
-  echo "## Raw response"
+  echo "## 🧾 Raw response"
   echo ""
   echo '```'
   [[ -n "$RESULT_TEXT" ]] && echo "$RESULT_TEXT" || echo "(no review text)"

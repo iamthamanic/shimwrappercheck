@@ -156,12 +156,14 @@ function DragOverlayCard({
 const collisionDetection: CollisionDetection = (args) => {
   const { droppableRects, droppableContainers, pointerCoordinates } = args;
   const containerRect = pointerCoordinates && droppableRects.get(MY_SHIM_DROPPABLE_ID);
-  if (
+  const isInsideMyChecks =
     pointerCoordinates &&
     containerRect &&
+    pointerCoordinates.x >= containerRect.left &&
+    pointerCoordinates.x <= containerRect.left + containerRect.width &&
     pointerCoordinates.y >= containerRect.top &&
-    pointerCoordinates.y <= containerRect.top + containerRect.height
-  ) {
+    pointerCoordinates.y <= containerRect.top + containerRect.height;
+  if (isInsideMyChecks) {
     const betweenSlots: { id: string; centerY: number }[] = [];
     droppableRects.forEach((rect, id) => {
       const idStr = String(id);
@@ -188,6 +190,10 @@ const collisionDetection: CollisionDetection = (args) => {
           },
         ];
       }
+    }
+    const myShimContainer = droppableContainers.find((c) => String(c.id) === MY_SHIM_DROPPABLE_ID);
+    if (myShimContainer) {
+      return [{ id: MY_SHIM_DROPPABLE_ID, data: { droppableContainer: myShimContainer, value: 0 } }];
     }
   }
   const collisions = pointerWithin(args);
@@ -260,7 +266,7 @@ export default function ShimDndProvider({ children, onSettingsSaved }: ShimDndPr
   const [overId, setOverId] = useState<string | null>(null);
   const [activeDragData, setActiveDragData] = useState<CheckDragData | null>(null);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
@@ -301,7 +307,11 @@ export default function ShimDndProvider({ children, onSettingsSaved }: ShimDndPr
         const orderChanged = JSON.stringify(settings.checkOrder ?? []) !== JSON.stringify(next.checkOrder ?? []);
         const togglesChanged = JSON.stringify(settings.checkToggles ?? {}) !== JSON.stringify(next.checkToggles ?? {});
         if (isCheckCardDrag && (orderChanged || togglesChanged)) {
-          window.dispatchEvent(new CustomEvent("my-checks-saved"));
+          window.dispatchEvent(
+            new CustomEvent("my-checks-saved", {
+              detail: wasAddToMyChecks ? { addedCheckId: activeIdStr } : {},
+            })
+          );
           onSettingsSaved?.();
         }
         const orderBefore = settings.checkOrder ?? [];
@@ -314,9 +324,13 @@ export default function ShimDndProvider({ children, onSettingsSaved }: ShimDndPr
         if (wasAddToMyChecks && typeof window !== "undefined") {
           const newIndex = (next.checkOrder ?? []).indexOf(activeIdStr);
           window.dispatchEvent(new CustomEvent("my-checks-reordered", { detail: { movedId: activeIdStr, newIndex } }));
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent("check-activated", { detail: { checkId: activeIdStr } }));
-          }, 120);
+        }
+        const wasReturnToLibrary =
+          overIdStr === CHECK_LIBRARY_DROPPABLE_ID &&
+          (settings.checkOrder ?? []).includes(activeIdStr) &&
+          !(next.checkOrder ?? []).includes(activeIdStr);
+        if (wasReturnToLibrary && typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("check-returned-to-library"));
         }
       }
     } catch {

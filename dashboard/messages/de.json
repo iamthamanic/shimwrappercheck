@@ -19,13 +19,16 @@
     "noLogYet": "Noch kein Log für diesen Check. Checks ausführen, um Ausgabe zu sehen.",
     "settingsNoExtra": "Keine weiteren Einstellungen. Der Check wird nur über „Aktiv“ (in My Checks) ein- oder ausgeschaltet.",
     "projectRulesTab": "Regeln",
-    "projectRulesForm": "Formular",
-    "projectRulesScript": "Skript",
+    "projectRulesForm": "Form Mode",
+    "projectRulesScript": "Skript Mode",
     "projectRulesScriptPlaceholder": "Skript bearbeiten (wird als scripts/checks/project-rules.sh gespeichert). Exit 0 = bestanden.",
+    "projectRulesLoadDefault": "Standard Projektregeln laden",
+    "projectRulesScriptEmptyHint": "Noch kein Skript. Klicke auf „Standard (AGENTS.md) laden“ oder schreibe dein eigenes.",
     "projectRulesFormPlaceholder": "Regeln per Formular (z. B. verbotene Imports) kommen in einer späteren Version. Nutze die Skript-Ansicht.",
     "projectRulesSaved": "Skript gespeichert.",
     "projectRulesAddRule": "Regel hinzufügen",
     "projectRulesRuleTypeForbiddenPattern": "Verbotenes Muster",
+    "projectRulesRuleTypeForbiddenRegex": "Verbotenes Muster (Regex)",
     "projectRulesRuleTypeMaxLines": "Max. Zeilen pro Datei",
     "projectRulesPatternLabel": "Muster (z. B. ../ oder from '@/../')",
     "projectRulesPatternPlaceholder": "z. B. ../",
@@ -33,6 +36,7 @@
     "projectRulesMaxLinesPlaceholder": "300",
     "projectRulesRuleTypeLabel": "Regeltyp",
     "projectRulesFormEmptyHint": "Noch keine Regeln. Klicke auf „Regel hinzufügen“, dann Speichern.",
+    "projectRulesScriptNotParseableHint": "Skript hat kein RULES_JSON-Format. Formular bearbeiten und Speichern überschreibt das Skript.",
     "active": "Aktiv",
     "inactive": "Inaktiv",
     "copy": "Kopieren",
@@ -81,11 +85,20 @@
     "dropHereDeactivate": "Hier ablegen – Check deaktivieren",
     "insertHere": "Hier einfügen",
     "noMyChecksYet": "Noch keine My Checks. Aus der Check Library hierher ziehen.",
-    "dragFromLibrary": "Checks aus der Check Library in die Fläche oben ziehen, um sie zu aktivieren.",
+    "dragFromLibrary": "Checks am ⋮⋮-Symbol (links an der Karte) greifen und in die Fläche oben ziehen.",
     "removeFromMyShim": "Aus My Shim entfernen (zurück in Check Library)",
     "dragToReorder": "Ziehen zum Sortieren",
     "dashboardTitle": "shimwrappercheck Dashboard",
-    "dashboardDescription": "Config & AGENTS.md für shimwrappercheck"
+    "dashboardDescription": "Config & AGENTS.md für shimwrappercheck",
+    "reviewModeLabel": "Review-Report anlegen",
+    "reviews": "Reviews",
+    "reviewsIntro": "Wenn der Review-Modus bei einem Check aktiv ist, wird nach jedem Lauf ein Report als .md gespeichert.",
+    "reviewsOutputPath": "Speicherort der Review-Reports",
+    "reviewsOutputPathHint": "Ordner relativ zum Projekt-Root. Beispiel: reports oder .shimwrapper/reviews",
+    "reviewsCheckListTitle": "Alle Checks",
+    "reviewsCheckListHint": "Review-Modus pro Check in Templates → My Checks ein- oder ausschalten.",
+    "reviewsReportOn": "Report an",
+    "reviewsReportOff": "Report aus"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -112,7 +125,10 @@
     "close": "Schließen"
   },
   "myChecks": {
-    "title": "Meine Checks"
+    "title": "Meine Checks",
+    "showIdealOrderTemplate": "Empfohlene Reihenfolge",
+    "idealOrderHint": "Empfohlene Reihenfolge – Checks hier aktivieren oder in der Liste entfernen.",
+    "addToMyChecks": "Hinzufügen"
   },
   "settings": {
     "loadError": "Einstellungen konnten nicht geladen werden.",

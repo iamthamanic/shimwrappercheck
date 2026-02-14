@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import type { SettingsData, Preset, ProviderId } from "@/lib/presets";
@@ -12,9 +12,11 @@ import { DEFAULT_VIBE_CODE_PRESET, SUPABASE_COMMAND_IDS } from "@/lib/presets";
 import StatusCard from "@/components/StatusCard";
 import TriggerCommandos from "@/components/TriggerCommandos";
 import MyShimChecks from "@/components/MyShimChecks";
+import AvailableChecks from "@/components/AvailableChecks";
 import { useRunChecksLog } from "@/components/RunChecksLogContext";
+import { CHECK_DEFINITIONS } from "@/lib/checks";
 
-type SettingsTab = "templates" | "information";
+type SettingsTab = "templates" | "information" | "reviews";
 
 type Status = {
   projectRoot?: string;
@@ -48,17 +50,35 @@ export default function SettingsPage() {
   const [runResult, setRunResult] = useState<{ stdout: string; stderr: string; code: number } | null>(null);
   const [triggerCommandosLastUpdated, setTriggerCommandosLastUpdated] = useState<Date | null>(null);
   const [myChecksLastUpdated, setMyChecksLastUpdated] = useState<Date | null>(null);
-  const [roleTab, setRoleTab] = useState<"enforce" | "hooks">("enforce");
+  const [roleTab, setRoleTabState] = useState<"enforce" | "hooks">("enforce");
+  const setRoleTab = useCallback((tab: "enforce" | "hooks") => {
+    setRoleTabState(tab);
+    try {
+      if (typeof sessionStorage !== "undefined") sessionStorage.setItem("shimwrappercheck-roleTab", tab);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      if (typeof sessionStorage === "undefined") return;
+      const stored = sessionStorage.getItem("shimwrappercheck-roleTab");
+      if (stored === "hooks" || stored === "enforce") setRoleTabState(stored);
+    } catch {
+      /* ignore */
+    }
+  }, []);
   const [presetMenuOpen, setPresetMenuOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportFileName, setExportFileName] = useState("");
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const { refetch: refetchRunChecksLog, running, setRunning, setCurrentCheckId } = useRunChecksLog();
+  const pendingAddedCheckIdRef = useRef<string | null>(null);
 
   const SETTINGS_FETCH_MS = 12_000;
 
-  const load = useCallback(() => {
+  const load = useCallback((onFulfilled?: () => void) => {
     setLoading(true);
     const ac = new AbortController();
     const timeoutId = setTimeout(() => ac.abort(), SETTINGS_FETCH_MS);
@@ -81,6 +101,7 @@ export default function SettingsPage() {
             }
           }
         }
+        onFulfilled?.();
       })
       .catch((err) => {
         setSettings(null);
@@ -119,10 +140,23 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    const onMyChecksSaved = () => setMyChecksLastUpdated(new Date());
+    const onMyChecksSaved = (e: Event) => {
+      const addedCheckId = (e as CustomEvent<{ addedCheckId?: string }>).detail?.addedCheckId ?? null;
+      pendingAddedCheckIdRef.current = addedCheckId;
+      setMyChecksLastUpdated(new Date());
+      load(() => {
+        const id = pendingAddedCheckIdRef.current;
+        pendingAddedCheckIdRef.current = null;
+        if (id && typeof window !== "undefined") {
+          requestAnimationFrame(() => {
+            window.dispatchEvent(new CustomEvent("check-activated", { detail: { checkId: id } }));
+          });
+        }
+      });
+    };
     window.addEventListener("my-checks-saved", onMyChecksSaved);
     return () => window.removeEventListener("my-checks-saved", onMyChecksSaved);
-  }, []);
+  }, [load]);
 
   const runChecks = () => {
     setRunResult(null);
@@ -401,6 +435,13 @@ export default function SettingsPage() {
         >
           {t("information")}
         </button>
+        <button
+          type="button"
+          className={`px-4 py-2 text-sm font-medium ${tab === "reviews" ? "bg-white text-black" : "bg-transparent text-white hover:bg-white/10"}`}
+          onClick={() => setTab("reviews")}
+        >
+          {t("reviews")}
+        </button>
       </div>
 
       {loading && !settings && (
@@ -567,6 +608,53 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {showTabsAndContent && tab === "reviews" && (
+        <div className="space-y-6 max-w-xl">
+          <h2 className="text-xl font-semibold">{t("reviews")}</h2>
+          <p className="text-sm text-neutral-400">{t("reviewsIntro")}</p>
+          <div className="card bg-neutral-800 border border-neutral-600 shadow-md">
+            <div className="card-body">
+              <label className="label">
+                <span className="label-text text-white">{t("reviewsOutputPath")}</span>
+              </label>
+              <input
+                type="text"
+                className="input input-bordered w-full bg-neutral-900 border-neutral-600 text-white placeholder-neutral-500"
+                placeholder="reports"
+                value={settings?.reviewOutputPath ?? "reports"}
+                onChange={(e) =>
+                  settings && setSettings({ ...settings, reviewOutputPath: e.target.value.trim() || "reports" })
+                }
+              />
+              <p className="text-xs text-neutral-500 mt-1">{t("reviewsOutputPathHint")}</p>
+            </div>
+          </div>
+          <div className="card bg-neutral-800 border border-neutral-600 shadow-md">
+            <div className="card-body">
+              <h3 className="card-title text-white text-base">{t("reviewsCheckListTitle")}</h3>
+              <p className="text-sm text-neutral-400">{t("reviewsCheckListHint")}</p>
+              <ul className="mt-2 space-y-1.5 max-h-64 overflow-y-auto">
+                {CHECK_DEFINITIONS.map((def) => {
+                  const cs = (settings?.checkSettings as Record<string, Record<string, unknown>>)?.[def.id];
+                  const reviewOn = !!cs?.reviewMode;
+                  return (
+                    <li key={def.id} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="text-neutral-300 truncate">{def.label}</span>
+                      <span
+                        className={`shrink-0 badge badge-sm ${reviewOn ? "badge-success" : "badge-ghost"}`}
+                        title={reviewOn ? t("reviewsReportOn") : t("reviewsReportOff")}
+                      >
+                        {reviewOn ? t("reviewsReportOn") : t("reviewsReportOff")}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
         </div>
       )}
 
@@ -792,9 +880,9 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* My Shim 1:1 – Trigger Commandos & My Checks (wie in der Sidebar) */}
+          {/* My Shim + Check Library: Trigger Commandos & My Checks links, Check Library rechts zum Ziehen */}
           {settings && (
-            <div className="space-y-6">
+            <div className="flex flex-col gap-6">
               <TriggerCommandos
                 settings={settings}
                 onSave={saveSettingsForTriggerCommandos}
@@ -802,13 +890,25 @@ export default function SettingsPage() {
                 tab={roleTab}
                 onTabChange={setRoleTab}
               />
-              <MyShimChecks
-                key={`my-checks-${roleTab}`}
-                settings={settings}
-                onSave={saveSettingsForMyChecks}
-                lastUpdated={myChecksLastUpdated}
-                roleFilter={roleTab === "hooks" ? "hook" : "enforce"}
-              />
+              <div className="flex flex-col lg:flex-row gap-6 min-h-0">
+                <div className="flex-1 min-w-0 space-y-4">
+                  <MyShimChecks
+                    key={`my-checks-${roleTab}`}
+                    settings={settings}
+                    onSave={saveSettingsForMyChecks}
+                    lastUpdated={myChecksLastUpdated}
+                    roleFilter={roleTab === "hooks" ? "hook" : "enforce"}
+                  />
+                </div>
+                <div className="flex-1 min-w-0 lg:max-w-md shrink-0">
+                  <AvailableChecks
+                    settings={settings}
+                    onActivate={saveSettingsForMyChecks}
+                    onDeactivate={saveSettingsForMyChecks}
+                    onSave={saveSettingsForMyChecks}
+                  />
+                </div>
+              </div>
             </div>
           )}
 

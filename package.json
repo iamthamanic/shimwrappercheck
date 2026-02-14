@@ -53,6 +53,7 @@
   "devDependencies": {
     "@stryker-mutator/core": "^9.5.1",
     "prettier": "^3.8.1",
+    "shimwrappercheck": "^0.4.7",
     "snyk": "^1.1302.1",
     "typescript": "^5.9.3"
   }

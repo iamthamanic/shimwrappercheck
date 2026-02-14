@@ -189,6 +189,7 @@ export async function GET() {
           }
         }
         if (Array.isArray(parsed.checkOrder)) settings.checkOrder = parsed.checkOrder;
+        if (typeof parsed.reviewOutputPath === "string") settings.reviewOutputPath = parsed.reviewOutputPath;
       } catch {
         // use defaults
       }
@@ -240,6 +241,7 @@ export async function POST(request: NextRequest) {
       checkToggles: { ...DEFAULT_SETTINGS.checkToggles, ...body.checkToggles },
       checkSettings: body.checkSettings ?? undefined,
       checkOrder: Array.isArray(body.checkOrder) ? body.checkOrder : undefined,
+      reviewOutputPath: typeof body.reviewOutputPath === "string" ? body.reviewOutputPath : DEFAULT_SETTINGS.reviewOutputPath,
     };
 
     const root = getProjectRoot();

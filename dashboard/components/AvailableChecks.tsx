@@ -143,14 +143,15 @@ function DraggableLibraryCard({
           checkSettings={checkSettings}
           onSettingsChange={onSettingsChange}
           dragHandle={
-            <span
+            <div
               {...listeners}
               {...attributes}
-              className="w-6 h-full min-h-6 flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none text-neutral-400 hover:text-white"
+              className="flex items-center gap-2 w-40 min-w-0 cursor-grab active:cursor-grabbing select-none touch-none text-neutral-400 hover:text-white"
               title={dragHandleTitle}
             >
-              ⋮⋮
-            </span>
+              <span className="w-6 h-full min-h-6 flex items-center justify-center shrink-0">⋮⋮</span>
+              <span className="flex-1 min-h-6 min-w-0" aria-hidden />
+            </div>
           }
           leftTags={[...def.tags, def.role]}
           statusTag="inactive"
@@ -187,11 +188,29 @@ export default function AvailableChecks({
   const [showConfetti, setShowConfetti] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [suggestedReasons, setSuggestedReasons] = useState<Record<string, string> | null>(null);
+  const [libraryFlashRed, setLibraryFlashRed] = useState(false);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const scanAbortRef = useRef<AbortController | null>(null);
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: CHECK_LIBRARY_DROPPABLE_ID });
   const dropHighlight = isOver;
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const handler = () => {
+      setLibraryFlashRed(true);
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setLibraryFlashRed(false);
+        timeoutId = null;
+      }, 700);
+    };
+    window.addEventListener("check-returned-to-library", handler);
+    return () => {
+      window.removeEventListener("check-returned-to-library", handler);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, []);
 
   useEffect(() => {
     fetch("/api/check-tools")
@@ -327,7 +346,7 @@ export default function AvailableChecks({
       ref={setDropRef}
       className={`relative flex flex-col flex-1 min-h-0 rounded-xl transition-all duration-150 ${
         dropHighlight ? "ring-4 ring-red-500 ring-dashed bg-red-500/15" : ""
-      }`}
+      } ${libraryFlashRed ? "ring-4 ring-red-500 bg-red-500/25" : ""}`}
     >
       <div className="flex items-center justify-between gap-4 flex-wrap shrink-0">
         <h1 className="text-2xl font-bold text-white">{tCheckLib("title")}</h1>

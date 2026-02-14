@@ -1,6 +1,7 @@
 /**
  * POST /api/run-checks – run Node orchestrator (npx shimwrappercheck run) or fallback to scripts/run-checks.sh.
  * Saves last run stdout/stderr to .shimwrapper/last-run.json for the Logs tab.
+ * When review mode is on for a check, writes a .md report to reviewOutputPath.
  * If Accept: text/event-stream: streams SSE events (currentCheck, done) for live progress.
  * Vercel-compatible; uses SHIM_PROJECT_ROOT. Runs in project root.
  */
@@ -10,7 +11,10 @@ import fs from "fs";
 import { exec, spawn } from "child_process";
 import { promisify } from "util";
 import { getProjectRoot } from "@/lib/projectRoot";
-import { getCheckIdFromLine } from "@/lib/runChecksLog";
+import { getCheckIdFromLine, parseLastRunLog } from "@/lib/runChecksLog";
+import { DEFAULT_SETTINGS } from "@/lib/presets";
+
+const PRESETS_FILE = ".shimwrappercheck-presets.json";
 
 const execAsync = promisify(exec);
 
@@ -53,6 +57,54 @@ function sendSSE(controller: ReadableStreamDefaultController<Uint8Array>, event:
   controller.enqueue(new TextEncoder().encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
 }
 
+function readReviewSettings(root: string): {
+  reviewOutputPath: string;
+  checkSettings: Record<string, Record<string, unknown>>;
+} {
+  const p = path.join(root, PRESETS_FILE);
+  if (!fs.existsSync(p)) {
+    return {
+      reviewOutputPath: DEFAULT_SETTINGS.reviewOutputPath ?? "reports",
+      checkSettings: {},
+    };
+  }
+  try {
+    const raw = fs.readFileSync(p, "utf8");
+    const parsed = JSON.parse(raw) as { reviewOutputPath?: string; checkSettings?: Record<string, Record<string, unknown>> };
+    return {
+      reviewOutputPath: typeof parsed.reviewOutputPath === "string" ? parsed.reviewOutputPath : DEFAULT_SETTINGS.reviewOutputPath ?? "reports",
+      checkSettings: (parsed.checkSettings && typeof parsed.checkSettings === "object") ? parsed.checkSettings : {},
+    };
+  } catch {
+    return {
+      reviewOutputPath: DEFAULT_SETTINGS.reviewOutputPath ?? "reports",
+      checkSettings: {},
+    };
+  }
+}
+
+function writeReviewReports(root: string, stdout: string, stderr: string): void {
+  try {
+    const { reviewOutputPath, checkSettings } = readReviewSettings(root);
+    const outDir = path.join(root, reviewOutputPath.trim() || "reports");
+    const { segments } = parseLastRunLog(stdout, stderr);
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 19).replace(/[-:T]/g, "").slice(0, 15);
+    for (const [checkId, text] of Object.entries(segments)) {
+      const cs = checkSettings[checkId];
+      if (!cs || !cs.reviewMode) continue;
+      if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+      const safeId = checkId.replace(/[^a-zA-Z0-9-_]/g, "_");
+      const filename = `${safeId}-${dateStr}.md`;
+      const fullPath = path.join(outDir, filename);
+      const content = `# Review: ${checkId}\n\n**${now.toISOString()}**\n\n\`\`\`\n${text}\n\`\`\`\n`;
+      fs.writeFileSync(fullPath, content, "utf8");
+    }
+  } catch (e) {
+    console.warn("run-checks: could not write review reports", e);
+  }
+}
+
 export async function POST(request: NextRequest) {
   const accept = request.headers.get("accept") ?? "";
   const streamResponse = accept.includes("text/event-stream");
@@ -92,6 +144,7 @@ export async function POST(request: NextRequest) {
           child.stderr?.on("data", (d) => pushChunk(String(d), true));
           child.on("close", (code) => {
             writeLastRun(root, stdout, stderr);
+            writeReviewReports(root, stdout, stderr);
             sendSSE(controller, "done", { code: code ?? 1, stdout, stderr });
             controller.close();
           });
@@ -135,6 +188,7 @@ export async function POST(request: NextRequest) {
       code = err.code ?? 1;
     }
     writeLastRun(root, stdout, stderr);
+    writeReviewReports(root, stdout, stderr);
     return NextResponse.json({ stdout, stderr, code });
   } catch (err) {
     console.error("run-checks error:", err);

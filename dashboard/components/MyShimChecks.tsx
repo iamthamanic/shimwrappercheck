@@ -12,8 +12,8 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { SettingsData, CheckToggles } from "@/lib/presets";
-import { CHECK_DEFINITIONS } from "@/lib/checks";
-import type { CheckDef, CheckRole, CheckTag } from "@/lib/checks";
+import { CHECK_DEFINITIONS, IDEAL_CHECK_ORDER } from "@/lib/checks";
+import type { CheckDef, CheckId, CheckRole, CheckTag } from "@/lib/checks";
 import CheckCard, { type ToolStatus } from "./CheckCard";
 import { useRunChecksLog } from "./RunChecksLogContext";
 import { MY_SHIM_DROPPABLE_ID, MY_SHIM_BETWEEN_PREFIX, type CheckDragData } from "./ShimDndProvider";
@@ -161,8 +161,8 @@ export default function MyShimChecks({
   const tMyChecks = useTranslations("myChecks");
   const { segments: runChecksSegments, running: runChecksRunning, currentCheckId } = useRunChecksLog();
   const [search, setSearch] = useState("");
+  const [showIdealOrderTemplate, setShowIdealOrderTemplate] = useState(false);
   const [toolStatusMap, setToolStatusMap] = useState<Record<string, ToolStatus>>({});
-  const [explode, setExplode] = useState(false);
   const [lastMovedId, setLastMovedId] = useState<string | null>(null);
   const { active, over } = useDndContext();
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: MY_SHIM_DROPPABLE_ID });
@@ -170,16 +170,6 @@ export default function MyShimChecks({
   const showDropZones =
     active != null &&
     (overId === MY_SHIM_DROPPABLE_ID || (overId != null && overId.startsWith(MY_SHIM_BETWEEN_PREFIX)));
-
-  useEffect(() => {
-    const handler = () => {
-      setExplode(true);
-      const t = setTimeout(() => setExplode(false), 600);
-      return () => clearTimeout(t);
-    };
-    window.addEventListener("check-activated", handler);
-    return () => window.removeEventListener("check-activated", handler);
-  }, []);
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -216,6 +206,15 @@ export default function MyShimChecks({
   const filtered = search.trim()
     ? byTag.filter((c) => c.label.toLowerCase().includes(search.trim().toLowerCase()))
     : byTag;
+
+  /** Ideal-order list for template view: enforce only, optional tag filter. */
+  const idealOrderDefs = IDEAL_CHECK_ORDER.map((id: CheckId) => CHECK_DEFINITIONS.find((c) => c.id === id)).filter(
+    (d): d is CheckDef => d != null && d.role === roleToShow && (!tagFilter || d.tags.includes(tagFilter))
+  );
+  const idealOrderFiltered =
+    search.trim()
+      ? idealOrderDefs.filter((c) => c.label.toLowerCase().includes(search.trim().toLowerCase()))
+      : idealOrderDefs;
 
   const renderList = () => {
     const nodes: React.ReactNode[] = [
@@ -305,31 +304,73 @@ export default function MyShimChecks({
         ref={setDropRef}
         data-my-checks-list
         className={`relative rounded-xl min-h-[320px] p-4 transition-all duration-150 ${
-          isOver
+          !showIdealOrderTemplate && isOver
             ? "ring-4 ring-green-500 ring-dashed border-2 border-green-500 bg-green-500/15"
             : "border border-white/80 rounded-lg bg-[#0f0f0f]"
         }`}
       >
-        {isOver && <p className="text-green-300 text-sm font-medium mb-2">↓ {t("dropHereActivate")}</p>}
-        {explode && (
-          <div className="absolute inset-0 pointer-events-none z-[100] flex items-center justify-center" aria-hidden>
-            <div className="w-24 h-24 rounded-full bg-green-400/40 animate-ping scale-150 [animation-duration:600ms]" />
-            <div
-              className="absolute w-20 h-20 rounded-full bg-green-500/60 animate-[burst_0.4s_ease-out_forwards]"
-              style={{ animation: "burst 0.4s ease-out forwards" }}
+        <div className="flex items-center justify-between gap-2 pb-2 pt-1">
+          {filtered.length === 0 && (
+            <p className="text-neutral-500 text-sm flex-1 min-w-0 pr-2">{t("noMyChecksYet")}</p>
+          )}
+          <label
+            className="flex items-center gap-1.5 cursor-pointer shrink-0"
+            title={tMyChecks("showIdealOrderTemplate")}
+          >
+            <input
+              type="checkbox"
+              className="toggle toggle-sm"
+              checked={showIdealOrderTemplate}
+              onChange={(e) => setShowIdealOrderTemplate(e.target.checked)}
+              aria-label={tMyChecks("showIdealOrderTemplate")}
             />
-            <span className="absolute text-sm font-semibold text-green-400 bg-green-500/30 px-3 py-1.5 rounded-full border border-green-400/50">
-              {t("active")}
-            </span>
+            <span className="text-xs text-white/80">{tMyChecks("showIdealOrderTemplate")}</span>
+          </label>
+        </div>
+
+        <div className="relative min-h-[280px]">
+          {showIdealOrderTemplate && idealOrderFiltered.length > 0 && (
+            <div className="pointer-events-none" aria-hidden>
+              <ul className="space-y-1 list-none p-0 m-0">
+                {idealOrderFiltered.map((def, i) => (
+                  <React.Fragment key={def.id}>
+                    <li className="list-none min-h-0 py-0 flex items-center justify-center" aria-hidden>
+                      <div className="w-full h-0 min-h-0 overflow-hidden" />
+                    </li>
+                    <li className="list-none">
+                      <CheckCard
+                        def={def}
+                        orderIndex={i + 1}
+                        enabled={false}
+                        onToggle={() => {}}
+                        leftTags={[...def.tags, def.role]}
+                        statusTag="inactive"
+                        inlineStyle
+                        hideEnabledToggle
+                        templateMode
+                      />
+                    </li>
+                  </React.Fragment>
+                ))}
+                <li className="list-none min-h-0 py-0 flex items-center justify-center" aria-hidden>
+                  <div className="w-full h-0 min-h-0 overflow-hidden" />
+                </li>
+              </ul>
+            </div>
+          )}
+          <div className={showIdealOrderTemplate ? "absolute inset-0 z-10 min-h-0" : ""}>
+            {isOver && <p className="text-green-300 text-sm font-medium mb-2">↓ {t("dropHereActivate")}</p>}
+            {filtered.length === 0 ? (
+              <ul className="space-y-1 list-none p-0 m-0">
+                <DropSlot key="slot-empty-0" index={0} insertLabel={t("insertHere")} showDropZones={showDropZones} />
+              </ul>
+            ) : (
+              <SortableContext items={filtered.map((d) => d.id)} strategy={verticalListSortingStrategy}>
+                <ul className="space-y-1 list-none p-0 m-0">{renderList()}</ul>
+              </SortableContext>
+            )}
           </div>
-        )}
-        {filtered.length === 0 ? (
-          <p className="text-neutral-500 text-sm py-6 text-center px-2">{t("noMyChecksYet")}</p>
-        ) : (
-          <SortableContext items={filtered.map((d) => d.id)} strategy={verticalListSortingStrategy}>
-            <ul className="space-y-1 list-none p-0 m-0">{renderList()}</ul>
-          </SortableContext>
-        )}
+        </div>
       </div>
       <p className="text-xs text-neutral-500 mt-1.5 px-0.5">{t("dragFromLibrary")}</p>
     </div>
