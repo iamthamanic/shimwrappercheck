@@ -53,6 +53,8 @@ export interface CheckToggles {
   complexity: boolean;
   mutation: boolean;
   e2e: boolean;
+  ruff: boolean;
+  shellcheck: boolean;
 }
 
 /** Per-check options (persisted in presets JSON and written to rc as env where supported) */
@@ -106,6 +108,8 @@ export const DEFAULT_CHECK_TOGGLES: CheckToggles = {
   complexity: false,
   mutation: false,
   e2e: false,
+  ruff: false,
+  shellcheck: false,
 };
 
 export const DEFAULT_VIBE_CODE_PRESET: Preset = {
@@ -172,6 +176,8 @@ export function buildRcContent(settings: SettingsData): string {
   if (!t.complexity) args.push("--no-complexity");
   if (!t.mutation) args.push("--no-mutation");
   if (!t.e2e) args.push("--no-e2e");
+  if (!t.ruff) args.push("--no-ruff");
+  if (!t.shellcheck) args.push("--no-shellcheck");
   if (args.length) lines.push(`SHIM_CHECKS_ARGS="${args.join(" ")}"`);
 
   const order = settings.checkOrder ?? [];
@@ -202,6 +208,8 @@ export function buildRcContent(settings: SettingsData): string {
   lines.push(`SHIM_RUN_ARCHITECTURE=${t.architecture ? 1 : 0}`);
   lines.push(`SHIM_RUN_COMPLEXITY=${t.complexity ? 1 : 0}`);
   lines.push(`SHIM_RUN_MUTATION=${t.mutation ? 1 : 0}`);
+  lines.push(`SHIM_RUN_RUFF=${t.ruff ? 1 : 0}`);
+  lines.push(`SHIM_RUN_SHELLCHECK=${t.shellcheck ? 1 : 0}`);
 
   const cs = settings.checkSettings;
   if (!t.snyk) lines.push("SKIP_SNYK=1");

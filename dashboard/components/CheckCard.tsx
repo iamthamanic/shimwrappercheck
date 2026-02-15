@@ -85,6 +85,7 @@ export default function CheckCard({
   const tChecks = useTranslations("checks");
   const isProjectRules = def.id === "projectRules";
   const [tab, setTab] = useState<"info" | "settings" | "logs">("info");
+  const [infoSubTab, setInfoSubTab] = useState<"description" | "techStack">("description");
   const [modalOpen, setModalOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
@@ -385,12 +386,15 @@ export default function CheckCard({
                 )}
               </div>
               {s.type === "boolean" && (
-                <input
-                  type="checkbox"
-                  className="toggle toggle-sm ml-2"
-                  checked={val as boolean}
-                  onChange={(e) => onSettingsChange?.({ [s.key]: e.target.checked })}
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className={`toggle toggle-sm ml-2 ${(val as boolean) ? "toggle-success" : "toggle-error"}`}
+                    checked={val as boolean}
+                    onChange={(e) => onSettingsChange?.({ [s.key]: e.target.checked })}
+                  />
+                  <span className="text-[10px] uppercase text-neutral-400">{(val as boolean) ? "on" : "off"}</span>
+                </div>
               )}
               {s.type === "number" && (
                 <input
@@ -539,14 +543,14 @@ export default function CheckCard({
           </span>
         ) : null}
         {hasEnabledToggle && (
-          <label className="flex items-center gap-1 cursor-pointer shrink-0 ml-auto">
+          <label className="flex items-center gap-2 cursor-pointer shrink-0 ml-auto">
             <input
               type="checkbox"
-              className="toggle toggle-sm"
+              className={`toggle toggle-sm ${enabled ? "toggle-success" : "toggle-error"}`}
               checked={enabled}
               onChange={(e) => onToggle(e.target.checked)}
             />
-            <span className="text-xs">{t("active")}</span>
+            <span className="text-[10px] uppercase text-neutral-400">{enabled ? "on" : "off"}</span>
           </label>
         )}
         <button
@@ -614,7 +618,27 @@ export default function CheckCard({
             {tab === "info" && (
               <>
                 <p className="font-medium text-white mb-2">{checkSummary}</p>
-                <p className="whitespace-pre-wrap text-neutral-400 text-xs">{checkInfo}</p>
+                <div className="flex gap-0 border-b border-white/10 mb-2">
+                  <button
+                    type="button"
+                    className={`flex-1 py-1.5 px-2 text-xs font-medium ${infoSubTab === "description" ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/5"}`}
+                    onClick={() => setInfoSubTab("description")}
+                  >
+                    {t("description")}
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex-1 py-1.5 px-2 text-xs font-medium ${infoSubTab === "techStack" ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/5"}`}
+                    onClick={() => setInfoSubTab("techStack")}
+                  >
+                    {t("techStack")}
+                  </button>
+                </div>
+                {infoSubTab === "description" ? (
+                  <p className="whitespace-pre-wrap text-neutral-400 text-xs">{checkInfo}</p>
+                ) : (
+                  <p className="text-neutral-400 text-xs">{def.techStack}</p>
+                )}
                 {toolStatus && (
                   <div className="mt-3 pt-2 border-t border-white/10 text-xs flex flex-wrap items-center gap-1.5">
                     <span className="text-neutral-400">{t("toolLabel")}: </span>
@@ -838,12 +862,17 @@ export default function CheckCard({
                               )}
                             </div>
                             {s.type === "boolean" && (
-                              <input
-                                type="checkbox"
-                                className="toggle toggle-sm ml-2"
-                                checked={val as boolean}
-                                onChange={(e) => onSettingsChange?.({ [s.key]: e.target.checked })}
-                              />
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  className={`toggle toggle-sm ml-2 ${(val as boolean) ? "toggle-success" : "toggle-error"}`}
+                                  checked={val as boolean}
+                                  onChange={(e) => onSettingsChange?.({ [s.key]: e.target.checked })}
+                                />
+                                <span className="text-[10px] uppercase text-neutral-400">
+                                  {(val as boolean) ? "on" : "off"}
+                                </span>
+                              </div>
                             )}
                             {s.type === "number" && (
                               <input
@@ -956,7 +985,27 @@ export default function CheckCard({
                 {tab === "info" && (
                   <>
                     <p className="font-medium text-white text-lg mb-3">{checkSummary}</p>
-                    <p className="whitespace-pre-wrap text-neutral-300 mb-4">{checkInfo}</p>
+                    <div className="flex gap-0 border-b border-white/10 mb-3">
+                      <button
+                        type="button"
+                        className={`flex-1 py-2 px-3 text-sm font-medium ${infoSubTab === "description" ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/5"}`}
+                        onClick={() => setInfoSubTab("description")}
+                      >
+                        {t("description")}
+                      </button>
+                      <button
+                        type="button"
+                        className={`flex-1 py-2 px-3 text-sm font-medium ${infoSubTab === "techStack" ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/5"}`}
+                        onClick={() => setInfoSubTab("techStack")}
+                      >
+                        {t("techStack")}
+                      </button>
+                    </div>
+                    {infoSubTab === "description" ? (
+                      <p className="whitespace-pre-wrap text-neutral-300 mb-4">{checkInfo}</p>
+                    ) : (
+                      <p className="text-neutral-300 mb-4">{def.techStack}</p>
+                    )}
                     {toolStatus && (
                       <div className="pt-3 border-t border-white/10 text-sm flex flex-wrap items-center gap-2">
                         <span className="text-neutral-400">{t("toolLabel")}: </span>
@@ -1192,12 +1241,17 @@ export default function CheckCard({
                                   )}
                                 </div>
                                 {s.type === "boolean" && (
-                                  <input
-                                    type="checkbox"
-                                    className="toggle toggle-sm"
-                                    checked={val as boolean}
-                                    onChange={(e) => onSettingsChange?.({ [s.key]: e.target.checked })}
-                                  />
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="checkbox"
+                                      className={`toggle toggle-sm ${(val as boolean) ? "toggle-success" : "toggle-error"}`}
+                                      checked={val as boolean}
+                                      onChange={(e) => onSettingsChange?.({ [s.key]: e.target.checked })}
+                                    />
+                                    <span className="text-[10px] uppercase text-neutral-400">
+                                      {(val as boolean) ? "on" : "off"}
+                                    </span>
+                                  </div>
                                 )}
                                 {s.type === "number" && (
                                   <input

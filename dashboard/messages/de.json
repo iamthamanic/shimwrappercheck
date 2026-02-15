@@ -14,6 +14,8 @@
     "enforce": "Erzwingen",
     "hooks": "Hooks",
     "info": "Info",
+    "description": "Beschreibung",
+    "techStack": "Tech Stack",
     "settingsLabel": "Einstellungen",
     "logs": "Logs",
     "noLogYet": "Noch kein Log für diesen Check. Checks ausführen, um Ausgabe zu sehen.",
@@ -344,6 +346,16 @@
       "label": "E2E",
       "summary": "Option für End-to-End-Tests (muss im Projekt eingerichtet sein).",
       "info": "Zweck: Testet komplette Nutzerflüsse. Prüft: Im Standard-Runner nicht ausgeführt; Aktivieren speichert nur die Einstellung. Bestanden, wenn: Abhängig von eurem E2E-Skript. Nicht bestanden, wenn: Abhängig von eurem E2E-Skript. Anpassen: E2E-Kommando im eigenen `run-checks.sh`."
+    },
+    "ruff": {
+      "label": "Ruff (Python)",
+      "summary": "Lint und Format für Python-Code.",
+      "info": "Zweck: Verhindert Fehler und einheitliche Formatierung in Python-Dateien. Prüft: `ruff check .` und `ruff format --check .`. Bestanden, wenn: Beide Befehle enden ohne Fehler (Exit 0). Nicht bestanden, wenn: Ruff Lint- oder Format-Verstöße meldet. Anpassen: `pyproject.toml` oder `ruff.toml`. Hinweis: Wird übersprungen, wenn weder Python-Dateien noch pyproject.toml/requirements.txt vorhanden sind oder Ruff nicht installiert ist (z. B. pip install ruff, brew install ruff)."
+    },
+    "shellcheck": {
+      "label": "Shellcheck (Shell)",
+      "summary": "Findet typische Fehler in Shell-Skripten.",
+      "info": "Zweck: Verhindert Fehler und unsichere Praxis in Bash-/Shell-Skripten. Prüft: Alle `.sh`-Dateien (außer node_modules, .git) mit shellcheck. Bestanden, wenn: Keine Meldungen (Exit 0). Nicht bestanden, wenn: shellcheck Fehler oder Warnungen meldet. Anpassen: `.shellcheckrc` oder Direktiven im Skript. Hinweis: Wird übersprungen, wenn keine .sh-Dateien gefunden werden oder shellcheck nicht installiert ist (z. B. brew install shellcheck)."
     },
     "healthPing": {
       "label": "Post-Deploy: Health Ping",

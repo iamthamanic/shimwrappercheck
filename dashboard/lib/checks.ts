@@ -29,6 +29,8 @@ export interface CheckDef {
   /** Kurze Laien-Erklärung: Was macht dieser Check? (wird zuerst in der Box angezeigt) */
   summary: string;
   info: string;
+  /** Für welche Sprachen/Frameworks das Tool ist (Anzeige im Sub-Tab „Tech Stack“). */
+  techStack: string;
   settings: CheckSettingOption[];
   /** Jedes Tool hat ein oder mehrere Tags; bei beidem: ["frontend", "backend"] */
   tags: CheckTag[];
@@ -52,6 +54,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Findet Regel- und Qualitätsverstöße im Code.",
     info: "Zweck: Verhindert typische Fehler und Stilbrüche, bevor sie in Produktion landen. Prüft: Projektdateien mit ESLint-Regeln. Bestanden, wenn: Der ESLint-Lauf endet ohne Fehler (Exit 0). Nicht bestanden, wenn: ESLint Fehler meldet (Exit != 0). Anpassen: ESLint-Config und Regeln im Projekt.",
+    techStack: "JavaScript, TypeScript",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -61,6 +64,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Sichert ein einheitliches Code-Format.",
     info: "Zweck: Einheitliche Formatierung ohne Diskussionen. Prüft: Dateien mit Prettier im Check-Modus. Bestanden, wenn: Keine Abweichungen gefunden werden (Exit 0). Nicht bestanden, wenn: Formatabweichungen gefunden werden. Anpassen: Prettier-Config im Projekt.",
+    techStack: "JavaScript, TypeScript, CSS, HTML, JSON, Markdown, YAML",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -70,6 +74,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Findet TypeScript-Typfehler vor dem Lauf.",
     info: "Zweck: Verhindert Laufzeitfehler durch falsche Typen. Prüft: `tsc --noEmit`. Bestanden, wenn: Keine Typfehler (Exit 0). Nicht bestanden, wenn: Der Compiler Fehler meldet. Anpassen: `tsconfig.json` und TypeScript-Regeln.",
+    techStack: "TypeScript",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -79,6 +84,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Führt Build und Tests aus.",
     info: "Zweck: Sicherstellen, dass die App nach Änderungen weiterhin funktioniert. Prüft: `npm run build` und `npm run test:run`. Bestanden, wenn: Build und Tests erfolgreich (Exit 0). Nicht bestanden, wenn: Build oder ein Test fehlschlägt. Anpassen: Build- und Test-Skripte im Projekt.",
+    techStack: "JavaScript, TypeScript, Vite",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -88,6 +94,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Erzwingt projektspezifische Regeln (z. B. Struktur, Imports).",
     info: "Zweck: Sichert Teamregeln, die Lint nicht abdeckt. Prüft: `scripts/checks/project-rules.sh` (falls vorhanden). Bestanden, wenn: Script endet ohne Fehler (Exit 0). Nicht bestanden, wenn: Script Fehler meldet (Exit != 0). Anpassen: Regeln im Script. Hinweis: Fehlt das Script, wird der Check übersprungen.",
+    techStack: "Beliebig (Shell-Skript prüft z. B. .ts, .tsx, .js, .jsx, .scss, .css)",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -97,6 +104,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Scannt npm-Abhängigkeiten auf bekannte Sicherheitslücken.",
     info: "Zweck: Stoppt Builds bei bekannten Schwachstellen. Prüft: `npm audit` mit einstellbarem Schweregrad. Bestanden, wenn: Keine Findings mit Schweregrad >= Stufe. Nicht bestanden, wenn: Mindestens ein Finding ab der Stufe. Anpassen: `auditLevel` oder `SHIM_AUDIT_LEVEL`.",
+    techStack: "npm, Node.js (JavaScript/TypeScript-Projekte)",
     settings: [
       { key: "enabled", label: "Aktiv", type: "boolean", default: true },
       {
@@ -121,6 +129,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Stellt sicher, dass das Frontend gebaut werden kann.",
     info: "Zweck: Verhindert Deploys mit Build-Fehlern. Prüft: `npm run build`. Bestanden, wenn: Build erfolgreich endet (Exit 0). Nicht bestanden, wenn: Build fehlschlägt. Anpassen: Build-Skript in `package.json`.",
+    techStack: "JavaScript, TypeScript, Vite",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -130,6 +139,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Optionaler Security-Scan mit Snyk.",
     info: "Zweck: Findet zusätzliche Schwachstellen in Dependencies. Prüft: `snyk test`, wenn Snyk installiert ist. Bestanden, wenn: Keine Findings oder Snyk nicht installiert (übersprungen). Nicht bestanden, wenn: Snyk Findings meldet. Anpassen: `.snyk` Policy, Projekt-Settings; Skip mit `SKIP_SNYK=1`.",
+    techStack: "npm, viele Sprachen (Dependency-Scan)",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -139,6 +149,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Prüft Formatierung der Supabase Edge Functions.",
     info: "Zweck: Einheitliches Format im Deno-Code. Prüft: `deno fmt --check supabase/functions`. Bestanden, wenn: Keine Abweichungen gefunden werden. Nicht bestanden, wenn: Abweichungen vorhanden sind. Hinweis: Wird übersprungen, wenn `supabase/functions` fehlt.",
+    techStack: "Deno, TypeScript, JavaScript",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -148,6 +159,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Lintet Deno-Code der Edge Functions.",
     info: "Zweck: Findet Fehler und schlechte Praxis im Deno-Code. Prüft: `deno lint supabase/functions`. Bestanden, wenn: Keine Meldungen. Nicht bestanden, wenn: Linter Meldungen ausgibt. Hinweis: Wird übersprungen, wenn `supabase/functions` fehlt.",
+    techStack: "Deno, TypeScript, JavaScript",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -157,6 +169,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Sicherheitscheck für Deno-Abhängigkeiten.",
     info: "Zweck: Schützt vor bekannten Sicherheitslücken in Deno-Dependencies. Prüft: `deno audit` in `supabase/functions/server`. Bestanden, wenn: Keine Findings. Nicht bestanden, wenn: Findings gemeldet werden. Hinweis: Wird übersprungen, wenn `supabase/functions` fehlt.",
+    techStack: "Deno",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }],
   },
   {
@@ -166,6 +179,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "KI-Review mit fester Checkliste (SOLID, DRY, Security, Robustheit, Wartbarkeit).",
     info: "Zweck: Zweitmeinung zu Architektur, Sicherheit und Wartbarkeit. Prüft: Codex bewertet anhand fester Checkliste (SOLID, DRY, Performance, Sicherheit, Robustheit, Wartbarkeit); Snippets (geänderten Code), Full-Scan oder Mix-Loop; Score + Verdict. Bestanden, wenn: Verdict `ACCEPT` und Score >= Mindestwert (Standard 95). Nicht bestanden, wenn: `REJECT` oder Score darunter. Anpassen: `CHECK_MODE`, Mindestscore, Timeout. Hinweis: Reviews liegen in `.shimwrapper/reviews/`.",
+    techStack: "Alle (Code-Review unabhängig von Sprache)",
     settings: [
       { key: "enabled", label: "Aktiv", type: "boolean", default: true },
       { key: "timeoutSec", label: "Timeout (Sekunden)", type: "number", default: 180 },
@@ -193,6 +207,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Erfordert erklärten Code (Docstrings + Kommentare).",
     info: "Zweck: Erhöht Verständlichkeit und Wartbarkeit. Prüft: Codex bewertet, ob Funktionen Docstrings und nicht-triviale Zeilen Kommentare haben. Bestanden, wenn: Verdict `ACCEPT` und Score >= 95. Nicht bestanden, wenn: `REJECT` oder Score darunter. Hinweis: Report in `.shimwrapper/reviews/explanation-check-*.md`.",
+    techStack: "Alle (Code-Review unabhängig von Sprache)",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -202,6 +217,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Sichert, dass alle Übersetzungs-Keys existieren.",
     info: "Zweck: Verhindert fehlende Texte in der UI. Prüft: Code-Keys gegen alle `messages/*.json`. Bestanden, wenn: Jeder verwendete Key in jeder Locale vorhanden ist. Nicht bestanden, wenn: Mindestens ein Key fehlt. Anpassen: `--fix` fügt Platzhalter ein. Hinweis: Wird übersprungen, wenn `scripts/i18n-check.js` fehlt.",
+    techStack: "React, Next.js, next-intl (messages/*.json)",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -211,6 +227,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Validiert projektinterne Mock- und Testdaten.",
     info: "Zweck: Verhindert fehlerhafte Tests durch ungültige Mock-Daten. Prüft: `npm run check:mock-data`. Bestanden, wenn: Script endet ohne Fehler (Exit 0). Nicht bestanden, wenn: Script fehlschlägt oder fehlt. Anpassen: Script im `package.json`.",
+    techStack: "Projektabhängig (meist JavaScript/TypeScript)",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -220,6 +237,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Aktualisiert README-Teile per Script.",
     info: "Zweck: Hält z. B. Versionsangaben konsistent. Prüft: `scripts/update-readme.js` (oder shimwrappercheck-Script). Bestanden, wenn: Script erfolgreich läuft. Nicht bestanden, wenn: Script fehlschlägt. Hinweis: Fehlt ein Script, wird der Check übersprungen.",
+    techStack: "Projektabhängig (Markdown/README)",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -229,6 +247,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "SAST-Scan mit Semgrep.",
     info: "Zweck: Findet Sicherheitsmuster im Code. Prüft: `semgrep scan --config auto` mit `--error`. Bestanden, wenn: Keine Findings. Nicht bestanden, wenn: Findings gemeldet werden. Hinweis: Wird übersprungen, wenn Semgrep nicht installiert ist.",
+    techStack: "Viele Sprachen (JavaScript, TypeScript, Python, Go, Java, …)",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -238,6 +257,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Findet Secrets im Repository.",
     info: "Zweck: Verhindert, dass API-Keys oder Passwörter im Code landen. Prüft: `gitleaks detect` gegen den Arbeitsbaum (ohne Git-History). Bestanden, wenn: Keine Treffer. Nicht bestanden, wenn: Treffer gefunden werden. Anpassen: `.gitleaks.toml`. Hinweis: Wird übersprungen, wenn Gitleaks nicht installiert ist.",
+    techStack: "Alle (Repository-weit)",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -247,6 +267,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Erstellt eine Lizenzübersicht der npm-Abhängigkeiten.",
     info: "Zweck: Macht sichtbar, welche Lizenzen eure Dependencies haben. Prüft: `npx license-checker --summary` (liest `.licensecheckerrc`). Bestanden, wenn: Der Befehl läuft erfolgreich und (falls konfiguriert) keine verbotenen Lizenzen gemeldet werden. Nicht bestanden, wenn: Der Befehl fehlschlägt oder verbotene Lizenzen gemeldet werden. Anpassen: `.licensecheckerrc` oder CLI-Optionen. Hinweis: Der Standard-Runner wertet den Exit-Code nicht strikt aus.",
+    techStack: "npm, Node.js",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -256,6 +277,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Prüft Architekturregeln und verbotene Abhängigkeiten.",
     info: "Zweck: Erzwingt Modulgrenzen und verhindert Zyklen. Prüft: dependency-cruiser gegen `.dependency-cruiser.json`. Bestanden, wenn: Keine Regelverstöße. Nicht bestanden, wenn: Zyklen oder verbotene Abhängigkeiten gefunden werden. Anpassen: Regeln in `.dependency-cruiser.json`. Hinweis: Wird übersprungen, wenn die Config fehlt.",
+    techStack: "JavaScript, TypeScript",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -265,6 +287,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Begrenzt die Komplexität einzelner Funktionen.",
     info: "Zweck: Hält Funktionen klein und verständlich. Prüft: ESLint mit `eslint-plugin-complexity` und Config. Bestanden, wenn: Keine Funktion über dem Schwellwert. Nicht bestanden, wenn: Schwellwert überschritten. Anpassen: `eslint.complexity.json`. Hinweis: Wird übersprungen, wenn keine Config gefunden wird.",
+    techStack: "JavaScript, TypeScript (ESLint)",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -274,6 +297,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Misst Testqualität mit Mutationstests.",
     info: "Zweck: Prüft, ob Tests echte Fehler erkennen. Prüft: `npx stryker run` mit `stryker.config.json`. Bestanden, wenn: Mutations-Score über dem Schwellwert (Config). Nicht bestanden, wenn: Score darunter oder der Lauf fehlschlägt. Hinweis: Wird übersprungen, wenn `stryker.config.json` fehlt.",
+    techStack: "JavaScript, TypeScript (Vitest/Jest)",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
@@ -283,7 +307,28 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "enforce",
     summary: "Option für End-to-End-Tests (muss im Projekt eingerichtet sein).",
     info: "Zweck: Testet komplette Nutzerflüsse. Prüft: Nur als Einstellung; der Standard-Runner führt E2E nicht aus. Bestanden/Nicht bestanden: Hängt von eurem E2E-Skript ab. Anpassen: E2E-Kommando im eigenen `run-checks.sh` ergänzen.",
+    techStack: "Projektabhängig (z. B. Playwright, Cypress)",
     settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }],
+  },
+  {
+    id: "ruff",
+    label: "Ruff (Python)",
+    tags: ["frontend", "backend"],
+    role: "enforce",
+    summary: "Lint und Format für Python-Code.",
+    info: "Zweck: Verhindert Fehler und einheitliche Formatierung in Python-Dateien. Prüft: `ruff check .` und `ruff format --check .`. Bestanden, wenn: Beide Befehle enden ohne Fehler (Exit 0). Nicht bestanden, wenn: Ruff Lint- oder Format-Verstöße meldet. Anpassen: `pyproject.toml` oder `ruff.toml`. Hinweis: Wird übersprungen, wenn weder Python-Dateien noch pyproject.toml/requirements.txt vorhanden sind oder Ruff nicht installiert ist (z. B. pip install ruff, brew install ruff).",
+    techStack: "Python",
+    settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
+  },
+  {
+    id: "shellcheck",
+    label: "Shellcheck (Shell)",
+    tags: ["frontend", "backend"],
+    role: "enforce",
+    summary: "Findet typische Fehler in Shell-Skripten.",
+    info: "Zweck: Verhindert Fehler und unsichere Praxis in Bash-/Shell-Skripten. Prüft: Alle `.sh`-Dateien (außer node_modules, .git) mit shellcheck. Bestanden, wenn: Keine Meldungen (Exit 0). Nicht bestanden, wenn: shellcheck Fehler oder Warnungen meldet. Anpassen: `.shellcheckrc` oder Direktiven im Skript. Hinweis: Wird übersprungen, wenn keine .sh-Dateien gefunden werden oder shellcheck nicht installiert ist (z. B. brew install shellcheck).",
+    techStack: "Bash, sh, Shell",
+    settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
   },
   {
     id: "healthPing",
@@ -292,6 +337,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "hook",
     summary: "Nach dem Deploy: ruft Health-Endpoints auf.",
     info: "Zweck: Prüft, ob Functions nach dem Deploy wirklich antworten. Prüft: Konfigurierte Health-URLs der Edge Functions. Bestanden, wenn: Alle Antworten ok sind (z. B. HTTP 200). Nicht bestanden, wenn: Timeouts oder Fehlercodes auftreten. Anpassen: Project Ref, Funktionsnamen und Pfade.",
+    techStack: "Supabase Edge Functions, Backend",
     settings: [
       { key: "defaultFunction", label: "Standard-Funktion", type: "string", default: "server" },
       { key: "healthFunctions", label: "Zusätzliche Funktionen (kommasepariert)", type: "string", default: "" },
@@ -307,6 +353,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     role: "hook",
     summary: "Nach dem Deploy: zeigt die neuesten Edge-Logs.",
     info: "Zweck: Schnelle Sichtprüfung nach dem Deploy. Prüft: Ruft die neuesten Logzeilen der Functions ab. Bestanden/Nicht bestanden: Kein hartes Urteil; Logs dienen der manuellen Bewertung. Anpassen: Funktionsnamen und Log-Limit.",
+    techStack: "Supabase Edge Functions, Backend",
     settings: [
       { key: "defaultFunction", label: "Standard-Funktion", type: "string", default: "server" },
       { key: "logFunctions", label: "Funktionen für Logs (kommasepariert)", type: "string", default: "" },
@@ -326,6 +373,8 @@ export const IDEAL_CHECK_ORDER: CheckId[] = [
   "lint",
   "typecheck",
   "projectRules",
+  "ruff",
+  "shellcheck",
   "i18nCheck",
   "checkMockData",
   "viteBuild",

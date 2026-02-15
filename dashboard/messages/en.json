@@ -14,6 +14,8 @@
     "enforce": "Enforce",
     "hooks": "Hooks",
     "info": "Info",
+    "description": "Description",
+    "techStack": "Tech Stack",
     "settingsLabel": "Settings",
     "logs": "Logs",
     "noLogYet": "No log for this check yet. Run checks to see output.",
@@ -344,6 +346,16 @@
       "label": "E2E",
       "summary": "Option for end-to-end tests (must be set up in the project).",
       "info": "Purpose: Tests complete user flows. Checks: Not run by the default runner; enabling only stores the preference. Pass when: Depends on your E2E script. Fail when: Depends on your E2E script. Configure: Add an E2E command to your own `run-checks.sh`."
+    },
+    "ruff": {
+      "label": "Ruff (Python)",
+      "summary": "Lint and format for Python code.",
+      "info": "Purpose: Prevents errors and keeps Python code consistently formatted. Checks: `ruff check .` and `ruff format --check .`. Pass when: Both commands exit with 0. Fail when: Ruff reports lint or format issues. Configure: `pyproject.toml` or `ruff.toml`. Note: Skipped if no Python files, pyproject.toml or requirements.txt are found, or Ruff is not installed (e.g. pip install ruff, brew install ruff)."
+    },
+    "shellcheck": {
+      "label": "Shellcheck (Shell)",
+      "summary": "Finds common issues in shell scripts.",
+      "info": "Purpose: Catches errors and unsafe patterns in Bash/shell scripts. Checks: All `.sh` files (excluding node_modules, .git) with shellcheck. Pass when: No messages (exit 0). Fail when: shellcheck reports errors or warnings. Configure: `.shellcheckrc` or directives in the script. Note: Skipped if no .sh files are found or shellcheck is not installed (e.g. brew install shellcheck)."
     },
     "healthPing": {
       "label": "Post-Deploy: Health Ping",

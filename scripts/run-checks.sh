@@ -37,6 +37,8 @@ run_gitleaks=true
 run_license_checker=true
 run_architecture=true
 run_mutation=true
+run_ruff=true
+run_shellcheck=true
 run_refactor=false
 
 if [[ $# -eq 0 ]]; then
@@ -59,7 +61,9 @@ else
       --no-architecture) run_architecture=false ;;
       --no-complexity) run_complexity=false ;;
       --no-mutation) run_mutation=false ;;
-      *) echo "Unknown option: $arg. Use --frontend, --backend, --refactor, --until-95, --no-frontend, --no-backend, --no-ai-review, --no-explanation-check, --no-i18n-check, --no-sast, --no-gitleaks, --no-license-checker, --no-architecture, --no-complexity, --no-mutation." >&2; exit 1 ;;
+      --no-ruff) run_ruff=false ;;
+      --no-shellcheck) run_shellcheck=false ;;
+      *) echo "Unknown option: $arg. Use --frontend, --backend, --refactor, --until-95, --no-frontend, --no-backend, --no-ai-review, --no-explanation-check, --no-i18n-check, --no-sast, --no-gitleaks, --no-license-checker, --no-architecture, --no-complexity, --no-mutation, --no-ruff, --no-shellcheck." >&2; exit 1 ;;
     esac
   done
 fi
@@ -97,6 +101,8 @@ run_license_checker_rc="${SHIM_RUN_LICENSE_CHECKER:-0}"
 run_architecture_rc="${SHIM_RUN_ARCHITECTURE:-0}"
 run_complexity_rc="${SHIM_RUN_COMPLEXITY:-0}"
 run_mutation_rc="${SHIM_RUN_MUTATION:-0}"
+run_ruff_rc="${SHIM_RUN_RUFF:-0}"
+run_shellcheck_rc="${SHIM_RUN_SHELLCHECK:-0}"
 
 # Wenn SHIM_CHECK_ORDER gesetzt ist: Checks genau in dieser Reihenfolge ausführen (wie in My Checks).
 run_one() {
@@ -164,6 +170,20 @@ run_one() {
             if [[ -f "$ROOT_DIR/stryker.config.json" ]]; then
               echo "Mutation (Stryker)..."; npx stryker run;
             else echo "Skipping Mutation: stryker.config.json not found." >&2; fi; fi ;;
+    ruff) if [[ "$run_ruff_rc" = "1" ]] && [[ "$run_ruff" = true ]]; then
+            if command -v ruff >/dev/null 2>&1; then
+              has_py=$(find . -maxdepth 4 \( -name '*.py' -o -name 'pyproject.toml' -o -name 'requirements.txt' \) 2>/dev/null | head -1)
+              if [[ -n "$has_py" ]]; then
+                echo "Ruff (Python)..."; ruff check . && ruff format --check .;
+              else echo "Skipping Ruff: no Python files, pyproject.toml or requirements.txt found." >&2; fi
+            else echo "Skipping Ruff: not installed (e.g. pip install ruff, brew install ruff)." >&2; fi; fi ;;
+    shellcheck) if [[ "$run_shellcheck_rc" = "1" ]] && [[ "$run_shellcheck" = true ]]; then
+            if command -v shellcheck >/dev/null 2>&1; then
+              shfiles=$(find . -name '*.sh' ! -path './node_modules/*' ! -path './.git/*' 2>/dev/null)
+              if [[ -n "$shfiles" ]]; then
+                echo "Shellcheck..."; echo "$shfiles" | xargs shellcheck;
+              else echo "Skipping Shellcheck: no .sh files found." >&2; fi
+            else echo "Skipping Shellcheck: not installed (e.g. brew install shellcheck)." >&2; fi; fi ;;
     *) echo "Unknown check id: $id" >&2 ;;
   esac
 }
@@ -231,6 +251,19 @@ else
     if [[ "$run_deno_audit" = "1" ]]; then
       echo "Running backend security (deno audit)..."
       (cd supabase/functions/server && deno audit)
+    fi
+  fi
+
+  if [[ "$run_ruff_rc" = "1" ]] && [[ "$run_ruff" = true ]] && command -v ruff >/dev/null 2>&1; then
+    has_py=$(find . -maxdepth 4 \( -name '*.py' -o -name 'pyproject.toml' -o -name 'requirements.txt' \) 2>/dev/null | head -1)
+    if [[ -n "$has_py" ]]; then
+      echo "Ruff (Python)..."; ruff check . && ruff format --check .;
+    fi
+  fi
+  if [[ "$run_shellcheck_rc" = "1" ]] && [[ "$run_shellcheck" = true ]] && command -v shellcheck >/dev/null 2>&1; then
+    shfiles=$(find . -name '*.sh' ! -path './node_modules/*' ! -path './.git/*' 2>/dev/null)
+    if [[ -n "$shfiles" ]]; then
+      echo "Shellcheck..."; echo "$shfiles" | xargs shellcheck;
     fi
   fi
 fi
