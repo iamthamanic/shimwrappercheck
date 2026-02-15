@@ -1,7 +1,13 @@
 #!/usr/bin/env node
 const path = require("path");
 
-const cmd = process.argv[2];
+// When installed shims run "npx shimwrappercheck@latest -- git ...", argv[2] is "--" and argv[3] is "git".
+let cmd = process.argv[2];
+let restArgs = process.argv.slice(3);
+if (cmd === "--" && process.argv[3] && ["git", "supabase", "shim"].includes(process.argv[3])) {
+  cmd = process.argv[3];
+  restArgs = process.argv.slice(4);
+}
 
 if (cmd === "setup") {
   require(path.join(__dirname, "setup"));
@@ -24,7 +30,7 @@ if (cmd === "install-tools") {
 }
 
 if (cmd === "run") {
-  const runArgs = process.argv.slice(3);
+  const runArgs = restArgs;
   process.argv = [
     process.argv[0],
     path.join(__dirname, "shim-runner.js"),
@@ -37,7 +43,7 @@ if (cmd === "run") {
 if (cmd === "git") {
   const { spawnSync } = require("child_process");
   const gitChecked = path.join(__dirname, "git-checked.sh");
-  const result = spawnSync("bash", [gitChecked, ...process.argv.slice(3)], {
+  const result = spawnSync("bash", [gitChecked, ...restArgs], {
     stdio: "inherit",
     cwd: process.cwd(),
     env: { ...process.env, SHIM_PROJECT_ROOT: process.cwd() },
