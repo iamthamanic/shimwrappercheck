@@ -1,6 +1,9 @@
 /**
  * GET /api/scan-codebase – detect which checks are relevant for the current project and why.
  * Returns recommendations: { [checkId]: reason } for purple tooltips in Check Library. No AI.
+ * Reasons are grouped via prefixes:
+ * - "Best Practice: ..." (useful defaults, even when tooling is not fully wired yet)
+ * - "Ready to run: ..." (detected in this repo and likely runnable now)
  */
 import { NextResponse } from "next/server";
 import path from "path";
@@ -36,12 +39,40 @@ function readJson<T>(filePath: string, fallback: T): T {
   }
 }
 
+function setBestPractice(recommendations: Record<string, string>, checkId: string, reason: string): void {
+  if (!recommendations[checkId]) recommendations[checkId] = `Best Practice: ${reason}`;
+}
+
+function setReadyToRun(recommendations: Record<string, string>, checkId: string, reason: string): void {
+  recommendations[checkId] = `Ready to run: ${reason}`;
+}
+
 export async function GET() {
   try {
     const root = getProjectRoot();
     const recommendations: Record<string, string> = {};
     const pkg = readJson<Pkg>(path.join(root, "package.json"), {});
     const dashboardPkg = readJson<Pkg>(path.join(root, "dashboard", "package.json"), {});
+
+    setBestPractice(recommendations, "prettier", "Consistent formatting improves readability and review quality.");
+    setBestPractice(recommendations, "projectRules", "Project-specific rules keep architecture and workflow consistent.");
+    setBestPractice(recommendations, "snyk", "A second dependency scanner can catch issues beyond npm audit.");
+    setBestPractice(recommendations, "checkMockData", "Valid mock data reduces flaky tests and broken demos.");
+    setBestPractice(recommendations, "updateReadme", "Automated README sync keeps docs aligned with real behavior.");
+    setBestPractice(
+      recommendations,
+      "licenseChecker",
+      "Dependency license visibility helps legal/compliance review (especially in npm projects)."
+    );
+    setBestPractice(
+      recommendations,
+      "architecture",
+      "dependency-cruiser can enforce boundaries and prevent architectural drift."
+    );
+    setBestPractice(recommendations, "aiReview", "Cross-check code quality against architecture and security criteria.");
+    setBestPractice(recommendations, "explanationCheck", "Enforced explanations improve maintainability and onboarding.");
+    setBestPractice(recommendations, "sast", "Static analysis helps detect vulnerable code patterns early.");
+    setBestPractice(recommendations, "gitleaks", "Secret scanning reduces risk of leaked credentials.");
 
     const hasNpm =
       fs.existsSync(path.join(root, "package.json")) || fs.existsSync(path.join(root, "dashboard", "package.json"));
@@ -52,7 +83,7 @@ export async function GET() {
         hasScript(pkg, "lint") ||
         hasDep(dashboardPkg, ["eslint"])
       ) {
-        recommendations.lint = "ESLint or lint script found in package.json.";
+        setReadyToRun(recommendations, "lint", "ESLint or lint script found in package.json.");
       }
       if (
         hasDep(pkg, ["prettier"]) ||
@@ -61,7 +92,7 @@ export async function GET() {
         hasDep(dashboardPkg, ["prettier"]) ||
         hasScript(dashboardPkg, "format:check")
       ) {
-        recommendations.prettier = "Prettier or format script found.";
+        setReadyToRun(recommendations, "prettier", "Prettier or format script found.");
       }
       if (
         (hasDep(pkg, ["typescript"]) && (hasScript(pkg, "typecheck") || hasScript(pkg, "type-check"))) ||
@@ -69,10 +100,10 @@ export async function GET() {
         (hasDep(dashboardPkg, ["typescript"]) &&
           (hasScript(dashboardPkg, "typecheck") || hasScript(dashboardPkg, "type-check")))
       ) {
-        recommendations.typecheck = "TypeScript and typecheck script found.";
+        setReadyToRun(recommendations, "typecheck", "TypeScript and typecheck script found.");
       }
       if (hasScript(pkg, "check:mock-data")) {
-        recommendations.checkMockData = "Script check:mock-data in package.json.";
+        setReadyToRun(recommendations, "checkMockData", "Script check:mock-data in package.json.");
       }
       if (
         hasDep(pkg, ["jest", "vitest", "mocha", "@jest/core"]) ||
@@ -80,25 +111,25 @@ export async function GET() {
         hasScript(pkg, "test:run") ||
         hasDep(dashboardPkg, ["vitest"])
       ) {
-        recommendations.testRun = "Test runner (e.g. Vitest) in package.json.";
+        setReadyToRun(recommendations, "testRun", "Test runner (e.g. Vitest) in package.json.");
       }
       if (fs.existsSync(path.join(root, "scripts", "checks", "project-rules.sh"))) {
-        recommendations.projectRules = "scripts/checks/project-rules.sh found.";
+        setReadyToRun(recommendations, "projectRules", "scripts/checks/project-rules.sh found.");
       }
-      recommendations.npmAudit = "npm project; npm audit checks dependencies.";
+      setReadyToRun(recommendations, "npmAudit", "npm project; npm audit checks dependencies.");
       if (hasDep(pkg, ["vite"]) || hasScript(pkg, "build") || hasDep(dashboardPkg, ["vite"])) {
-        recommendations.viteBuild = "Vite or build script found.";
+        setReadyToRun(recommendations, "viteBuild", "Vite or build script found.");
       }
       if (hasDep(pkg, ["snyk"])) {
-        recommendations.snyk = "Snyk installed in project.";
+        setReadyToRun(recommendations, "snyk", "Snyk installed in project.");
       }
       if (
         fs.existsSync(path.join(root, "node_modules", "shimwrappercheck", "scripts", "update-readme.js")) ||
         fs.existsSync(path.join(root, "scripts", "update-readme.js"))
       ) {
-        recommendations.updateReadme = "Update-README script available.";
+        setReadyToRun(recommendations, "updateReadme", "Update-README script available.");
       }
-      recommendations.licenseChecker = "npm project; license-checker can verify licenses.";
+      setReadyToRun(recommendations, "licenseChecker", "npm project; license-checker can verify licenses.");
     }
 
     const messagesRoot = path.join(root, "messages");
@@ -107,7 +138,7 @@ export async function GET() {
       fs.existsSync(dir) && fs.statSync(dir).isDirectory() && fs.readdirSync(dir).some((f) => f.endsWith(".json"));
     const hasMessages = dirHasJson(messagesRoot) || dirHasJson(messagesDashboard);
     if (hasMessages) {
-      recommendations.i18nCheck = "messages/ or dashboard/messages/ with locale JSON files found.";
+      setReadyToRun(recommendations, "i18nCheck", "messages/ or dashboard/messages/ with locale JSON files found.");
     }
 
     const hasSupabaseFunctions =
@@ -115,31 +146,26 @@ export async function GET() {
       fs.existsSync(path.join(root, "deno.json")) ||
       fs.existsSync(path.join(root, "deno.jsonc"));
     if (hasSupabaseFunctions) {
-      recommendations.denoFmt = "Supabase functions or deno.json found (Deno formatting).";
-      recommendations.denoLint = "Supabase functions or deno.json found (Deno lint).";
-      recommendations.denoAudit = "Supabase functions or deno.json found (Deno audit).";
-      recommendations.healthPing = "Supabase project; health ping after deploy.";
-      recommendations.edgeLogs = "Supabase project; edge logs after deploy.";
+      setReadyToRun(recommendations, "denoFmt", "Supabase functions or deno.json found (Deno formatting).");
+      setReadyToRun(recommendations, "denoLint", "Supabase functions or deno.json found (Deno lint).");
+      setReadyToRun(recommendations, "denoAudit", "Supabase functions or deno.json found (Deno audit).");
+      setReadyToRun(recommendations, "healthPing", "Supabase project; health ping after deploy.");
+      setReadyToRun(recommendations, "edgeLogs", "Supabase project; edge logs after deploy.");
     }
 
-    recommendations.aiReview = "AI review applies to any codebase.";
-    recommendations.explanationCheck = "Explanation check applies to any codebase.";
-
     if (fs.existsSync(path.join(root, ".dependency-cruiser.json"))) {
-      recommendations.architecture = ".dependency-cruiser.json found.";
+      setReadyToRun(recommendations, "architecture", ".dependency-cruiser.json found.");
     }
     if (
       fs.existsSync(path.join(root, "eslint.complexity.json")) ||
       hasDep(pkg, ["eslint-plugin-complexity"]) ||
       hasDep(dashboardPkg, ["eslint-plugin-complexity"])
     ) {
-      recommendations.complexity = "eslint-plugin-complexity or eslint.complexity.json found.";
+      setReadyToRun(recommendations, "complexity", "eslint-plugin-complexity or eslint.complexity.json found.");
     }
     if (fs.existsSync(path.join(root, "stryker.config.json"))) {
-      recommendations.mutation = "stryker.config.json found.";
+      setReadyToRun(recommendations, "mutation", "stryker.config.json found.");
     }
-    recommendations.sast = "Semgrep can scan any repo for security patterns.";
-    recommendations.gitleaks = "Gitleaks can scan any repo for committed secrets.";
 
     const validIds = new Set(CHECK_DEFINITIONS.map((c) => c.id));
     const filtered: Record<string, string> = {};

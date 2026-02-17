@@ -15,7 +15,7 @@ A shim wrapper ensures checks run even when developers or agents use the CLI dir
 ## Wrapper design
 
 1. Resolve the project root.
-2. Detect which checks to run based on changed files (e.g. `src/` vs `supabase/functions/`).
+2. Detect which checks to run based on changed files (e.g. `src/` vs backend paths from `SHIM_BACKEND_PATH_PATTERNS`, default `supabase/functions,src/supabase/functions`).
 3. Run a checks script (repo-specific).
 4. Call the real CLI (not the wrapper).
 5. Run optional post-deploy hooks (health ping, logs).
@@ -27,6 +27,8 @@ You can limit which Supabase commands trigger checks and hooks:
 
 - `SHIM_ENFORCE_COMMANDS="functions,db,migration"` to run checks only for these commands.
 - `SHIM_HOOK_COMMANDS="functions,db,migration"` to run hooks only for these commands.
+- `SHIM_GIT_CHECK_MODE_ON_PUSH=snippet|full` to control AI review scope for push-triggered checks.
+- `SHIM_REFACTOR_MODE=off|interactive|agent` to enable optional refactor item orchestration (`refactor-todo.json`, `refactor-current-item.json`).
 - Use `all` or `none` to enable/disable completely.
 
 Persist these settings in `.shimwrappercheckrc` (or set `SHIM_CONFIG_FILE`).

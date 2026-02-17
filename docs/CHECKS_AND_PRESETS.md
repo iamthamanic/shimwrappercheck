@@ -28,3 +28,12 @@ Check texts must be understandable for non-experts and still precise for experts
 - **Hook:** Checks that run **after** deploy (post-deploy). Example: Post-Deploy Health Ping, Edge Logs.
 
 In the dashboard, **My Checks** is grouped by role (Enforce section / Hooks section). In the **Check Library**, the “Enforce” and “Hooks” filters show only checks with that role.
+
+## Suggest Checks categories
+
+The **Suggest Checks** scan in the dashboard returns recommendation reasons with two categories:
+
+- **Best Practice:** General recommendations that improve maintainability/security, even if tooling is not yet wired in the current project.
+- **Ready to run:** Recommendations detected from project signals (e.g. scripts/config/dependencies) and likely runnable immediately.
+
+For a check that matches both, the UI shows the **Ready to run** reason so users can see why it is currently executable.

@@ -3,6 +3,41 @@
 # Runs on every git push to GitHub so checks are always enforced.
 set -e
 
+trim() {
+  echo "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+}
+
+build_backend_regex() {
+  patterns="${SHIM_BACKEND_PATH_PATTERNS:-supabase/functions,src/supabase/functions}"
+  regex=""
+  old_ifs=$IFS
+  IFS=','
+  for raw in $patterns; do
+    prefix=$(trim "$raw")
+    prefix=${prefix#/}
+    prefix=${prefix%/}
+    [ -z "$prefix" ] && continue
+    esc=$(printf "%s" "$prefix" | sed -e 's/[.[\\*^$()+?{|]/\\\\&/g' -e 's#/#\\/#g')
+    if [ -z "$regex" ]; then
+      regex="^$esc/"
+    else
+      regex="$regex|^$esc/"
+    fi
+  done
+  IFS=$old_ifs
+  printf "%s" "$regex"
+}
+
+normalize_push_mode() {
+  mode=$(echo "${SHIM_GIT_CHECK_MODE_ON_PUSH:-snippet}" | tr '[:upper:]' '[:lower:]')
+  case "$mode" in
+    snippet|full) printf "%s" "$mode" ;;
+    diff) printf "%s" "snippet" ;;
+    mix) printf "%s" "full" ;;
+    *) printf "%s" "snippet" ;;
+  esac
+}
+
 if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
   RANGE="@{u}...HEAD"
   CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR "$RANGE")
@@ -20,9 +55,10 @@ fi
 
 run_frontend=false
 run_backend=false
+BACKEND_REGEX=$(build_backend_regex)
 
 printf "%s\n" "$CHANGED_FILES" | grep -q '^src/' && run_frontend=true
-printf "%s\n" "$CHANGED_FILES" | grep -q '^supabase/functions/' && run_backend=true
+[ -n "$BACKEND_REGEX" ] && printf "%s\n" "$CHANGED_FILES" | grep -qE "$BACKEND_REGEX" && run_backend=true
 # dashboard/scripts/templates (e.g. shimwrappercheck repo or monorepos)
 printf "%s\n" "$CHANGED_FILES" | grep -qE '^dashboard/|^scripts/|^templates/' && run_frontend=true
 
@@ -30,15 +66,15 @@ if [ "$run_frontend" = false ] && [ "$run_backend" = false ]; then
   exit 0
 fi
 
-# Push: AI review only for snippet (CHECK_MODE=snippet). Fast checks + snippet-only review.
+CHECK_MODE_ON_PUSH=$(normalize_push_mode)
 if [ -f "node_modules/.bin/shimwrappercheck" ] || command -v shimwrappercheck >/dev/null 2>&1; then
-  CHECK_MODE=snippet npx shimwrappercheck run --full || exit 1
+  CHECK_MODE="$CHECK_MODE_ON_PUSH" npx shimwrappercheck run --full || exit 1
 else
   unset SKIP_AI_REVIEW
   CHECK_ARGS=""
   [ "$run_frontend" = true ] && CHECK_ARGS="--frontend"
   [ "$run_backend" = true ] && CHECK_ARGS="${CHECK_ARGS:+$CHECK_ARGS }--backend"
-  CHECK_MODE=snippet bash scripts/run-checks.sh $CHECK_ARGS
+  CHECK_MODE="$CHECK_MODE_ON_PUSH" bash scripts/run-checks.sh $CHECK_ARGS
 fi
 
 # Update README (e.g. "Last updated" line) so it stays in sync on push

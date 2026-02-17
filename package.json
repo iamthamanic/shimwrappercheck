@@ -1,6 +1,6 @@
 {
   "name": "shimwrappercheck",
-  "version": "0.4.8",
+  "version": "0.4.9",
   "description": "CLI-Shim, der Projekt-Checks ausführt, bevor ein echtes CLI-Kommando (z. B. Supabase, Git) läuft. Optional: Web-Dashboard zum Konfigurieren von Presets, Trigger-Befehlen, Checks und AGENTS.md.",
   "license": "MIT",
   "bin": {

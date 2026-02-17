@@ -123,7 +123,8 @@ function normalizeStartPort(port) {
 
 function runDev(port) {
   const url = `http://localhost:${port}`;
-  process.stdout.write(`Dashboard: ${url}\n`);
+  process.stdout.write(`\nDashboard: ${url}\n`);
+  process.stdout.write(`Open in browser: ${url}/de or ${url}/en\n\n`);
   const cwd = path.join(__dirname, "..");
   const nextBin = path.join(cwd, "node_modules", "next", "dist", "bin", "next");
   writeLock(port);
@@ -244,7 +245,21 @@ async function main() {
       process.exit(1);
     }
   } else {
-    runDev(startPort);
+    const result = await canListenOnPort(startPort);
+    if (result.free) {
+      runDev(startPort);
+    } else {
+      process.stderr.write(`Port ${startPort} is in use. Finding next available port...\n`);
+      try {
+        const port = await findAvailablePort(startPort);
+        process.stderr.write(`Dashboard started at http://localhost:${port} (configured port ${startPort} was busy).\n`);
+        runDev(port);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        process.stderr.write(`${message}\n`);
+        process.exit(1);
+      }
+    }
   }
 }
 

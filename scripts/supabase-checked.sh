@@ -65,6 +65,37 @@ matches_command_list() {
   return 1
 }
 
+trim() {
+  local s="$1"
+  # shellcheck disable=SC2001
+  s="$(echo "$s" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  echo "$s"
+}
+
+has_backend_changes() {
+  local files="$1"
+  local patterns="${SHIM_BACKEND_PATH_PATTERNS:-supabase/functions,src/supabase/functions}"
+  local line=""
+  local raw=""
+  local prefix=""
+
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    IFS=',' read -r -a items <<< "$patterns"
+    for raw in "${items[@]}"; do
+      prefix="$(trim "$raw")"
+      prefix="${prefix#/}"
+      prefix="${prefix%/}"
+      [[ -z "$prefix" ]] && continue
+      if [[ "$line" == "$prefix/"* ]]; then
+        return 0
+      fi
+    done
+  done <<< "$files"
+
+  return 1
+}
+
 for arg in "${ARGS_IN[@]}"; do
   case "$arg" in
     --no-checks) RUN_CHECKS=false ;;
@@ -137,7 +168,9 @@ if [[ "$RUN_CHECKS" = true ]]; then
 
   if [[ -n "$changed_files" ]]; then
     echo "$changed_files" | grep -q '^src/' && run_frontend=true
-    echo "$changed_files" | grep -q '^supabase/functions/' && run_backend=true
+    if has_backend_changes "$changed_files"; then
+      run_backend=true
+    fi
   fi
 
   ARGS_TEXT=" ${SUPABASE_ARGS[*]:-} "

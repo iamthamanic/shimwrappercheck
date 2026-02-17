@@ -287,6 +287,25 @@ async function main() {
     }
   }
 
+  const extractRefactorTodoPath = path.join(
+    projectRoot,
+    "scripts",
+    "extract-refactor-todo.sh",
+  );
+  if (!exists(extractRefactorTodoPath)) {
+    const createExtractRefactorTodo = await askYesNo(
+      "scripts/extract-refactor-todo.sh (Refactor TODO Extract) aus Template anlegen?",
+      true,
+    );
+    if (createExtractRefactorTodo) {
+      copyTemplate(
+        "extract-refactor-todo.sh",
+        extractRefactorTodoPath,
+        true,
+      );
+    }
+  }
+
   const aiExplanationPath = path.join(
     projectRoot,
     "scripts",

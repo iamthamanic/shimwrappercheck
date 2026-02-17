@@ -319,6 +319,11 @@ export default function CheckCard({
       if (o.value === "diff") return tChecks("aiReview.checkModeOptionSnippet");
       if (o.value === "full") return tChecks("aiReview.checkModeOptionFull");
     }
+    if (def.id === "aiReview" && s.key === "refactorMode") {
+      if (o.value === "off") return tChecks("aiReview.refactorModeOptionOff");
+      if (o.value === "interactive") return tChecks("aiReview.refactorModeOptionInteractive");
+      if (o.value === "agent") return tChecks("aiReview.refactorModeOptionAgent");
+    }
     return o.label;
   };
   /** Tooltip for a setting (checks.{def.id}.{s.key}Tooltip). Returns null if no translation. */

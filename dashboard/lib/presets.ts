@@ -66,6 +66,7 @@ export interface CheckSettings {
     minRating?: number;
     reviewDir?: string;
     checkMode?: "mix" | "snippet" | "diff" | "full";
+    refactorMode?: "off" | "interactive" | "agent";
   };
   healthPing?: { defaultFunction?: string; healthFunctions?: string; healthPaths?: string; projectRef?: string };
   edgeLogs?: { defaultFunction?: string; logFunctions?: string; logLimit?: number };
@@ -208,6 +209,7 @@ export function buildRcContent(settings: SettingsData): string {
   lines.push(`SHIM_RUN_ARCHITECTURE=${t.architecture ? 1 : 0}`);
   lines.push(`SHIM_RUN_COMPLEXITY=${t.complexity ? 1 : 0}`);
   lines.push(`SHIM_RUN_MUTATION=${t.mutation ? 1 : 0}`);
+  lines.push(`SHIM_RUN_E2E=${t.e2e ? 1 : 0}`);
   lines.push(`SHIM_RUN_RUFF=${t.ruff ? 1 : 0}`);
   lines.push(`SHIM_RUN_SHELLCHECK=${t.shellcheck ? 1 : 0}`);
 
@@ -221,6 +223,9 @@ export function buildRcContent(settings: SettingsData): string {
   if (cs?.aiReview?.checkMode) {
     const mode = cs.aiReview.checkMode === "diff" ? "snippet" : cs.aiReview.checkMode;
     lines.push(`CHECK_MODE="${mode}"`);
+  }
+  if (cs?.aiReview?.refactorMode) {
+    lines.push(`SHIM_REFACTOR_MODE="${cs.aiReview.refactorMode}"`);
   }
   const defaultFn = cs?.healthPing?.defaultFunction || cs?.edgeLogs?.defaultFunction;
   if (defaultFn) lines.push(`SHIM_DEFAULT_FUNCTION="${defaultFn}"`);

@@ -178,7 +178,7 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     tags: ["frontend", "backend"],
     role: "enforce",
     summary: "KI-Review mit fester Checkliste (SOLID, DRY, Security, Robustheit, Wartbarkeit).",
-    info: "Zweck: Zweitmeinung zu Architektur, Sicherheit und Wartbarkeit. Prüft: Codex bewertet anhand fester Checkliste (SOLID, DRY, Performance, Sicherheit, Robustheit, Wartbarkeit); Snippets (geänderten Code), Full-Scan oder Mix-Loop; Score + Verdict. Bestanden, wenn: Verdict `ACCEPT` und Score >= Mindestwert (Standard 95). Nicht bestanden, wenn: `REJECT` oder Score darunter. Anpassen: `CHECK_MODE`, Mindestscore, Timeout. Hinweis: Reviews liegen in `.shimwrapper/reviews/`.",
+    info: "Zweck: Zweitmeinung zu Architektur, Sicherheit und Wartbarkeit. Prüft: Codex bewertet anhand fester Checkliste (SOLID, DRY, Performance, Sicherheit, Robustheit, Wartbarkeit); Snippets (geänderten Code), Full-Scan oder Mix-Loop; Score + Verdict. Bestanden, wenn: Verdict `ACCEPT` und Score >= Mindestwert (Standard 95). Nicht bestanden, wenn: `REJECT` oder Score darunter. Anpassen: `CHECK_MODE`, Mindestscore, Timeout und optional `SHIM_REFACTOR_MODE` (Item-Handoff bei Refactor-Läufen). Hinweis: Reviews liegen in `.shimwrapper/reviews/`.",
     techStack: "Alle (Code-Review unabhängig von Sprache)",
     settings: [
       { key: "enabled", label: "Aktiv", type: "boolean", default: true },
@@ -192,6 +192,17 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
           { value: "mix", label: "mix — refactor loop: full scan, push uses snippet" },
           { value: "snippet", label: "snippet — only changed code (staged/unstaged or pushed commits)" },
           { value: "full", label: "full — whole codebase (chunked per directory)" },
+        ],
+      },
+      {
+        key: "refactorMode",
+        label: "Refactor orchestration",
+        type: "select",
+        default: "off",
+        options: [
+          { value: "off", label: "off — no refactor item flow" },
+          { value: "interactive", label: "interactive — current item + resume hints" },
+          { value: "agent", label: "agent — handoff artifacts per item" },
         ],
       },
       { key: "diffLimitBytes", label: "Max. Diff-Größe (Bytes)", type: "number", default: 51200 },

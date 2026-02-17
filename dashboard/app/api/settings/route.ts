@@ -64,6 +64,8 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
     if (args.includes("--no-complexity")) checkToggles.complexity = false;
     if (args.includes("--no-mutation")) checkToggles.mutation = false;
     if (args.includes("--no-e2e")) checkToggles.e2e = false;
+    if (args.includes("--no-ruff")) checkToggles.ruff = false;
+    if (args.includes("--no-shellcheck")) checkToggles.shellcheck = false;
   }
   const readEnv = (key: string): boolean | undefined => {
     const m = rawRc.match(new RegExp(`${key}=(\\d+)`));
@@ -93,10 +95,15 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
   if (readEnv("SHIM_RUN_ARCHITECTURE") !== undefined) checkToggles.architecture = readEnv("SHIM_RUN_ARCHITECTURE")!;
   if (readEnv("SHIM_RUN_COMPLEXITY") !== undefined) checkToggles.complexity = readEnv("SHIM_RUN_COMPLEXITY")!;
   if (readEnv("SHIM_RUN_MUTATION") !== undefined) checkToggles.mutation = readEnv("SHIM_RUN_MUTATION")!;
+  if (readEnv("SHIM_RUN_E2E") !== undefined) checkToggles.e2e = readEnv("SHIM_RUN_E2E")!;
+  if (readEnv("SHIM_RUN_RUFF") !== undefined) checkToggles.ruff = readEnv("SHIM_RUN_RUFF")!;
+  if (readEnv("SHIM_RUN_SHELLCHECK") !== undefined) checkToggles.shellcheck = readEnv("SHIM_RUN_SHELLCHECK")!;
 
   const checkModeMatch = rawRc.match(/CHECK_MODE="?(mix|snippet|diff|full)"?/);
   const checkModeRaw = checkModeMatch ? checkModeMatch[1] : undefined;
   const checkMode = checkModeRaw === "diff" ? "snippet" : checkModeRaw;
+  const refactorModeMatch = rawRc.match(/SHIM_REFACTOR_MODE="?(off|interactive|agent)"?/);
+  const refactorMode = refactorModeMatch ? refactorModeMatch[1] : undefined;
 
   const enforceMatch = rawRc.match(/SHIM_ENFORCE_COMMANDS="([^"]*)"/);
   const hookMatch = rawRc.match(/SHIM_HOOK_COMMANDS="([^"]*)"/);
@@ -125,6 +132,16 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
     result.checkSettings = {
       ...existing,
       aiReview: { ...existing.aiReview, checkMode: checkMode as "mix" | "snippet" | "diff" | "full" },
+    };
+  }
+  if (refactorMode) {
+    const existing = (result.checkSettings ?? {}) as CheckSettings;
+    result.checkSettings = {
+      ...existing,
+      aiReview: {
+        ...existing.aiReview,
+        refactorMode: refactorMode as "off" | "interactive" | "agent",
+      },
     };
   }
   return result;

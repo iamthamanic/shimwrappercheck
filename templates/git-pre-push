@@ -3,6 +3,43 @@ set -euo pipefail
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 
+trim() {
+  echo "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+}
+
+has_backend_changes() {
+  local files="$1"
+  local patterns="${SHIM_BACKEND_PATH_PATTERNS:-supabase/functions,src/supabase/functions}"
+  local line=""
+  local raw=""
+  local prefix=""
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    IFS=',' read -r -a items <<< "$patterns"
+    for raw in "${items[@]}"; do
+      prefix="$(trim "$raw")"
+      prefix="${prefix#/}"
+      prefix="${prefix%/}"
+      [[ -z "$prefix" ]] && continue
+      if [[ "$line" == "$prefix/"* ]]; then
+        return 0
+      fi
+    done
+  done <<< "$files"
+  return 1
+}
+
+normalize_push_mode() {
+  local mode
+  mode="$(echo "${SHIM_GIT_CHECK_MODE_ON_PUSH:-snippet}" | tr '[:upper:]' '[:lower:]')"
+  case "$mode" in
+    snippet|full) echo "$mode" ;;
+    diff) echo "snippet" ;;
+    mix) echo "full" ;;
+    *) echo "snippet" ;;
+  esac
+}
+
 if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
   RANGE="@{u}...HEAD"
   CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR "$RANGE")
@@ -22,7 +59,7 @@ run_frontend=false
 run_backend=false
 
 printf "%s\n" "$CHANGED_FILES" | grep -q '^src/' && run_frontend=true
-printf "%s\n" "$CHANGED_FILES" | grep -q '^supabase/functions/' && run_backend=true
+has_backend_changes "$CHANGED_FILES" && run_backend=true
 # dashboard/scripts/templates (e.g. shimwrappercheck repo or monorepos)
 printf "%s\n" "$CHANGED_FILES" | grep -qE '^dashboard/|^scripts/|^templates/' && run_frontend=true
 
@@ -30,16 +67,17 @@ if [[ "$run_frontend" = false ]] && [[ "$run_backend" = false ]]; then
   exit 0
 fi
 
-# Push: AI review only for snippet (CHECK_MODE=snippet). Fast checks + snippet-only review; no full codebase scan.
+# Push mode is configurable via SHIM_GIT_CHECK_MODE_ON_PUSH=snippet|full.
+CHECK_MODE_ON_PUSH="$(normalize_push_mode)"
 if [[ -f "$ROOT_DIR/node_modules/.bin/shimwrappercheck" ]] || command -v shimwrappercheck >/dev/null 2>&1; then
-  (cd "$ROOT_DIR" && CHECK_MODE=snippet npx shimwrappercheck run --full) || exit 1
+  (cd "$ROOT_DIR" && CHECK_MODE="$CHECK_MODE_ON_PUSH" npx shimwrappercheck run --full) || exit 1
 else
   CHECK_ARGS=()
   [[ "$run_frontend" = true ]] && CHECK_ARGS+=(--frontend)
   [[ "$run_backend" = true ]] && CHECK_ARGS+=(--backend)
   [[ -n "${SKIP_AI_REVIEW:-}" ]] && CHECK_ARGS+=(--no-ai-review)
   if [[ -x "$ROOT_DIR/scripts/run-checks.sh" ]]; then
-    CHECK_MODE=snippet bash "$ROOT_DIR/scripts/run-checks.sh" "${CHECK_ARGS[@]}"
+    CHECK_MODE="$CHECK_MODE_ON_PUSH" bash "$ROOT_DIR/scripts/run-checks.sh" "${CHECK_ARGS[@]}"
   else
     echo "run-checks.sh not found. Create scripts/run-checks.sh or run: npx shimwrappercheck run --full" >&2
     exit 1
