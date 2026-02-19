@@ -750,4 +750,8 @@ if [[ "${#FAILED_CHECKS[@]}" -gt 0 ]]; then
   OVERALL_RC=1
 fi
 
-[[ $OVERALL_RC -ne 0 ]] && exit "$OVERALL_RC"
+if [[ $OVERALL_RC -ne 0 ]]; then
+  exit "$OVERALL_RC"
+fi
+
+exit 0
