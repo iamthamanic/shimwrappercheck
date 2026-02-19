@@ -14,15 +14,6 @@ function getScriptPath(): string {
   return path.join(getProjectRoot(), SCRIPT_RELATIVE);
 }
 
-/** Minimal fallback when no script exists and default is not requested. */
-const defaultScriptContent = `#!/usr/bin/env bash
-# Project rules check – edit in dashboard (Projektregeln → Regeln) or here.
-# Exit 0 = pass, non-zero = fail.
-set -e
-# Add your checks below, or load "Standard (AGENTS.md)" in the dashboard.
-exit 0
-`;
-
 export async function GET(request: NextRequest) {
   try {
     if (request.nextUrl.searchParams.get("default") === "1") {

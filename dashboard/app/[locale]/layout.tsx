@@ -50,19 +50,15 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 export default async function LocaleLayout({ children, params }: Props) {
   let locale: string = routing.defaultLocale;
-  let messages: Record<string, unknown> = {};
   try {
     const resolved = params != null ? await params : null;
     const requested = resolved?.locale;
     if (requested && hasLocale(routing.locales, requested)) {
       locale = requested;
     }
-    const raw = getMessages(locale);
-    messages = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
   } catch (e) {
     console.error("LocaleLayout params/messages failed:", e);
     locale = routing.defaultLocale;
-    messages = {};
   }
   // Rounded to full minute so server/client serialization matches (avoids hydration mismatch / "1 Issue")
   const now = new Date(Math.floor(Date.now() / 60_000) * 60_000);
