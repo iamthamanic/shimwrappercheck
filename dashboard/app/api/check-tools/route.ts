@@ -233,8 +233,8 @@ export async function GET() {
       ? { installed: true, label: denoLabel, repo: denoRepo }
       : { installed: false, label: denoLabel, command: denoCmd, repo: denoRepo };
 
-    // aiReview: no single package; script/Codex
-    tools.aiReview = { installed: true, label: "Skript/Codex" };
+    // aiReview: no single package; script supports Codex or API-key mode
+    tools.aiReview = { installed: true, label: "Skript (Codex/API)" };
 
     // explanationCheck: script/Codex (ai-explanation-check.sh)
     tools.explanationCheck = { installed: true, label: "Skript/Codex (ai-explanation-check.sh)" };

@@ -1,15 +1,43 @@
+#!/usr/bin/env node
 /**
  * AI Deductive Review: sends code diff to OpenAI/Anthropic, expects JSON
  * { score, deductions, verdict }. Threshold 95%; REJECT or score < 95 → fail.
  * API keys from .env (OPENAI_API_KEY, ANTHROPIC_API_KEY).
  */
 const path = require("path");
+const fs = require("fs");
 const { execSync } = require("child_process");
 
 const LIMIT_BYTES = 51200;
-const THRESHOLD = 95;
+const THRESHOLD_RAW = Number.parseInt(process.env.SHIM_AI_MIN_RATING || "95", 10);
+const THRESHOLD =
+  Number.isFinite(THRESHOLD_RAW) && THRESHOLD_RAW >= 0 && THRESHOLD_RAW <= 100
+    ? THRESHOLD_RAW
+    : 95;
+const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
 
-function getDiff(projectRoot) {
+function normalizeCheckMode(raw) {
+  const mode = String(raw || "snippet")
+    .trim()
+    .toLowerCase();
+  if (mode === "full") return "full";
+  if (mode === "mix") return "full";
+  return "snippet";
+}
+
+function hasHead(projectRoot) {
+  try {
+    execSync("git rev-parse --verify HEAD", {
+      cwd: projectRoot,
+      stdio: "ignore",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getSnippetDiff(projectRoot) {
   const cwd = projectRoot;
   let out = "";
   try {
@@ -53,11 +81,38 @@ function getDiff(projectRoot) {
       }
     }
   }
+  return out;
+}
+
+function getFullDiff(projectRoot) {
+  const cwd = projectRoot;
+  if (!hasHead(cwd)) {
+    return getSnippetDiff(projectRoot);
+  }
+  try {
+    return execSync(`git diff --no-color ${EMPTY_TREE}..HEAD`, {
+      cwd,
+      encoding: "utf8",
+      maxBuffer: 6 * 1024 * 1024,
+    });
+  } catch {
+    return getSnippetDiff(projectRoot);
+  }
+}
+
+function limitDiff(out) {
   if (!out || !out.trim()) return null;
   if (Buffer.byteLength(out, "utf8") <= LIMIT_BYTES * 2) return out;
   const start = out.slice(0, LIMIT_BYTES);
   const end = out.slice(-LIMIT_BYTES);
   return start + "\n... [truncated] ...\n" + end;
+}
+
+function getDiff(projectRoot) {
+  const checkMode = normalizeCheckMode(process.env.CHECK_MODE);
+  const rawDiff =
+    checkMode === "full" ? getFullDiff(projectRoot) : getSnippetDiff(projectRoot);
+  return limitDiff(rawDiff);
 }
 
 const SYSTEM_PROMPT = `You are an extremely strict Senior Software Architect. Your task is to evaluate a code diff.
@@ -98,6 +153,17 @@ verdict: "ACCEPT" only if score >= 95; otherwise "REJECT".`;
 
 function buildUserPrompt(diff) {
   return `Review this code diff and output the JSON object only.\n\n--- DIFF ---\n${diff}\n--- END DIFF ---`;
+}
+
+function loadDotenv(projectRoot) {
+  try {
+    const dotenvPath = path.join(projectRoot, ".env");
+    if (fs.existsSync(dotenvPath)) {
+      require("dotenv").config({ path: dotenvPath });
+    }
+  } catch {
+    // dotenv is optional
+  }
 }
 
 async function callOpenAI(diff) {
@@ -155,8 +221,9 @@ function parseJson(text) {
 }
 
 async function runAsync(projectRoot) {
+  loadDotenv(projectRoot);
   const diff = getDiff(projectRoot);
-  if (!diff) return { ok: true };
+  if (!diff) return { ok: true, skipped: true, reason: "no diff available" };
 
   let text = null;
   if (process.env.OPENAI_API_KEY && !process.env.SHIM_AI_USE_ANTHROPIC_ONLY) {
@@ -169,7 +236,7 @@ async function runAsync(projectRoot) {
   }
   if (!text && process.env.ANTHROPIC_API_KEY) text = await callAnthropic(diff);
   if (!text && process.env.OPENAI_API_KEY) text = await callOpenAI(diff);
-  if (!text) return { ok: true };
+  if (!text) return { ok: true, skipped: true, reason: "no API key configured" };
 
   let json;
   try {
@@ -206,3 +273,30 @@ async function runAsync(projectRoot) {
 }
 
 module.exports = { runAsync, getDiff, callOpenAI, callAnthropic };
+
+if (require.main === module) {
+  const root = process.env.SHIM_PROJECT_ROOT || process.cwd();
+  runAsync(root)
+    .then((result) => {
+      if (result.ok) {
+        if (result.skipped) {
+          const reason = result.reason || "review skipped";
+          console.error(`API-key AI review: skipped (${reason}).`);
+        } else {
+          console.error("API-key AI review: PASS");
+        }
+        process.exit(0);
+      }
+
+      console.error(`API-key AI review: FAIL (${result.message || "score below threshold"}).`);
+      if (result.suggestion) {
+        console.error(`Deductions: ${result.suggestion}`);
+      }
+      process.exit(1);
+    })
+    .catch((err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`API-key AI review error: ${msg}`);
+      process.exit(1);
+    });
+}

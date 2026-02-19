@@ -181,6 +181,10 @@ if [[ "$CHECK_MODE" == "full" ]]; then
   fi
 
   EMPTY_TREE="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+  HAS_HEAD=0
+  if "$GIT_CMD" rev-parse --verify HEAD >/dev/null 2>&1; then
+    HAS_HEAD=1
+  fi
   CHUNK_DIRS=()
 
   if [[ -n "$AI_REVIEW_CHUNK" ]]; then
@@ -212,7 +216,12 @@ if [[ "$CHECK_MODE" == "full" ]]; then
   for chunk_dir in "${CHUNK_DIRS[@]}"; do
     CHUNK_DIFF="$(mktemp)"
     register_tmp "$CHUNK_DIFF"
-    "$GIT_CMD" diff --no-color "$EMPTY_TREE"..HEAD -- "$chunk_dir" > "$CHUNK_DIFF" 2>/dev/null || true
+    if [[ "$HAS_HEAD" -eq 1 ]]; then
+      "$GIT_CMD" diff --no-color "$EMPTY_TREE"..HEAD -- "$chunk_dir" > "$CHUNK_DIFF" 2>/dev/null || true
+    else
+      # Initial repository state (no HEAD): compare chunk directory against empty tree.
+      diff -ruN --exclude='.git' --exclude='node_modules' /dev/null "$ROOT_DIR/$chunk_dir" > "$CHUNK_DIFF" 2>/dev/null || true
+    fi
 
     CHUNK_PASS=1
     CHUNK_VERDICT="ACCEPT"

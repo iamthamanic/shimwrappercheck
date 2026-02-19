@@ -14,7 +14,7 @@ CLI-Shim, der Projekt-Checks ausführt, bevor ein echtes CLI-Kommando (z. B. S
 - **Netzwerk-Retry** bei flaky Supabase-CLI-Aufrufen.
 - **Post-Deploy-Hooks**: Health-Ping und Logs nach Deploy.
 - **Optionaler Auto-Push**: Nach Erfolg automatisch `git push`.
-- **AI-Review**: Codex (Standard), optional Cursor/OpenAI/Anthropic. **Streng:** Senior-Software-Architekt-Checkliste (SOLID, Performance, Sicherheit, Robustheit, Wartbarkeit), Start 100 Punkte, Abzüge pro Verstoß. Ausgabe: Score, Deductions (point, minus, reason), Verdict. **PASS nur bei Score ≥ Mindestwert (Standard 95 %) und Verdict ACCEPT.** Integriert in Checks; Reviews in `.shimwrapper/reviews/` und optional als JSON-Report.
+- **AI-Review**: Provider wählbar (`SHIM_AI_REVIEW_PROVIDER=auto|codex|api`). **Streng:** Senior-Software-Architekt-Checkliste (SOLID, Performance, Sicherheit, Robustheit, Wartbarkeit), Start 100 Punkte, Abzüge pro Verstoß. Ausgabe: Score, Deductions (point, minus, reason), Verdict. **PASS nur bei Score ≥ Mindestwert (Standard 95 %) und Verdict ACCEPT.** Integriert in Checks; Reviews in `.shimwrapper/reviews/` und optional als JSON-Report.
 - **Refactor-Orchestrierung (optional)**: `SHIM_REFACTOR_MODE=interactive|agent` erzeugt TODO-Liste, State und `refactor-current-item.json` für Resume/Handoff pro Item.
 - **Interaktiver Setup-Wizard**: Repo-Scan, Konfiguration in einem Durchlauf.
 - **Global Install**: PATH-Shims (`supabase`, `git`, `shim`) in z. B. `~/.local/bin`.
@@ -273,6 +273,7 @@ Befehle werden als Token gematcht (z. B. `functions`, `db`, `push`).
 - `SHIM_HOOK_COMMANDS` Supabase-Befehle für Hooks
 - `SHIM_GIT_ENFORCE_COMMANDS` Git-Befehle für Checks
 - `SHIM_GIT_CHECK_MODE_ON_PUSH=snippet|full` AI-Review-Scope beim Push (default: `snippet`)
+- `SHIM_AI_REVIEW_PROVIDER=auto|codex|api` AI-Review-Provider (`auto`: Codex bevorzugen, sonst API-Key)
 - `SHIM_BACKEND_PATH_PATTERNS` Backend-Pfade für Diff-/Check-Erkennung (default: `supabase/functions,src/supabase/functions`)
 - `SHIM_CONTINUE_ON_ERROR=1` Checks sammeln und am Ende fehlschlagen (statt sofort abzubrechen)
 - `SHIM_REFACTOR_MODE=off|interactive|agent` Optionaler Refactor-Item-Flow bei `--refactor`
@@ -300,6 +301,7 @@ SHIM_AUTO_PUSH=1
 SHIM_CHECKS_ARGS="--no-ai-review"
 SHIM_BACKEND_PATH_PATTERNS="supabase/functions,src/supabase/functions"
 SHIM_GIT_CHECK_MODE_ON_PUSH="snippet"
+SHIM_AI_REVIEW_PROVIDER="auto"
 SHIM_REFACTOR_MODE="off"
 # Optional:
 # SHIM_CONTINUE_ON_ERROR=1

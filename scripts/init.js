@@ -150,6 +150,7 @@ async function main() {
   let autoPush = hasGit;
   let gitEnforceCommands = "push";
   let disableAiByDefault = false;
+  let aiReviewProvider = "auto";
 
   if (enableSupabase) {
     let defaultEnforce = "all";
@@ -216,6 +217,18 @@ async function main() {
   }
 
   if (enableAiReview) {
+    aiReviewProvider = (
+      await askInput(
+        "AI-Review-Provider waehlen (auto|codex|api)",
+        "auto",
+      )
+    )
+      .toLowerCase()
+      .replace(/\s+/g, "");
+    if (!["auto", "codex", "api"].includes(aiReviewProvider)) {
+      aiReviewProvider = "auto";
+    }
+
     const hasCodex = hasCommand("codex");
     const hasAgent = hasCommand("agent");
 
@@ -470,7 +483,7 @@ async function main() {
     console.log("package.json nicht gefunden; Scripts wurden nicht angepasst.");
   }
 
-  if (enableSupabase || enableGitWrapper || disableAiByDefault) {
+  if (enableSupabase || enableGitWrapper || disableAiByDefault || enableAiReview) {
     const configPath = path.join(projectRoot, ".shimwrappercheckrc");
     let writeConfig = true;
     if (exists(configPath)) {
@@ -499,6 +512,9 @@ async function main() {
       if (disableAiByDefault) {
         lines.push('SHIM_CHECKS_ARGS="--no-ai-review"');
       }
+      if (enableAiReview) {
+        lines.push(`SHIM_AI_REVIEW_PROVIDER="${aiReviewProvider}"`);
+      }
       fs.writeFileSync(configPath, lines.join("\n") + "\n");
     }
   }
@@ -518,6 +534,7 @@ async function main() {
     console.log(
       "- optional: RUN_CURSOR_REVIEW=1 fuer zweiten Review-Durchlauf",
     );
+    console.log(`- AI-Review-Provider: ${aiReviewProvider}`);
   }
   console.log("- pruefe ggf. scripts/run-checks.sh und passe die Checks an");
 

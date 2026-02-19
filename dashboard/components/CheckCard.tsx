@@ -324,6 +324,11 @@ export default function CheckCard({
       if (o.value === "interactive") return tChecks("aiReview.refactorModeOptionInteractive");
       if (o.value === "agent") return tChecks("aiReview.refactorModeOptionAgent");
     }
+    if (def.id === "aiReview" && s.key === "provider") {
+      if (o.value === "auto") return tChecks("aiReview.providerOptionAuto");
+      if (o.value === "codex") return tChecks("aiReview.providerOptionCodex");
+      if (o.value === "api") return tChecks("aiReview.providerOptionApi");
+    }
     return o.label;
   };
   /** Tooltip for a setting (checks.{def.id}.{s.key}Tooltip). Returns null if no translation. */

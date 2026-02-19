@@ -104,6 +104,17 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
   const checkMode = checkModeRaw === "diff" ? "snippet" : checkModeRaw;
   const refactorModeMatch = rawRc.match(/SHIM_REFACTOR_MODE="?(off|interactive|agent)"?/);
   const refactorMode = refactorModeMatch ? refactorModeMatch[1] : undefined;
+  const providerMatch = rawRc.match(/SHIM_AI_REVIEW_PROVIDER="?(auto|codex|api|api-key|apikey|openai|anthropic)"?/i);
+  const providerRaw = providerMatch ? providerMatch[1].toLowerCase() : undefined;
+  const provider =
+    providerRaw === "codex"
+      ? "codex"
+      : providerRaw &&
+          ["api", "api-key", "apikey", "openai", "anthropic"].includes(providerRaw)
+        ? "api"
+        : providerRaw === "auto"
+          ? "auto"
+          : undefined;
 
   const enforceMatch = rawRc.match(/SHIM_ENFORCE_COMMANDS="([^"]*)"/);
   const hookMatch = rawRc.match(/SHIM_HOOK_COMMANDS="([^"]*)"/);
@@ -141,6 +152,16 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
       aiReview: {
         ...existing.aiReview,
         refactorMode: refactorMode as "off" | "interactive" | "agent",
+      },
+    };
+  }
+  if (provider) {
+    const existing = (result.checkSettings ?? {}) as CheckSettings;
+    result.checkSettings = {
+      ...existing,
+      aiReview: {
+        ...existing.aiReview,
+        provider: provider as "auto" | "codex" | "api",
       },
     };
   }

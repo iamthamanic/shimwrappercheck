@@ -67,6 +67,7 @@ export interface CheckSettings {
     reviewDir?: string;
     checkMode?: "mix" | "snippet" | "diff" | "full";
     refactorMode?: "off" | "interactive" | "agent";
+    provider?: "auto" | "codex" | "api";
   };
   healthPing?: { defaultFunction?: string; healthFunctions?: string; healthPaths?: string; projectRef?: string };
   edgeLogs?: { defaultFunction?: string; logFunctions?: string; logLimit?: number };
@@ -226,6 +227,9 @@ export function buildRcContent(settings: SettingsData): string {
   }
   if (cs?.aiReview?.refactorMode) {
     lines.push(`SHIM_REFACTOR_MODE="${cs.aiReview.refactorMode}"`);
+  }
+  if (cs?.aiReview?.provider) {
+    lines.push(`SHIM_AI_REVIEW_PROVIDER="${cs.aiReview.provider}"`);
   }
   const defaultFn = cs?.healthPing?.defaultFunction || cs?.edgeLogs?.defaultFunction;
   if (defaultFn) lines.push(`SHIM_DEFAULT_FUNCTION="${defaultFn}"`);

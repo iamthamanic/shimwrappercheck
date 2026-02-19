@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Shim runner: orchestrates all checks (deterministic, mutation, E2E, AI deductive review).
+ * Shim runner: orchestrates all checks (deterministic, mutation, E2E, AI review fallback).
  * Writes .shim/last_error.json on first failure for agent self-healing.
  * Usage: node scripts/shim-runner.js [--full] [--no-sast] [--no-gitleaks] [--no-license-checker] [--no-architecture] [--no-complexity] [--no-mutation] [--no-e2e] [--no-ai-review] [--no-explanation-check] [--frontend] [--backend]
  * Or: npx shimwrappercheck run --full
@@ -94,6 +94,37 @@ function run(cmd, args, options = {}) {
 
 function runNpx(args, options = {}) {
   return run("npx", args, options);
+}
+
+function normalizeAiReviewProvider(raw) {
+  const v = String(raw || "auto")
+    .trim()
+    .toLowerCase();
+  if (v === "codex") return "codex";
+  if (
+    v === "api" ||
+    v === "api-key" ||
+    v === "apikey" ||
+    v === "openai" ||
+    v === "anthropic"
+  ) {
+    return "api";
+  }
+  return "auto";
+}
+
+function commandExists(cmd) {
+  const res = spawnSync("bash", ["-lc", `command -v ${cmd} >/dev/null 2>&1`], {
+    cwd: projectRoot,
+    encoding: "utf8",
+  });
+  return res.status === 0;
+}
+
+function resolveAiReviewProvider() {
+  const configured = normalizeAiReviewProvider(process.env.SHIM_AI_REVIEW_PROVIDER);
+  if (configured !== "auto") return configured;
+  return commandExists("codex") ? "codex" : "api";
 }
 
 function fail(check, message, suggestion, line, rawOutput) {
@@ -220,8 +251,7 @@ function checkE2E(opts) {
   }
 }
 
-async function checkAiDeductive(opts) {
-  if (!opts.aiReview) return;
+async function checkAiDeductive() {
   try {
     const aiReview = require(path.join(__dirname, "ai-deductive-review.js"));
     const result = await aiReview.runAsync(projectRoot);
@@ -251,6 +281,41 @@ async function checkAiDeductive(opts) {
   }
 }
 
+function checkAiCodex() {
+  const aiCodeReviewScript = path.join(__dirname, "ai-code-review.sh");
+  if (!fs.existsSync(aiCodeReviewScript)) {
+    fail(
+      "ai-codex-review",
+      "ai-code-review.sh not found",
+      "Install shimwrappercheck scripts or set SHIM_AI_REVIEW_PROVIDER=api.",
+      null,
+      aiCodeReviewScript,
+    );
+  }
+  const res = run("bash", [aiCodeReviewScript], {
+    env: { ...process.env, SHIM_PROJECT_ROOT: projectRoot },
+  });
+  if (res.status !== 0 && res.status !== null) {
+    fail(
+      "ai-codex-review",
+      "Codex AI review failed",
+      "Run codex login or switch provider to API mode.",
+      null,
+      res.stdout + res.stderr,
+    );
+  }
+}
+
+async function runAiReviewFallback(opts) {
+  if (!opts.aiReview) return;
+  const provider = resolveAiReviewProvider();
+  if (provider === "codex") {
+    checkAiCodex();
+    return;
+  }
+  await checkAiDeductive();
+}
+
 function runFrontendBackendBase(opts) {
   const runChecksPath = path.join(projectRoot, "scripts", "run-checks.sh");
   if (fs.existsSync(runChecksPath)) {
@@ -273,6 +338,7 @@ function runFrontendBackendBase(opts) {
         res.stdout + res.stderr,
       );
     }
+    return true;
   } else {
     if (opts.frontend) {
       run("npm", ["run", "lint"], { stdio: "inherit" });
@@ -280,20 +346,23 @@ function runFrontendBackendBase(opts) {
       run("npm", ["run", "test:run"], { stdio: "inherit" });
     }
   }
+  return false;
 }
 
 async function main() {
   loadEnv();
   const opts = parseArgs();
 
-  runFrontendBackendBase(opts);
+  const usedRunChecksScript = runFrontendBackendBase(opts);
   checkSemgrep(opts);
   checkGitleaks(opts);
   checkLicenseChecker(opts);
   checkDependencyCruiser(opts);
   checkStryker(opts);
   checkE2E(opts);
-  await checkAiDeductive(opts);
+  if (!usedRunChecksScript) {
+    await runAiReviewFallback(opts);
+  }
 
   clearLastError();
   console.log("All checks passed.");

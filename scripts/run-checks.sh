@@ -5,6 +5,7 @@
 #   --refactor / --until-95: force CHECK_MODE=full (chunked full scan). Use for refactor loops until all chunks >=95%.
 #   Pre-push should set CHECK_MODE=snippet so AI review only runs on pushed changes; run-checks.sh does not override CHECK_MODE if already set.
 #   AI review runs by default; use --no-ai-review to disable (or SKIP_AI_REVIEW=1).
+#   Provider: SHIM_AI_REVIEW_PROVIDER=auto|codex|api (auto prefers Codex, else API-key review).
 #   Full Explanation check runs by default after AI review; use --no-explanation-check to disable (or SKIP_EXPLANATION_CHECK=1).
 # Includes security: npm audit (frontend), deno audit (backend). Optional: Snyk (frontend, skip with SKIP_SNYK=1).
 set -euo pipefail
@@ -65,6 +66,56 @@ resolve_backend_dir() {
     fi
   done
   echo ""
+}
+
+normalize_ai_review_provider() {
+  local provider_raw="$1"
+  local provider="$(echo "$provider_raw" | tr '[:upper:]' '[:lower:]')"
+  case "$provider" in
+    codex) echo "codex" ;;
+    api|api-key|apikey|openai|anthropic) echo "api" ;;
+    auto|"") echo "auto" ;;
+    *)
+      echo "auto"
+      ;;
+  esac
+}
+
+resolve_ai_review_provider() {
+  local configured="${SHIM_AI_REVIEW_PROVIDER:-auto}"
+  local normalized
+  normalized="$(normalize_ai_review_provider "$configured")"
+  if [[ "$normalized" == "auto" ]]; then
+    if command -v codex >/dev/null 2>&1; then
+      echo "codex"
+    else
+      echo "api"
+    fi
+    return
+  fi
+  echo "$normalized"
+}
+
+run_ai_review_api() {
+  if [[ -f "$ROOT_DIR/scripts/ai-deductive-review.js" ]]; then
+    node "$ROOT_DIR/scripts/ai-deductive-review.js"
+  elif [[ -f "$PROJECT_ROOT/node_modules/shimwrappercheck/scripts/ai-deductive-review.js" ]]; then
+    node "$PROJECT_ROOT/node_modules/shimwrappercheck/scripts/ai-deductive-review.js"
+  else
+    echo "Skipping AI review: ai-deductive-review.js not found for API mode." >&2
+  fi
+}
+
+run_ai_review_codex() {
+  if [[ -f "$ROOT_DIR/scripts/ai-code-review.sh" ]]; then
+    bash "$ROOT_DIR/scripts/ai-code-review.sh"
+  elif [[ -f "$PROJECT_ROOT/scripts/ai-code-review.sh" ]]; then
+    bash "$PROJECT_ROOT/scripts/ai-code-review.sh"
+  elif [[ -f "$PROJECT_ROOT/node_modules/shimwrappercheck/scripts/ai-code-review.sh" ]]; then
+    bash "$PROJECT_ROOT/node_modules/shimwrappercheck/scripts/ai-code-review.sh"
+  else
+    echo "Skipping AI review: ai-code-review.sh not found for Codex mode." >&2
+  fi
 }
 
 BACKEND_DIR="$(resolve_backend_dir "$BACKEND_PATH_PATTERNS")"
@@ -467,7 +518,14 @@ run_one() {
     aiReview)
       [[ "$run_ai_review" = true ]] && {
         echo "AI Review..."
-        bash "$ROOT_DIR/scripts/ai-code-review.sh"
+        ai_provider="$(resolve_ai_review_provider)"
+        if [[ "$ai_provider" == "api" ]]; then
+          echo "AI Review provider: api-key"
+          run_ai_review_api
+        else
+          echo "AI Review provider: codex"
+          run_ai_review_codex
+        fi
       }
       ;;
     explanationCheck)

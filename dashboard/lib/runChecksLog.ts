@@ -16,7 +16,7 @@ export const CHECK_LOG_MARKERS: Record<string, string[]> = {
   denoFmt: ["Deno fmt..."],
   denoLint: ["Deno lint..."],
   denoAudit: ["Deno audit...", "Running backend security (deno audit)"],
-  aiReview: ["AI Review...", "Running Codex AI review"],
+  aiReview: ["AI Review...", "Running Codex AI review", "API-key AI review"],
   explanationCheck: ["Full Explanation check...", "Running Full Explanation check"],
   i18nCheck: ["i18n check...", "Skipping i18n check"],
   updateReadme: ["Update README...", "Skipping Update README"],
