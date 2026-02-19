@@ -151,6 +151,8 @@ async function main() {
   let gitEnforceCommands = "push";
   let disableAiByDefault = false;
   let aiReviewProvider = "auto";
+  let aiReviewCheckMode = "full";
+  let gitPushCheckMode = "snippet";
 
   if (enableSupabase) {
     let defaultEnforce = "all";
@@ -206,7 +208,7 @@ async function main() {
   }
 
   const enableAiReview = await askYesNo(
-    "AI Review aktivieren (Codex default, Cursor fallback)?",
+    "AI Review aktivieren (Codex oder API-Key-Review)?",
     true,
   );
   if (!enableAiReview) {
@@ -227,6 +229,35 @@ async function main() {
       .replace(/\s+/g, "");
     if (!["auto", "codex", "api"].includes(aiReviewProvider)) {
       aiReviewProvider = "auto";
+    }
+
+    aiReviewCheckMode = (
+      await askInput(
+        "AI-Review-Scope waehlen (full|snippet|diff)",
+        "full",
+      )
+    )
+      .toLowerCase()
+      .replace(/\s+/g, "");
+    if (!["full", "snippet", "diff"].includes(aiReviewCheckMode)) {
+      aiReviewCheckMode = "full";
+    }
+
+    if (enableGitWrapper) {
+      gitPushCheckMode = (
+        await askInput(
+          "AI-Review-Scope fuer git push waehlen (snippet|full)",
+          "snippet",
+        )
+      )
+        .toLowerCase()
+        .replace(/\s+/g, "");
+      if (!["snippet", "full", "diff"].includes(gitPushCheckMode)) {
+        gitPushCheckMode = "snippet";
+      }
+      if (gitPushCheckMode === "diff") {
+        gitPushCheckMode = "snippet";
+      }
     }
 
     const hasCodex = hasCommand("codex");
@@ -508,12 +539,16 @@ async function main() {
       }
       if (enableGitWrapper) {
         lines.push(`SHIM_GIT_ENFORCE_COMMANDS="${gitEnforceCommands}"`);
+        if (enableAiReview) {
+          lines.push(`SHIM_GIT_CHECK_MODE_ON_PUSH="${gitPushCheckMode}"`);
+        }
       }
       if (disableAiByDefault) {
         lines.push('SHIM_CHECKS_ARGS="--no-ai-review"');
       }
       if (enableAiReview) {
         lines.push(`SHIM_AI_REVIEW_PROVIDER="${aiReviewProvider}"`);
+        lines.push(`CHECK_MODE="${aiReviewCheckMode}"`);
       }
       fs.writeFileSync(configPath, lines.join("\n") + "\n");
     }
@@ -535,6 +570,12 @@ async function main() {
       "- optional: RUN_CURSOR_REVIEW=1 fuer zweiten Review-Durchlauf",
     );
     console.log(`- AI-Review-Provider: ${aiReviewProvider}`);
+    console.log(`- AI-Review-Scope (CHECK_MODE): ${aiReviewCheckMode}`);
+    if (enableGitWrapper) {
+      console.log(
+        `- Push-AI-Review-Scope (SHIM_GIT_CHECK_MODE_ON_PUSH): ${gitPushCheckMode}`,
+      );
+    }
   }
   console.log("- pruefe ggf. scripts/run-checks.sh und passe die Checks an");
 

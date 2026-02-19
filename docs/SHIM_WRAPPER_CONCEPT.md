@@ -27,6 +27,7 @@ You can limit which Supabase commands trigger checks and hooks:
 
 - `SHIM_ENFORCE_COMMANDS="functions,db,migration"` to run checks only for these commands.
 - `SHIM_HOOK_COMMANDS="functions,db,migration"` to run hooks only for these commands.
+- `CHECK_MODE=snippet|full|diff|mix` to control AI review scope for manual `run-checks.sh` runs.
 - `SHIM_GIT_CHECK_MODE_ON_PUSH=snippet|full` to control AI review scope for push-triggered checks.
 - `SHIM_AI_REVIEW_PROVIDER=auto|codex|api` to choose AI review provider (`auto` prefers Codex CLI, fallback API key).
 - `SHIM_REFACTOR_MODE=off|interactive|agent` to enable optional refactor item orchestration (`refactor-todo.json`, `refactor-current-item.json`).

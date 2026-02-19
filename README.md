@@ -205,7 +205,7 @@ Nur den interaktiven Init ausführen (ohne erneutes Installieren):
 npx shimwrappercheck init
 ```
 
-Erkennung von Supabase/Git, Abfrage der Befehle für Checks/Hooks, Pre-Push-Hooks, AI-Review (streng: Senior-Architekt-Checkliste, Score ≥ 95 %), Erzeugen von `.shimwrappercheckrc`. Optional: Anlegen von `.shimwrapper/checktools/` (Check-Tools pro Projekt).
+Erkennung von Supabase/Git, Abfrage der Befehle für Checks/Hooks, Pre-Push-Hooks, AI-Review (streng: Senior-Architekt-Checkliste, Score ≥ 95 %), AI-Review-Provider (`auto|codex|api`) und AI-Review-Scope (`full|snippet|diff`), Erzeugen von `.shimwrappercheckrc`. Optional: Anlegen von `.shimwrapper/checktools/` (Check-Tools pro Projekt).
 
 ### Check-Tools (projektlos)
 
@@ -273,6 +273,7 @@ Befehle werden als Token gematcht (z. B. `functions`, `db`, `push`).
 - `SHIM_HOOK_COMMANDS` Supabase-Befehle für Hooks
 - `SHIM_GIT_ENFORCE_COMMANDS` Git-Befehle für Checks
 - `SHIM_GIT_CHECK_MODE_ON_PUSH=snippet|full` AI-Review-Scope beim Push (default: `snippet`)
+- `CHECK_MODE=snippet|full|diff|mix` AI-Review-Scope für `run-checks.sh`/manuelle Läufe (`diff` = `snippet`)
 - `SHIM_AI_REVIEW_PROVIDER=auto|codex|api` AI-Review-Provider (`auto`: Codex bevorzugen, sonst API-Key)
 - `SHIM_BACKEND_PATH_PATTERNS` Backend-Pfade für Diff-/Check-Erkennung (default: `supabase/functions,src/supabase/functions`)
 - `SHIM_CONTINUE_ON_ERROR=1` Checks sammeln und am Ende fehlschlagen (statt sofort abzubrechen)
@@ -301,6 +302,7 @@ SHIM_AUTO_PUSH=1
 SHIM_CHECKS_ARGS="--no-ai-review"
 SHIM_BACKEND_PATH_PATTERNS="supabase/functions,src/supabase/functions"
 SHIM_GIT_CHECK_MODE_ON_PUSH="snippet"
+CHECK_MODE="full"
 SHIM_AI_REVIEW_PROVIDER="auto"
 SHIM_REFACTOR_MODE="off"
 # Optional:
