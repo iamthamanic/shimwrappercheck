@@ -244,6 +244,11 @@ should_run_check() {
   return 0
 }
 
+has_npm_script() {
+  local script_name="$1"
+  node -e "try{const p=require('./package.json');process.exit(p&&p.scripts&&p.scripts['$script_name']?0:1)}catch(e){process.exit(1)}" >/dev/null 2>&1
+}
+
 is_transient_network_or_tls_error() {
   local output="$1"
   if [[ -z "$output" ]]; then
@@ -486,11 +491,14 @@ run_one() {
     lint)
       if [[ "$run_lint" = "1" ]]; then
         echo "Lint..."
-        if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/eslint" ]]; then
+        if has_npm_script "lint"; then
+          npm run lint
+          rc=$?
+        elif [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/eslint" ]]; then
           ESLINT_USE_FLAT_CONFIG=false "$CHECKTOOLS_BIN/eslint" .
           rc=$?
         else
-          npm run lint
+          ESLINT_USE_FLAT_CONFIG=false npx eslint .
           rc=$?
         fi
       fi
