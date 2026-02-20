@@ -2,8 +2,9 @@
 /**
  * Install check tools into project-local .shimwrapper/checktools/.
  * Creates package.json from template if missing, then runs npm install.
- * Usage: npx shimwrappercheck install-tools [--from-repo]
+ * Usage: npx shimwrappercheck install-tools [--from-repo] [--with-check-deps]
  *   --from-repo: run from shimwrappercheck repo root (use repo's templates).
+ *   --with-check-deps: also install dependencies for enabled checks.
  */
 const path = require("path");
 const fs = require("fs");
@@ -11,6 +12,7 @@ const cp = require("child_process");
 
 const projectRoot = process.env.SHIM_PROJECT_ROOT || process.cwd();
 const fromRepo = process.argv.includes("--from-repo");
+const withCheckDeps = process.argv.includes("--with-check-deps");
 const pkgRoot = fromRepo ? projectRoot : path.resolve(__dirname, "..");
 const templatesDir = path.join(pkgRoot, "templates");
 const checktoolsDir = path.join(projectRoot, ".shimwrapper", "checktools");
@@ -66,6 +68,24 @@ function main() {
   });
   if (result.status !== 0) {
     process.exit(result.status != null ? result.status : 1);
+  }
+  if (withCheckDeps) {
+    console.log("Installing dependencies for enabled checks...");
+    const installDepsScript = path.join(__dirname, "install-check-deps.js");
+    const installDepsResult = cp.spawnSync(
+      process.execPath,
+      [installDepsScript, "--yes", "--target", "checktools"],
+      {
+        cwd: projectRoot,
+        stdio: "inherit",
+        env: { ...process.env, SHIM_PROJECT_ROOT: projectRoot },
+      },
+    );
+    if (installDepsResult.status !== 0) {
+      process.exit(
+        installDepsResult.status != null ? installDepsResult.status : 1,
+      );
+    }
   }
   console.log("Done. run-checks.sh will use these tools when present.");
 }

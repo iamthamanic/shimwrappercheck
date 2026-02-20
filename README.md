@@ -17,6 +17,8 @@ CLI-Shim, der Projekt-Checks ausführt, bevor ein echtes CLI-Kommando (z. B. S
 - **AI-Review**: Provider wählbar (`SHIM_AI_REVIEW_PROVIDER=auto|codex|api`). **Streng:** Senior-Software-Architekt-Checkliste (SOLID, Performance, Sicherheit, Robustheit, Wartbarkeit), Start 100 Punkte, Abzüge pro Verstoß. Ausgabe: Score, Deductions (point, minus, reason), Verdict. **PASS nur bei Score ≥ Mindestwert (Standard 95 %) und Verdict ACCEPT.** Integriert in Checks; Reviews in `.shimwrapper/reviews/` und optional als JSON-Report.
 - **Refactor-Orchestrierung (optional)**: `SHIM_REFACTOR_MODE=interactive|agent` erzeugt TODO-Liste, State und `refactor-current-item.json` für Resume/Handoff pro Item.
 - **Interaktiver Setup-Wizard**: Repo-Scan, Konfiguration in einem Durchlauf.
+- **Terminal-Konfigurationsmodus**: Einstellungen direkt im CLI setzen (`npx shimwrappercheck config`), ohne Dashboard.
+- **Automatische Check-Dependency-Installation**: npm-Dependencies für aktive Checks auf Knopfdruck installieren (`install-check-deps`).
 - **Global Install**: PATH-Shims (`supabase`, `git`, `shim`) in z. B. `~/.local/bin`.
 
 ### Dashboard (Web-UI)
@@ -42,7 +44,7 @@ CLI-Shim, der Projekt-Checks ausführt, bevor ein echtes CLI-Kommando (z. B. S
 
 - **Presets**: `.shimwrappercheck-presets.json` (Presets, Trigger-Befehle, Check-Reihenfolge, Toggles). Dashboard schreibt zusätzlich `.shimwrappercheckrc` für die Shell-Skripte.
 - **Env & RC**: Alle Optionen per Umgebungsvariablen oder `.shimwrappercheckrc` steuerbar.
-- **Check-Tools (pro Projekt):** Optional `.shimwrapper/checktools/` mit eigener `package.json` (ESLint, Prettier, TypeScript, Vitest, Vite). Beim `init` anlegbar; danach `npx shimwrappercheck install-tools`. `run-checks.sh` verwendet diese Binaries, wenn vorhanden – so sind die Tools pro Projekt getrennt (Variante B).
+- **Check-Tools (pro Projekt):** Optional `.shimwrapper/checktools/` mit eigener `package.json` (ESLint, Prettier, TypeScript, Vitest, Vite). Beim `init` anlegbar; danach `npx shimwrappercheck install-tools` oder inkl. aktiver Check-Dependencies `npx shimwrappercheck install-tools --with-check-deps`. `run-checks.sh` verwendet diese Binaries, wenn vorhanden – so sind die Tools pro Projekt getrennt (Variante B).
 
 ---
 
@@ -207,6 +209,16 @@ npx shimwrappercheck init
 
 Erkennung von Supabase/Git, Abfrage der Befehle für Checks/Hooks, Pre-Push-Hooks, AI-Review (streng: Senior-Architekt-Checkliste, Score ≥ 95 %), AI-Review-Provider (`auto|codex|api`) und AI-Review-Scope (`full|snippet|diff`), Erzeugen von `.shimwrappercheckrc`. Optional: Anlegen von `.shimwrapper/checktools/` (Check-Tools pro Projekt).
 
+### Terminal-Konfiguration (ohne Dashboard)
+
+Wenn du Einstellungen später vollständig im Terminal anpassen willst:
+
+```bash
+npx shimwrappercheck config
+```
+
+Der Modus fragt u. a. Trigger-Commands, AI-Review-Provider/Scope, Check-Toggles, Check-Reihenfolge und kann anschließend Dependencies für aktive Checks automatisch installieren.
+
 ### Check-Tools (projektlos)
 
 Wenn beim `init` der Ordner `.shimwrapper/checktools/` angelegt wurde (oder manuell mit `package.json` aus `templates/checktools-package.json`), Tools dort installieren:
@@ -216,6 +228,18 @@ npx shimwrappercheck install-tools
 ```
 
 `run-checks.sh` nutzt dann ESLint, Prettier, tsc, Vitest und Vite aus diesem Ordner, falls vorhanden; sonst Projekt-`node_modules` bzw. npm-Skripte.
+
+Mit automatischer Installation der Dependencies für aktuell aktive Checks:
+
+```bash
+npx shimwrappercheck install-tools --with-check-deps
+```
+
+Oder separat (liest aktive Checks aus `.shimwrappercheckrc`):
+
+```bash
+npx shimwrappercheck install-check-deps
+```
 
 ## Wie es funktioniert
 
@@ -236,6 +260,10 @@ npm run git:checked -- push
 
 # Nur Checks
 npx supabase --checks-only functions deploy server
+
+# Terminal-Konfiguration + Dependency-Installer
+npx shimwrappercheck config
+npx shimwrappercheck install-check-deps
 
 # Generischer Shim
 npm exec --package shimwrappercheck -- shim docker build .
@@ -277,6 +305,8 @@ Befehle werden als Token gematcht (z. B. `functions`, `db`, `push`).
 - `SHIM_AI_REVIEW_PROVIDER=auto|codex|api` AI-Review-Provider (`auto`: Codex bevorzugen, sonst API-Key)
 - `SHIM_BACKEND_PATH_PATTERNS` Backend-Pfade für Diff-/Check-Erkennung (default: `supabase/functions,src/supabase/functions`)
 - `SHIM_CONTINUE_ON_ERROR=1` Checks sammeln und am Ende fehlschlagen (statt sofort abzubrechen)
+- `SHIM_STRICT_NETWORK_CHECKS=1` Netzwerk/TLS-Infrastrukturfehler bei `npm audit`/Semgrep hart fehlschlagen lassen (default: warn/skip bei Infrastrukturfehlern)
+- `SHIM_I18N_REQUIRE_MESSAGES_DIR=1` i18n-Check fehlschlagen lassen, wenn kein `messages`-Verzeichnis existiert (default: skip)
 - `SHIM_REFACTOR_MODE=off|interactive|agent` Optionaler Refactor-Item-Flow bei `--refactor`
 - `SHIM_REFACTOR_DIR`, `SHIM_REFACTOR_TODO_FILE`, `SHIM_REFACTOR_STATE_FILE`, `SHIM_REFACTOR_CURRENT_ITEM_FILE`
 - `SHIM_REFACTOR_ITEM_INDEX=<n>`, `SHIM_REFACTOR_ADVANCE=1` Resume/Next-Item-Steuerung
@@ -307,6 +337,8 @@ SHIM_AI_REVIEW_PROVIDER="auto"
 SHIM_REFACTOR_MODE="off"
 # Optional:
 # SHIM_CONTINUE_ON_ERROR=1
+# SHIM_STRICT_NETWORK_CHECKS=1
+# SHIM_I18N_REQUIRE_MESSAGES_DIR=1
 # SHIM_REPORT_FILE=".shimwrapper/reports/ai-review.json"
 ```
 
@@ -330,6 +362,12 @@ Für SAST, Architektur, Komplexität, Mutation, E2E:
 - **semgrep**: z. B. `brew install semgrep` oder `npx semgrep`
 
 Konfig-Vorlagen in `templates/`: `.dependency-cruiser.json`, `.semgrep.example.yml`, `stryker.config.json`, `eslint.complexity.json`. Optional über den Init-Wizard einrichten.
+
+Automatisiert (abhängig von aktiven Checks) installieren:
+
+```bash
+npx shimwrappercheck install-check-deps
+```
 
 ## Hinweise
 

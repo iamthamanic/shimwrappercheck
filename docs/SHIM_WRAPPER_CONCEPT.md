@@ -31,6 +31,8 @@ You can limit which Supabase commands trigger checks and hooks:
 - `SHIM_GIT_CHECK_MODE_ON_PUSH=snippet|full` to control AI review scope for push-triggered checks.
 - `SHIM_AI_REVIEW_PROVIDER=auto|codex|api` to choose AI review provider (`auto` prefers Codex CLI, fallback API key).
 - `SHIM_REFACTOR_MODE=off|interactive|agent` to enable optional refactor item orchestration (`refactor-todo.json`, `refactor-current-item.json`).
+- `SHIM_STRICT_NETWORK_CHECKS=1` to fail hard on network/TLS infrastructure errors in network-based checks (e.g. npm audit/Semgrep); default treats infra outages as warning.
+- `SHIM_I18N_REQUIRE_MESSAGES_DIR=1` to fail i18n check when no messages directory exists; default skips in non-i18n projects.
 - Use `all` or `none` to enable/disable completely.
 
 Persist these settings in `.shimwrappercheckrc` (or set `SHIM_CONFIG_FILE`).
@@ -81,3 +83,5 @@ To avoid recursion:
 3. Add a pre-push hook for redundancy.
 4. Validate PATH (or use `npx supabase`).
 5. Optionally run the dashboard to manage config and AGENTS.md.
+6. Optional terminal mode: `npx shimwrappercheck config` for full CLI-based configuration.
+7. Optional dependency bootstrap: `npx shimwrappercheck install-check-deps`.

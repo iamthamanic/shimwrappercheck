@@ -206,6 +206,7 @@ run_deno_fmt="${SHIM_RUN_DENO_FMT:-1}"
 run_deno_lint="${SHIM_RUN_DENO_LINT:-1}"
 run_deno_audit="${SHIM_RUN_DENO_AUDIT:-1}"
 run_update_readme="${SHIM_RUN_UPDATE_README:-1}"
+run_ai_review_rc="${SHIM_RUN_AI_REVIEW:-1}"
 run_explanation_check_rc="${SHIM_RUN_EXPLANATION_CHECK:-1}"
 run_i18n_check_rc="${SHIM_RUN_I18N_CHECK:-1}"
 run_sast_rc="${SHIM_RUN_SAST:-0}"
@@ -241,6 +242,75 @@ should_run_check() {
     return 1
   fi
   return 0
+}
+
+is_transient_network_or_tls_error() {
+  local output="$1"
+  if [[ -z "$output" ]]; then
+    return 1
+  fi
+
+  echo "$output" | grep -qiE 'ENOTFOUND|EAI_AGAIN|ECONNRESET|ECONNREFUSED|ETIMEDOUT|getaddrinfo|network error|unable to get local issuer certificate|CERTIFICATE_VERIFY_FAILED|x509|ca-certs: empty trust anchors|TLS'
+}
+
+should_fail_on_infra_error() {
+  [[ "${SHIM_STRICT_NETWORK_CHECKS:-0}" == "1" ]]
+}
+
+run_npm_audit_with_infra_handling() {
+  local output=""
+  output="$(npm audit --audit-level="${SHIM_AUDIT_LEVEL:-high}" 2>&1)"
+  local audit_rc=$?
+
+  [[ -n "$output" ]] && echo "$output"
+
+  if [[ $audit_rc -eq 0 ]]; then
+    return 0
+  fi
+
+  if is_transient_network_or_tls_error "$output"; then
+    if should_fail_on_infra_error; then
+      echo "npm audit infrastructure issue detected; failing because SHIM_STRICT_NETWORK_CHECKS=1." >&2
+      return "$audit_rc"
+    fi
+    echo "npm audit infrastructure issue detected (network/DNS/TLS); treating as warning. Set SHIM_STRICT_NETWORK_CHECKS=1 to fail hard." >&2
+    return 0
+  fi
+
+  return "$audit_rc"
+}
+
+run_semgrep_with_infra_handling() {
+  local output=""
+  local semgrep_rc=0
+
+  if command -v semgrep >/dev/null 2>&1; then
+    output="$(semgrep scan --config auto . --error --no-git-ignore 2>&1)"
+    semgrep_rc=$?
+  elif npm exec --yes semgrep -- --version >/dev/null 2>&1; then
+    output="$(npx semgrep scan --config auto . --error --no-git-ignore 2>&1)"
+    semgrep_rc=$?
+  else
+    echo "Skipping Semgrep: not installed (pip install semgrep or npx semgrep)." >&2
+    return 0
+  fi
+
+  [[ -n "$output" ]] && echo "$output"
+
+  if [[ $semgrep_rc -eq 0 ]]; then
+    return 0
+  fi
+
+  if is_transient_network_or_tls_error "$output"; then
+    if should_fail_on_infra_error; then
+      echo "Semgrep infrastructure issue detected; failing because SHIM_STRICT_NETWORK_CHECKS=1." >&2
+      return "$semgrep_rc"
+    fi
+    echo "Semgrep infrastructure issue detected (network/TLS/CA); treating as warning. Set SHIM_STRICT_NETWORK_CHECKS=1 to fail hard." >&2
+    return 0
+  fi
+
+  return "$semgrep_rc"
 }
 
 resolve_extract_refactor_script() {
@@ -397,171 +467,199 @@ NODE
 # If SHIM_CHECK_ORDER is set: run checks in this exact order (like My Checks).
 run_one() {
   local id="$1"
+  local rc=0
+  local has_py=""
+  local shfiles=""
   case "$id" in
     prettier)
-      [[ "$run_prettier" = "1" ]] && {
+      if [[ "$run_prettier" = "1" ]]; then
         echo "Prettier..."
         if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/prettier" ]]; then
           "$CHECKTOOLS_BIN/prettier" --check .
+          rc=$?
         else
           (npm run format:check 2>/dev/null) || npx prettier --check .
+          rc=$?
         fi
-      }
+      fi
       ;;
     lint)
-      [[ "$run_lint" = "1" ]] && {
+      if [[ "$run_lint" = "1" ]]; then
         echo "Lint..."
         if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/eslint" ]]; then
-          "$CHECKTOOLS_BIN/eslint" .
+          ESLINT_USE_FLAT_CONFIG=false "$CHECKTOOLS_BIN/eslint" .
+          rc=$?
         else
           npm run lint
+          rc=$?
         fi
-      }
+      fi
       ;;
     typecheck)
-      [[ "$run_typecheck" = "1" ]] && {
+      if [[ "$run_typecheck" = "1" ]]; then
         echo "TypeScript check..."
         if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/tsc" ]]; then
           "$CHECKTOOLS_BIN/tsc" --noEmit
+          rc=$?
         else
           (npm run typecheck 2>/dev/null) || npx tsc --noEmit
+          rc=$?
         fi
-      }
+      fi
       ;;
     projectRules)
-      [[ "$run_project_rules" = "1" ]] && {
+      if [[ "$run_project_rules" = "1" ]]; then
         echo "Projektregeln..."
         if [[ -f "$ROOT_DIR/scripts/checks/project-rules.sh" ]]; then
           bash "$ROOT_DIR/scripts/checks/project-rules.sh"
+          rc=$?
         else
           echo "Skipping Projektregeln: scripts/checks/project-rules.sh not found." >&2
         fi
-      }
+      fi
       ;;
     checkMockData)
-      [[ "$run_check_mock_data" = "1" ]] && {
+      if [[ "$run_check_mock_data" = "1" ]]; then
         echo "Check mock data..."
         npm run check:mock-data
-      }
+        rc=$?
+      fi
       ;;
     testRun)
-      [[ "$run_test_run" = "1" ]] && {
+      if [[ "$run_test_run" = "1" ]]; then
         echo "Test run..."
         if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/vite" ]] && [[ -x "$CHECKTOOLS_BIN/vitest" ]]; then
           "$CHECKTOOLS_BIN/vite" build
-          "$CHECKTOOLS_BIN/vitest" run
+          rc=$?
+          if [[ $rc -eq 0 ]]; then
+            "$CHECKTOOLS_BIN/vitest" run
+            rc=$?
+          fi
         else
           npm run build
-          npm run test:run
+          rc=$?
+          if [[ $rc -eq 0 ]]; then
+            npm run test:run
+            rc=$?
+          fi
         fi
-      }
+      fi
       ;;
     viteBuild)
-      [[ "$run_vite_build" = "1" ]] && {
+      if [[ "$run_vite_build" = "1" ]]; then
         echo "Vite build..."
         if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/vite" ]]; then
           "$CHECKTOOLS_BIN/vite" build
+          rc=$?
         else
           npm run build
+          rc=$?
         fi
-      }
+      fi
       ;;
     npmAudit)
-      [[ "$run_npm_audit" = "1" ]] && {
+      if [[ "$run_npm_audit" = "1" ]]; then
         echo "npm audit..."
-        npm audit --audit-level="${SHIM_AUDIT_LEVEL:-high}"
-      }
+        run_npm_audit_with_infra_handling
+        rc=$?
+      fi
       ;;
     snyk)
       if [[ "$run_snyk" = "1" ]] && [[ -z "${SKIP_SNYK:-}" ]]; then
         if command -v snyk >/dev/null 2>&1; then
           echo "Snyk..."
           snyk test
+          rc=$?
         elif npm exec --yes snyk -- --version >/dev/null 2>&1; then
           echo "Snyk..."
           npx snyk test
+          rc=$?
         else
           echo "Skipping Snyk: not installed." >&2
         fi
       fi
       ;;
     denoFmt)
-      [[ "$run_deno_fmt" = "1" ]] && {
+      if [[ "$run_deno_fmt" = "1" ]]; then
         if [[ -n "$BACKEND_DIR" ]] && [[ -d "$BACKEND_DIR" ]]; then
           echo "Deno fmt..."
           deno fmt --check "$BACKEND_DIR"
+          rc=$?
         else
           echo "Skipping Deno fmt: no backend path found in SHIM_BACKEND_PATH_PATTERNS=$BACKEND_PATH_PATTERNS" >&2
         fi
-      }
+      fi
       ;;
     denoLint)
-      [[ "$run_deno_lint" = "1" ]] && {
+      if [[ "$run_deno_lint" = "1" ]]; then
         if [[ -n "$BACKEND_DIR" ]] && [[ -d "$BACKEND_DIR" ]]; then
           echo "Deno lint..."
           deno lint "$BACKEND_DIR"
+          rc=$?
         else
           echo "Skipping Deno lint: no backend path found in SHIM_BACKEND_PATH_PATTERNS=$BACKEND_PATH_PATTERNS" >&2
         fi
-      }
+      fi
       ;;
     denoAudit)
-      [[ "$run_deno_audit" = "1" ]] && {
+      if [[ "$run_deno_audit" = "1" ]]; then
         if [[ -n "$BACKEND_DIR" ]] && [[ -d "$BACKEND_DIR/server" ]]; then
           echo "Deno audit..."
           (cd "$BACKEND_DIR/server" && deno audit)
+          rc=$?
         else
           echo "Skipping Deno audit: backend server dir not found under detected backend path." >&2
         fi
-      }
+      fi
       ;;
     aiReview)
-      [[ "$run_ai_review" = true ]] && {
+      if [[ "$run_ai_review_rc" = "1" ]] && [[ "$run_ai_review" = true ]]; then
         echo "AI Review..."
         ai_provider="$(resolve_ai_review_provider)"
         if [[ "$ai_provider" == "api" ]]; then
           echo "AI Review provider: api-key"
           run_ai_review_api
+          rc=$?
         else
           echo "AI Review provider: codex"
           run_ai_review_codex
+          rc=$?
         fi
-      }
+      fi
       ;;
     explanationCheck)
-      [[ "$run_explanation_check_rc" = "1" ]] && [[ "$run_explanation_check" = true ]] && {
+      if [[ "$run_explanation_check_rc" = "1" ]] && [[ "$run_explanation_check" = true ]]; then
         echo "Full Explanation check..."
         bash "$ROOT_DIR/scripts/ai-explanation-check.sh"
-      }
+        rc=$?
+      fi
       ;;
     i18nCheck)
-      [[ "$run_i18n_check_rc" = "1" ]] && [[ "$run_i18n_check" = true ]] && {
+      if [[ "$run_i18n_check_rc" = "1" ]] && [[ "$run_i18n_check" = true ]]; then
         echo "i18n check..."
         node "$ROOT_DIR/scripts/i18n-check.js"
-      }
+        rc=$?
+      fi
       ;;
     updateReadme)
-      [[ "$run_update_readme" = "1" ]] && {
+      if [[ "$run_update_readme" = "1" ]]; then
         echo "Update README..."
         if [[ -f "$ROOT_DIR/node_modules/shimwrappercheck/scripts/update-readme.js" ]]; then
           node "$ROOT_DIR/node_modules/shimwrappercheck/scripts/update-readme.js"
+          rc=$?
         elif [[ -f "$ROOT_DIR/scripts/update-readme.js" ]]; then
           node "$ROOT_DIR/scripts/update-readme.js"
+          rc=$?
         else
           echo "Skipping Update README: no scripts/update-readme.js (use shimwrappercheck script or add own)." >&2
         fi
-      }
+      fi
       ;;
     sast)
       if [[ "$run_sast_rc" = "1" ]] && [[ "$run_sast" = true ]]; then
         echo "Semgrep..."
-        if command -v semgrep >/dev/null 2>&1; then
-          semgrep scan --config auto . --error --no-git-ignore
-        elif npm exec --yes semgrep -- --version >/dev/null 2>&1; then
-          npx semgrep scan --config auto . --error --no-git-ignore
-        else
-          echo "Skipping Semgrep: not installed (pip install semgrep or npx semgrep)." >&2
-        fi
+        run_semgrep_with_infra_handling
+        rc=$?
       fi
       ;;
     gitleaks)
@@ -572,6 +670,7 @@ run_one() {
           [[ -f "$ROOT_DIR/.gitleaks.toml" ]] && gitleaks_opts="detect --config $ROOT_DIR/.gitleaks.toml --no-git --source . --verbose"
           # shellcheck disable=SC2086
           gitleaks $gitleaks_opts
+          rc=$?
         else
           echo "Skipping Gitleaks: not installed (e.g. brew install gitleaks)." >&2
         fi
@@ -581,6 +680,7 @@ run_one() {
       if [[ "$run_license_checker_rc" = "1" ]] && [[ "$run_license_checker" = true ]]; then
         echo "license-checker..."
         npx license-checker --summary 2>/dev/null || true
+        rc=0
       fi
       ;;
     architecture)
@@ -590,6 +690,7 @@ run_one() {
           depcruise_entry="src"
           [[ -d "$ROOT_DIR/dashboard" ]] && [[ ! -d "$ROOT_DIR/src" ]] && depcruise_entry="dashboard"
           npx depcruise "$depcruise_entry" --output-type err
+          rc=$?
         else
           echo "Skipping Architecture: .dependency-cruiser.json not found." >&2
         fi
@@ -599,9 +700,19 @@ run_one() {
       if [[ "$run_complexity_rc" = "1" ]] && [[ "$run_complexity" = true ]]; then
         echo "Complexity (eslint-plugin-complexity)..."
         if [[ -f "$ROOT_DIR/eslint.complexity.json" ]]; then
-          npx eslint . -c "$ROOT_DIR/eslint.complexity.json"
+          if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/eslint" ]]; then
+            ESLINT_USE_FLAT_CONFIG=false "$CHECKTOOLS_BIN/eslint" . -c "$ROOT_DIR/eslint.complexity.json"
+          else
+            ESLINT_USE_FLAT_CONFIG=false npx eslint . -c "$ROOT_DIR/eslint.complexity.json"
+          fi
+          rc=$?
         elif [[ -f "$ROOT_DIR/node_modules/shimwrappercheck/templates/eslint.complexity.json" ]]; then
-          npx eslint . -c "$ROOT_DIR/node_modules/shimwrappercheck/templates/eslint.complexity.json"
+          if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/eslint" ]]; then
+            ESLINT_USE_FLAT_CONFIG=false "$CHECKTOOLS_BIN/eslint" . -c "$ROOT_DIR/node_modules/shimwrappercheck/templates/eslint.complexity.json"
+          else
+            ESLINT_USE_FLAT_CONFIG=false npx eslint . -c "$ROOT_DIR/node_modules/shimwrappercheck/templates/eslint.complexity.json"
+          fi
+          rc=$?
         else
           echo "Skipping Complexity: add eslint.complexity.json or install shimwrappercheck and eslint-plugin-complexity." >&2
         fi
@@ -612,6 +723,7 @@ run_one() {
         if [[ -f "$ROOT_DIR/stryker.config.json" ]]; then
           echo "Mutation (Stryker)..."
           npx stryker run
+          rc=$?
         else
           echo "Skipping Mutation: stryker.config.json not found." >&2
         fi
@@ -622,6 +734,7 @@ run_one() {
         if [[ -f "$ROOT_DIR/playwright.config.ts" ]] || [[ -f "$ROOT_DIR/playwright.config.js" ]]; then
           echo "E2E (Playwright)..."
           npx playwright test
+          rc=$?
         else
           echo "Skipping E2E: no Playwright config found." >&2
         fi
@@ -630,11 +743,15 @@ run_one() {
     ruff)
       if [[ "$run_ruff_rc" = "1" ]] && [[ "$run_ruff" = true ]]; then
         if command -v ruff >/dev/null 2>&1; then
-          has_py=$(find . -maxdepth 4 \( -name '*.py' -o -name 'pyproject.toml' -o -name 'requirements.txt' \) 2>/dev/null | head -1)
+          has_py="$(find . \( -path './node_modules' -o -path './.git' -o -path './.next' -o -path './dist' -o -path './build' -o -path './.shim' -o -path './.shimwrapper' -o -path './.stryker-tmp' -o -path './.codex-home' \) -prune -o -type f \( -name '*.py' -o -name 'pyproject.toml' -o -name 'requirements.txt' \) -print -quit 2>/dev/null)"
           if [[ -n "$has_py" ]]; then
             echo "Ruff (Python)..."
-            ruff check .
-            ruff format --check .
+            ruff check . --force-exclude --exclude node_modules,.git,.next,dist,build,.shim,.shimwrapper,.stryker-tmp,.codex-home
+            rc=$?
+            if [[ $rc -eq 0 ]]; then
+              ruff format --check . --force-exclude --exclude node_modules,.git,.next,dist,build,.shim,.shimwrapper,.stryker-tmp,.codex-home
+              rc=$?
+            fi
           else
             echo "Skipping Ruff: no Python files, pyproject.toml or requirements.txt found." >&2
           fi
@@ -646,10 +763,11 @@ run_one() {
     shellcheck)
       if [[ "$run_shellcheck_rc" = "1" ]] && [[ "$run_shellcheck" = true ]]; then
         if command -v shellcheck >/dev/null 2>&1; then
-          shfiles=$(find . -name '*.sh' ! -path './node_modules/*' ! -path './.git/*' 2>/dev/null)
+          shfiles="$(find . -name '*.sh' ! -path './node_modules/*' ! -path './.git/*' ! -path './.next/*' ! -path './dist/*' ! -path './build/*' ! -path './.shim/*' ! -path './.shimwrapper/*' ! -path './.stryker-tmp/*' ! -path './.codex-home/*' 2>/dev/null)"
           if [[ -n "$shfiles" ]]; then
             echo "Shellcheck..."
             echo "$shfiles" | xargs shellcheck
+            rc=$?
           else
             echo "Skipping Shellcheck: no .sh files found." >&2
           fi
@@ -663,7 +781,7 @@ run_one() {
       return 1
       ;;
   esac
-  return 0
+  return "$rc"
 }
 
 FAILED_CHECKS=()
@@ -727,7 +845,7 @@ else
 
   DEFAULT_ORDER+=(ruff shellcheck sast gitleaks licenseChecker architecture complexity mutation e2e)
 
-  if [[ "$run_ai_review" = true ]] && { [[ "$run_frontend" = true ]] || [[ "$run_backend" = true ]]; }; then
+  if [[ "$run_ai_review_rc" = "1" ]] && [[ "$run_ai_review" = true ]] && { [[ "$run_frontend" = true ]] || [[ "$run_backend" = true ]]; }; then
     DEFAULT_ORDER+=(aiReview)
   fi
 

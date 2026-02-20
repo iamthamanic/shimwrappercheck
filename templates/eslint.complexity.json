@@ -1,9 +1,20 @@
 {
-  "description": "ESLint snippet for cyclomatic complexity (max 10 per function). Merge into your project's eslint config.",
+  "root": true,
+  "ignorePatterns": [
+    "node_modules/**",
+    ".git/**",
+    ".next/**",
+    "dist/**",
+    "build/**",
+    ".shim/**",
+    ".shimwrapper/**",
+    ".stryker-tmp/**",
+    ".codex-home/**"
+  ],
+  "plugins": ["complexity"],
   "overrides": [
     {
-      "files": ["src/**/*.js", "src/**/*.ts", "src/**/*.jsx", "src/**/*.tsx"],
-      "plugins": ["complexity"],
+      "files": ["**/*.js", "**/*.ts", "**/*.jsx", "**/*.tsx"],
       "rules": {
         "complexity": ["error", { "max": 10 }]
       }

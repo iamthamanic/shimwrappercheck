@@ -10,22 +10,62 @@ if (cmd === "--" && process.argv[3] && ["git", "supabase", "shim"].includes(proc
 }
 
 if (cmd === "setup") {
+  process.argv = [
+    process.argv[0],
+    path.join(__dirname, "setup.js"),
+    ...restArgs,
+  ];
   require(path.join(__dirname, "setup"));
   return;
 }
 
 if (!cmd || cmd === "init") {
+  process.argv = [
+    process.argv[0],
+    path.join(__dirname, "init.js"),
+    ...restArgs,
+  ];
   require(path.join(__dirname, "init"));
   return;
 }
 
 if (cmd === "install") {
+  process.argv = [
+    process.argv[0],
+    path.join(__dirname, "install.js"),
+    ...restArgs,
+  ];
   require(path.join(__dirname, "install"));
   return;
 }
 
 if (cmd === "install-tools") {
+  process.argv = [
+    process.argv[0],
+    path.join(__dirname, "install-tools.js"),
+    ...restArgs,
+  ];
   require(path.join(__dirname, "install-tools"));
+  return;
+}
+
+if (cmd === "install-check-deps" || cmd === "deps") {
+  process.argv = [
+    process.argv[0],
+    path.join(__dirname, "install-check-deps.js"),
+    ...restArgs,
+  ];
+  require(path.join(__dirname, "install-check-deps"));
+  return;
+}
+
+if (cmd === "config" || cmd === "configure") {
+  process.argv = [
+    process.argv[0],
+    path.join(__dirname, "configure.js"),
+    ...restArgs,
+  ];
+  require(path.join(__dirname, "configure"));
   return;
 }
 
@@ -54,6 +94,6 @@ if (cmd === "git") {
 
 console.error("Unknown command:", cmd);
 console.error(
-  "Usage: shimwrappercheck [setup|init|install|install-tools|run|git]",
+  "Usage: shimwrappercheck [setup|init|config|install|install-tools|install-check-deps|run|git]",
 );
 process.exit(1);

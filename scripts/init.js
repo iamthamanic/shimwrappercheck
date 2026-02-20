@@ -388,6 +388,9 @@ async function main() {
     }
   }
 
+  let checktoolsAvailable = exists(
+    path.join(projectRoot, ".shimwrapper", "checktools", "package.json"),
+  );
   const createChecktools = await askYesNo(
     "Check-Tools Ordner anlegen (.shimwrapper/checktools/) – Tools pro Projekt, getrennt vom Repo?",
     false,
@@ -422,8 +425,69 @@ async function main() {
       console.log(
         "  Danach: npx shimwrappercheck install-tools (oder npm install in .shimwrapper/checktools)",
       );
+      checktoolsAvailable = true;
     } else {
       console.log("  .shimwrapper/checktools/package.json existiert bereits.");
+      checktoolsAvailable = true;
+    }
+  }
+
+  if (checktoolsAvailable) {
+    const installChecktoolsNow = await askYesNo(
+      "Check-Tools jetzt direkt installieren (npm install in .shimwrapper/checktools)?",
+      true,
+    );
+    if (installChecktoolsNow) {
+      const installToolsScript = path.join(__dirname, "install-tools.js");
+      const installToolsResult = cp.spawnSync(
+        process.execPath,
+        [installToolsScript],
+        {
+          cwd: projectRoot,
+          stdio: "inherit",
+          env: { ...process.env, SHIM_PROJECT_ROOT: projectRoot },
+        },
+      );
+      if (installToolsResult.status !== 0) {
+        console.log(
+          "Install von Check-Tools fehlgeschlagen. Du kannst spaeter `npx shimwrappercheck install-tools` ausfuehren.",
+        );
+      }
+    }
+  }
+
+  const installCheckDepsNow = await askYesNo(
+    "Dependencies fuer aktivierte Checks jetzt automatisch installieren?",
+    false,
+  );
+  if (installCheckDepsNow) {
+    let depsTarget = checktoolsAvailable ? "checktools" : "project";
+    depsTarget = (
+      await askInput(
+        "Installationsziel fuer Check-Dependencies (checktools|project)",
+        depsTarget,
+      )
+    )
+      .trim()
+      .toLowerCase();
+    if (!["checktools", "project"].includes(depsTarget)) {
+      depsTarget = checktoolsAvailable ? "checktools" : "project";
+    }
+
+    const installDepsScript = path.join(__dirname, "install-check-deps.js");
+    const installDepsResult = cp.spawnSync(
+      process.execPath,
+      [installDepsScript, "--yes", "--target", depsTarget],
+      {
+        cwd: projectRoot,
+        stdio: "inherit",
+        env: { ...process.env, SHIM_PROJECT_ROOT: projectRoot },
+      },
+    );
+    if (installDepsResult.status !== 0) {
+      console.log(
+        "Dependency-Installation fehlgeschlagen. Du kannst spaeter `npx shimwrappercheck install-check-deps` ausfuehren.",
+      );
     }
   }
 
@@ -578,6 +642,10 @@ async function main() {
     }
   }
   console.log("- pruefe ggf. scripts/run-checks.sh und passe die Checks an");
+  console.log("- Terminal-Konfiguration spaeter: npx shimwrappercheck config");
+  console.log(
+    "- Check-Dependencies nachinstallieren: npx shimwrappercheck install-check-deps",
+  );
 
   if (process.env.SHIM_LAUNCH_DASHBOARD === "1") {
     launchDashboard();
