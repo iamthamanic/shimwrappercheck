@@ -112,7 +112,10 @@
     "settingsAria": "Einstellungen"
   },
   "sidebar": {
-    "myActiveShim": "Mein aktiver Shim"
+    "myActiveShim": "Mein aktiver Shim",
+    "shimModeChecks": "Checks",
+    "shimModeNoChecks": "Keine Checks",
+    "shimNoChecksNotice": "Es laufen keine Checks vor Push oder Deploy."
   },
   "triggerCommandos": {
     "title": "Meine Trigger-Commandos"
@@ -281,9 +284,10 @@
       "timeoutSec": "Timeout (Sekunden)",
       "timeoutSecTooltip": "Maximale Laufzeit des AI-Reviews in Sekunden. Bei Timeout gilt der Check als fehlgeschlagen. Bei großen Diffs oder vollem Codebase-Modus ggf. erhöhen.",
       "checkMode": "AI-Review-Umfang",
-      "checkModeTooltip": "mix: Refactor-Loop-Modus (manueller run-checks = full Scan, pre-push = snippet). snippet: Es werden nur geänderte Code-Snippets geprüft (staged, unstaged oder zu pushende Commits). Schneller, fokussiert auf deine Änderungen. full: Ganze Codebase prüfen. Im Codex-Modus chunked pro Verzeichnis (src, supabase, scripts, dashboard), ein Lauf pro Chunk (Timeout 600 s). Im API-Modus wird ein Full-Diff-Review gesendet. Review-Dateien heißen review-snippet-... bzw. review-full-... .",
-      "checkModeOptionMix": "mix – Refactor-Loop (manuell full scan, beim Push snippet review)",
-      "checkModeOptionSnippet": "snippet – nur geänderte Code-Snippets (staged/unstaged oder zu pushende Commits)",
+      "checkModeTooltip": "commit: Nur der letzte Commit (HEAD~1..HEAD), stabil. snippet: Geänderter Code (staged/unstaged oder Push-Range). mix: Refactor-Loop (manuell = full Scan, Push = commit). full: Ganze Codebase, chunked pro Verzeichnis (src, supabase, scripts, dashboard). Review-Dateien: review-commit-..., review-snippet-..., review-full-... .",
+      "checkModeOptionCommit": "commit – nur letzter Commit (HEAD~1..HEAD), stabil",
+      "checkModeOptionMix": "mix – Refactor-Loop (manuell full scan, beim Push commit review)",
+      "checkModeOptionSnippet": "snippet – geänderter Code (staged/unstaged oder Push-Range)",
       "checkModeOptionFull": "full – ganze Codebase (chunked pro Verzeichnis)",
       "provider": "AI-Review-Provider",
       "providerTooltip": "Wähle, wie der AI-Review ausgeführt wird: auto bevorzugt Codex CLI und fällt auf API-Key-Review zurück; codex erzwingt Codex CLI; api erzwingt OpenAI/Anthropic per API-Key.",

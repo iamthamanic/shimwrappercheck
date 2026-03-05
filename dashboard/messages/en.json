@@ -112,7 +112,10 @@
     "settingsAria": "Settings"
   },
   "sidebar": {
-    "myActiveShim": "My Active Shim"
+    "myActiveShim": "My Active Shim",
+    "shimModeChecks": "Checks",
+    "shimModeNoChecks": "No checks",
+    "shimNoChecksNotice": "No checks run before push or deploy."
   },
   "triggerCommandos": {
     "title": "My Trigger Commandos"
@@ -281,9 +284,10 @@
       "timeoutSec": "Timeout (seconds)",
       "timeoutSecTooltip": "Maximum runtime for the AI review in seconds. On timeout the check fails. Consider increasing for large diffs or full codebase mode.",
       "checkMode": "AI review scope",
-      "checkModeTooltip": "mix: Refactor loop mode (manual run-checks = full scan, pre-push = snippet). snippet: Only changed code snippets are reviewed (staged, unstaged, or commits being pushed). Faster, focused on your changes. full: Whole codebase review. In codex mode this is chunked per directory (src, supabase, scripts, dashboard), one run per chunk (timeout 600 s). In api mode a full-diff review is sent. Review files are named review-snippet-... or review-full-... .",
-      "checkModeOptionMix": "mix — refactor loop (manual full scan, push snippet review)",
-      "checkModeOptionSnippet": "snippet — only changed code (staged/unstaged or pushed commits)",
+      "checkModeTooltip": "commit: Only the last commit (HEAD~1..HEAD), stable. snippet: Changed code (staged/unstaged or push range). mix: Refactor loop (manual = full scan, push = commit). full: Whole codebase, chunked per directory (src, supabase, scripts, dashboard). Review files: review-commit-..., review-snippet-..., review-full-... .",
+      "checkModeOptionCommit": "commit — only last commit (HEAD~1..HEAD), stable",
+      "checkModeOptionMix": "mix — refactor loop (manual full scan, push commit review)",
+      "checkModeOptionSnippet": "snippet — changed code (staged/unstaged or push range)",
       "checkModeOptionFull": "full — whole codebase (chunked per directory)",
       "provider": "AI review provider",
       "providerTooltip": "Select how AI review is executed: auto prefers Codex CLI and falls back to API-key review; codex forces Codex CLI; api forces OpenAI/Anthropic key-based review.",

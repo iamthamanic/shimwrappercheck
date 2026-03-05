@@ -453,7 +453,7 @@ export default function SettingsPage() {
       {showRetry && (
         <div className="space-y-4 p-4">
           <p className="text-error">{message?.text ?? tSettings("loadError")}</p>
-          <button type="button" className="btn btn-primary btn-sm" onClick={load}>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => load()}>
             {tSettings("retry")}
           </button>
         </div>

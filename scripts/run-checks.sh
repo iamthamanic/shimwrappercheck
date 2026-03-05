@@ -181,9 +181,9 @@ else
   done
 fi
 
-# CHECK_MODE: only set if not already set (e.g. pre-push sets CHECK_MODE=snippet). Default full for manual/refactor runs.
+# CHECK_MODE: only set if not already set (e.g. pre-push sets CHECK_MODE=commit or snippet). Default commit for manual runs; full for refactor.
 [[ "$run_refactor" = true ]] && CHECK_MODE=full
-export CHECK_MODE="${CHECK_MODE:-full}"
+export CHECK_MODE="${CHECK_MODE:-commit}"
 [[ "$CHECK_MODE" == "mix" ]] && CHECK_MODE=full
 [[ "$CHECK_MODE" == "diff" ]] && CHECK_MODE=snippet
 
@@ -507,7 +507,11 @@ run_one() {
       if [[ "$run_typecheck" = "1" ]]; then
         echo "TypeScript check..."
         if [[ -n "$CHECKTOOLS_BIN" ]] && [[ -x "$CHECKTOOLS_BIN/tsc" ]]; then
-          "$CHECKTOOLS_BIN/tsc" --noEmit
+          if [[ -f "$ROOT_DIR/dashboard/tsconfig.json" ]]; then
+            "$CHECKTOOLS_BIN/tsc" --noEmit -p "$ROOT_DIR/dashboard/tsconfig.json"
+          else
+            "$CHECKTOOLS_BIN/tsc" --noEmit
+          fi
           rc=$?
         else
           (npm run typecheck 2>/dev/null) || npx tsc --noEmit
@@ -674,10 +678,11 @@ run_one() {
       if [[ "$run_gitleaks_rc" = "1" ]] && [[ "$run_gitleaks" = true ]]; then
         echo "Gitleaks..."
         if command -v gitleaks >/dev/null 2>&1; then
-          gitleaks_opts="detect --no-git --source . --verbose"
-          [[ -f "$ROOT_DIR/.gitleaks.toml" ]] && gitleaks_opts="detect --config $ROOT_DIR/.gitleaks.toml --no-git --source . --verbose"
-          # shellcheck disable=SC2086
-          gitleaks $gitleaks_opts
+          if [[ -f "$ROOT_DIR/.gitleaks.toml" ]]; then
+            gitleaks detect --config "$ROOT_DIR/.gitleaks.toml" --no-git --source . --verbose
+          else
+            gitleaks detect --no-git --source . --verbose
+          fi
           rc=$?
         else
           echo "Skipping Gitleaks: not installed (e.g. brew install gitleaks)." >&2

@@ -18,3 +18,21 @@ export function IconSettings({ className = "w-4 h-4" }: IconProps) {
     </svg>
   );
 }
+
+/** Checkmark (Haken) – for „Checks“ mode. */
+export function IconCheck({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+
+/** Cross (X) – for „No checks“ mode. */
+export function IconCross({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}

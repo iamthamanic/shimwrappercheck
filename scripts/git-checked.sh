@@ -117,10 +117,10 @@ normalize_push_check_mode() {
   local mode="$1"
   mode="$(echo "$mode" | tr '[:upper:]' '[:lower:]')"
   case "$mode" in
-    ""|snippet|full) echo "$mode" ;;
+    ""|snippet|full|commit) echo "$mode" ;;
     diff) echo "snippet" ;;
     mix) echo "full" ;;
-    *) echo "snippet" ;;
+    *) echo "commit" ;;
   esac
 }
 
@@ -135,6 +135,9 @@ for arg in "${ARGS_IN[@]}"; do
 done
 
 [[ -n "${SHIM_DISABLE_CHECKS:-}" ]] && RUN_CHECKS=false
+case "${SHIM_ENABLED:-1}" in
+  0|false|FALSE|no|NO|off|OFF) RUN_CHECKS=false ;;
+esac
 
 if [[ "${#GIT_ARGS[@]}" -eq 0 ]] && [[ "$CHECKS_ONLY" != true ]]; then
   echo "No git command provided. Usage: git [shim flags] <git args>" >&2
@@ -222,7 +225,7 @@ if [[ "$RUN_CHECKS" = true ]]; then
     PUSH_CHECK_MODE=""
     if [[ "$ARGS_TEXT_RAW" == *" push "* ]]; then
       RUNNER_FULL="--full"
-      PUSH_CHECK_MODE="$(normalize_push_check_mode "${SHIM_GIT_CHECK_MODE_ON_PUSH:-snippet}")"
+      PUSH_CHECK_MODE="$(normalize_push_check_mode "${SHIM_GIT_CHECK_MODE_ON_PUSH:-commit}")"
     fi
     HAS_RUNNER=false
     [[ -f "$PROJECT_ROOT/scripts/shim-runner.js" ]] && HAS_RUNNER=true
@@ -271,6 +274,18 @@ if [[ "$RUN_CHECKS" = true ]]; then
       else
         echo "Git shim checks: no checks script found; skipping." >&2
       fi
+    fi
+  fi
+fi
+
+# Enforce single commit when pushing: AI review (commit mode) only reviews HEAD~1..HEAD; older commits would stay unreviewed.
+# Only when upstream exists (normal push); first push (no upstream yet) is not enforced.
+if [[ "$ARGS_TEXT_RAW" == *" push "* ]] && [[ -n "$GIT_CMD" ]] && [[ -x "$GIT_CMD" ]]; then
+  if "$GIT_CMD" rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+    AHEAD="$("$GIT_CMD" rev-list --count @{u}..HEAD 2>/dev/null || true)"
+    if [[ -n "$AHEAD" ]] && [[ "$AHEAD" =~ ^[0-9]+$ ]] && [[ "$AHEAD" -gt 1 ]]; then
+      echo "Pre-push: Multiple local commits ($AHEAD) ahead of upstream. AI review only reviews the latest commit. Squash (e.g. git rebase -i @{u}) or push one commit at a time." >&2
+      exit 1
     fi
   fi
 fi

@@ -314,6 +314,7 @@ export default function CheckCard({
   /** Translated label for select options (e.g. aiReview.checkMode mix/snippet/full). */
   const getSelectOptionLabel = (s: { key: string }, o: { value: string; label: string }): string => {
     if (def.id === "aiReview" && s.key === "checkMode") {
+      if (o.value === "commit") return tChecks("aiReview.checkModeOptionCommit");
       if (o.value === "mix") return tChecks("aiReview.checkModeOptionMix");
       if (o.value === "snippet") return tChecks("aiReview.checkModeOptionSnippet");
       if (o.value === "diff") return tChecks("aiReview.checkModeOptionSnippet");

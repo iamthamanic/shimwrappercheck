@@ -99,7 +99,7 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
   if (readEnv("SHIM_RUN_RUFF") !== undefined) checkToggles.ruff = readEnv("SHIM_RUN_RUFF")!;
   if (readEnv("SHIM_RUN_SHELLCHECK") !== undefined) checkToggles.shellcheck = readEnv("SHIM_RUN_SHELLCHECK")!;
 
-  const checkModeMatch = rawRc.match(/CHECK_MODE="?(mix|snippet|diff|full)"?/);
+  const checkModeMatch = rawRc.match(/CHECK_MODE="?(mix|snippet|diff|full|commit)"?/);
   const checkModeRaw = checkModeMatch ? checkModeMatch[1] : undefined;
   const checkMode = checkModeRaw === "diff" ? "snippet" : checkModeRaw;
   const refactorModeMatch = rawRc.match(/SHIM_REFACTOR_MODE="?(off|interactive|agent)"?/);
@@ -125,6 +125,23 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
   const supabaseEnforce = enforce.filter((c) => (SUPABASE_COMMAND_IDS as readonly string[]).includes(c));
   const supabaseHook = hook.filter((c) => (SUPABASE_COMMAND_IDS as readonly string[]).includes(c));
   const gitEnforceList = gitEnforce.filter((c) => (GIT_COMMAND_IDS as readonly string[]).includes(c));
+
+  const checkOrderMatch = rawRc.match(/SHIM_CHECK_ORDER="([^"]*)"/);
+  const hookOrderMatch = rawRc.match(/SHIM_HOOK_CHECK_ORDER="([^"]*)"/);
+  const enforceOrder = checkOrderMatch
+    ? checkOrderMatch[1]
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+  const hookOrder = hookOrderMatch
+    ? hookOrderMatch[1]
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+  const checkOrder = enforceOrder.length > 0 || hookOrder.length > 0 ? [...enforceOrder, ...hookOrder] : undefined;
+
   const preset: Preset = {
     ...DEFAULT_VIBE_CODE_PRESET,
     supabase: {
@@ -133,16 +150,25 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
     },
     git: { enforce: gitEnforceList as GitCommandId[] },
   };
+  const shimEnabledMatch = rawRc.match(/SHIM_ENABLED=(.+)/);
+  const shimEnabledRaw = shimEnabledMatch ? shimEnabledMatch[1].trim().toLowerCase() : undefined;
+  const shimEnabled =
+    shimEnabledRaw === undefined
+      ? undefined
+      : !["0", "false", "no", "off"].includes(shimEnabledRaw.replace(/^["']|["']$/g, ""));
+
   const result: Partial<SettingsData> = {
     presets: [preset],
     activePresetId: DEFAULT_VIBE_CODE_PRESET.id,
     checkToggles,
   };
+  if (checkOrder) result.checkOrder = checkOrder;
+  if (shimEnabled !== undefined) result.shimEnabled = shimEnabled;
   if (checkMode) {
     const existing = (result.checkSettings ?? {}) as CheckSettings;
     result.checkSettings = {
       ...existing,
-      aiReview: { ...existing.aiReview, checkMode: checkMode as "mix" | "snippet" | "diff" | "full" },
+      aiReview: { ...existing.aiReview, checkMode: checkMode as "mix" | "snippet" | "diff" | "full" | "commit" },
     };
   }
   if (refactorMode) {
@@ -229,6 +255,7 @@ export async function GET() {
         }
         if (Array.isArray(parsed.checkOrder)) settings.checkOrder = parsed.checkOrder;
         if (typeof parsed.reviewOutputPath === "string") settings.reviewOutputPath = parsed.reviewOutputPath;
+        if (typeof (parsed as SettingsData).shimEnabled === "boolean") settings.shimEnabled = (parsed as SettingsData).shimEnabled;
       } catch {
         // use defaults
       }
@@ -241,8 +268,23 @@ export async function GET() {
         if (fromRc.checkToggles) settings.checkToggles = fromRc.checkToggles;
         if (fromRc.presets?.length) settings.presets = fromRc.presets;
         if (fromRc.activePresetId) settings.activePresetId = fromRc.activePresetId;
+        if (fromRc.checkOrder?.length) settings.checkOrder = fromRc.checkOrder;
+        if (fromRc.shimEnabled !== undefined) settings.shimEnabled = fromRc.shimEnabled;
       } catch {
         // use defaults
+      }
+    }
+
+    if (fs.existsSync(rcPath) && fs.existsSync(presetsPath)) {
+      try {
+        const rawRc = fs.readFileSync(rcPath, "utf8");
+        const fromRc = parseRcToSettings(rawRc);
+        if (fromRc.checkOrder?.length) settings.checkOrder = fromRc.checkOrder;
+        if (fromRc.checkToggles)
+          settings.checkToggles = { ...settings.checkToggles, ...fromRc.checkToggles } as CheckToggles;
+        if (fromRc.shimEnabled !== undefined) settings.shimEnabled = fromRc.shimEnabled;
+      } catch {
+        // keep presets-derived values
       }
     }
 
@@ -289,6 +331,7 @@ export async function POST(request: NextRequest) {
       checkSettings: body.checkSettings ?? undefined,
       checkOrder: Array.isArray(body.checkOrder) ? body.checkOrder : undefined,
       reviewOutputPath,
+      shimEnabled: body.shimEnabled !== false,
     };
 
     const root = getProjectRoot();

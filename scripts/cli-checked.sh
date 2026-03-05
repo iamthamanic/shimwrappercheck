@@ -142,6 +142,9 @@ for arg in "${ARGS_IN[@]}"; do
 done
 
 [[ -n "${SHIM_DISABLE_CHECKS:-}" ]] && RUN_CHECKS=false
+case "${SHIM_ENABLED:-1}" in
+  0|false|FALSE|no|NO|off|OFF) RUN_CHECKS=false ;;
+esac
 if [[ -n "${SHIM_CLI_AUTO_PUSH:-}" ]]; then
   case "${SHIM_CLI_AUTO_PUSH}" in
     1|true|TRUE|yes|YES) RUN_PUSH=true ;;

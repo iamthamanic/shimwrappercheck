@@ -29,12 +29,12 @@ build_backend_regex() {
 }
 
 normalize_push_mode() {
-  mode=$(echo "${SHIM_GIT_CHECK_MODE_ON_PUSH:-snippet}" | tr '[:upper:]' '[:lower:]')
+  mode=$(echo "${SHIM_GIT_CHECK_MODE_ON_PUSH:-commit}" | tr '[:upper:]' '[:lower:]')
   case "$mode" in
-    snippet|full) printf "%s" "$mode" ;;
+    snippet|full|commit) printf "%s" "$mode" ;;
     diff) printf "%s" "snippet" ;;
     mix) printf "%s" "full" ;;
-    *) printf "%s" "snippet" ;;
+    *) printf "%s" "commit" ;;
   esac
 }
 
@@ -64,6 +64,15 @@ printf "%s\n" "$CHANGED_FILES" | grep -qE '^dashboard/|^scripts/|^templates/' &&
 
 if [ "$run_frontend" = false ] && [ "$run_backend" = false ]; then
   exit 0
+fi
+
+# Enforce single commit when pushing: AI review (commit mode) only reviews HEAD~1..HEAD.
+if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+  AHEAD=$(git rev-list --count @{u}..HEAD 2>/dev/null || true)
+  if [ -n "$AHEAD" ] && [ "$AHEAD" -gt 1 ] 2>/dev/null; then
+    echo "Pre-push: Multiple local commits ($AHEAD) ahead of upstream. AI review only reviews the latest commit. Squash (e.g. git rebase -i @{u}) or push one commit at a time." >&2
+    exit 1
+  fi
 fi
 
 CHECK_MODE_ON_PUSH=$(normalize_push_mode)

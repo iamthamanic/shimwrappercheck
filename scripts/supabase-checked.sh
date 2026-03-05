@@ -113,6 +113,9 @@ done
 
 [[ -n "${SHIM_DISABLE_CHECKS:-}" ]] && RUN_CHECKS=false
 [[ -n "${SHIM_DISABLE_HOOKS:-}" ]] && RUN_HOOKS=false
+case "${SHIM_ENABLED:-1}" in
+  0|false|FALSE|no|NO|off|OFF) RUN_CHECKS=false; RUN_HOOKS=false ;;
+esac
 if [[ -n "${SHIM_AUTO_PUSH:-}" ]]; then
   case "${SHIM_AUTO_PUSH}" in
     1|true|TRUE|yes|YES) RUN_PUSH=true ;;

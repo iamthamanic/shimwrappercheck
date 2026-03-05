@@ -8,7 +8,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import type { SettingsData, CheckToggles } from "@/lib/presets";
-import { IconSettings } from "@/components/Icons";
+import { IconSettings, IconCheck, IconCross } from "@/components/Icons";
 import TriggerCommandos from "@/components/TriggerCommandos";
 import MyShimChecks from "@/components/MyShimChecks";
 import { useSettingsSavedRef } from "@/components/SettingsSavedContext";
@@ -124,7 +124,23 @@ export default function SidebarMyShim() {
       });
   }, []);
 
+  const saveSettingsForShimMode = useCallback((next: SettingsData) => {
+    setSettings(next);
+    fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(next),
+    })
+      .then(() => {
+        if (typeof window !== "undefined") window.dispatchEvent(new Event("settings-updated"));
+      })
+      .catch((err) => {
+        console.warn("SidebarMyShim: save shim mode failed", err instanceof Error ? err.message : "Unknown error");
+      });
+  }, []);
+
   const activePreset = settings?.presets?.find((p) => p.id === settings.activePresetId);
+  const shimEnabled = settings?.shimEnabled !== false;
 
   useEffect(() => {
     const el = sidebarRef.current;
@@ -199,6 +215,38 @@ export default function SidebarMyShim() {
           </Link>
         </div>
       </div>
+      {/* Toggle under My Active Shim: Checks (left) | No checks (right) – writes SHIM_ENABLED to .shimwrappercheckrc */}
+      <div className="flex flex-col gap-1.5 shrink-0">
+        <div className="flex gap-0 rounded border border-white/30 overflow-hidden shrink-0 w-fit">
+          <button
+            type="button"
+            className={`flex items-center gap-1 py-1 px-2 text-xs font-medium ${shimEnabled ? "bg-green-600 text-white" : "text-white/70 hover:bg-white/5"} ${!settings ? "opacity-70 cursor-not-allowed" : ""}`}
+            disabled={!settings}
+            onClick={() => {
+              if (!shimEnabled && settings) saveSettingsForShimMode({ ...settings, shimEnabled: true });
+            }}
+          >
+            <IconCheck className="w-3.5 h-3.5 shrink-0" />
+            {tSidebar("shimModeChecks")}
+          </button>
+          <button
+            type="button"
+            className={`flex items-center gap-1 py-1 px-2 text-xs font-medium ${!shimEnabled ? "bg-red-950/80 text-red-300 border border-red-800/60" : "text-white/70 hover:bg-white/5"} ${!settings ? "opacity-70 cursor-not-allowed" : ""}`}
+            disabled={!settings}
+            onClick={() => {
+              if (shimEnabled && settings) saveSettingsForShimMode({ ...settings, shimEnabled: false });
+            }}
+          >
+            <IconCross className="w-3.5 h-3.5 shrink-0" />
+            {tSidebar("shimModeNoChecks")}
+          </button>
+        </div>
+        {!shimEnabled && (
+          <p className="text-[11px] text-white/60" role="status">
+            {tSidebar("shimNoChecksNotice")}
+          </p>
+        )}
+      </div>
       {/* Tabs: Enforce | Hooks – filtert Trigger Commandos + My Checks nach Rolle */}
       <div className="flex gap-0 rounded border border-white/30 overflow-hidden shrink-0">
         <button
@@ -240,7 +288,7 @@ export default function SidebarMyShim() {
           hideTabs
         />
       </section>
-      <section className="flex flex-col min-h-0 flex-1">
+      <section className={`flex flex-col min-h-0 flex-1 transition-opacity ${!shimEnabled ? "opacity-40 pointer-events-none" : ""}`}>
         <div className="min-h-[200px] overflow-y-auto">
           <MyShimChecks
             key={`my-checks-${roleTab}`}

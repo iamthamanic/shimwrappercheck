@@ -4,12 +4,14 @@
 # When verdict is REJECT: address all checklist points per affected file in one pass - see AGENTS.md and docs/AI_REVIEW_WHY_NEW_ERRORS_AFTER_FIXES.md.
 # Codex: codex in PATH; use session after codex login (ChatGPT account, no API key in terminal).
 # CHECK_MODE controls which diff the AI gets:
-#   CHECK_MODE=snippet (default): Changed code snippets only.
+#   CHECK_MODE=commit (default): Only the last commit (HEAD~1..HEAD). Stable, same commit = same review.
+#   CHECK_MODE=snippet: Changed code (staged + unstaged, or push range if clean).
 #   CHECK_MODE=full: chunked review per directory (src, supabase, scripts, dashboard).
 # Extra controls:
 #   AI_REVIEW_DIFF_RANGE: force snippet diff range (e.g. @{u}...HEAD).
 #   AI_REVIEW_DIFF_FILE: force snippet diff input from file.
 #   AI_REVIEW_CHUNK: force full-mode chunk path(s), comma-separated.
+# On REJECT: writes .shimwrapper/review-failed.json and prints REVIEW_FAILED_AGENT_ACTION (see AGENTS.md).
 # Optional machine-readable report:
 #   SHIM_REPORT_FILE or REFACTOR_REPORT_FILE -> writes a JSON summary.
 set -euo pipefail
@@ -17,12 +19,23 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-CHECK_MODE="${CHECK_MODE:-snippet}"
+CHECK_MODE="${CHECK_MODE:-commit}"
 [[ "$CHECK_MODE" == "diff" ]] && CHECK_MODE=snippet
 
 AI_REVIEW_DIFF_RANGE="${AI_REVIEW_DIFF_RANGE:-}"
 AI_REVIEW_DIFF_FILE="${AI_REVIEW_DIFF_FILE:-}"
 AI_REVIEW_CHUNK="${AI_REVIEW_CHUNK:-}"
+
+# Redact long token-like strings before writing review to disk (data leakage prevention).
+redact_review_text() {
+  local t="$1"
+  [[ -z "$t" ]] && return
+  if command -v sed >/dev/null 2>&1; then
+    echo "$t" | sed -E 's/[A-Za-z0-9+/=]{48,}/***REDACTED***/g'
+  else
+    echo "$t"
+  fi
+}
 
 TIMEOUT_SEC="${SHIM_AI_TIMEOUT_SEC:-180}"
 CHUNK_TIMEOUT="${SHIM_AI_CHUNK_TIMEOUT:-600}"
@@ -383,15 +396,38 @@ ${CHUNK_CONTENT}"
   fi
   write_machine_report "{\"kind\":\"ai-review\",\"mode\":\"full\",\"status\":\"${report_status}\",\"pass\":${report_pass},\"minRating\":${MIN_RATING},\"reviewFile\":\"$(json_escape "$REVIEW_FILE")\",\"chunks\":[${CHUNK_REPORT_ITEMS}]}"
 
-  [[ "$OVERALL_PASS" -eq 1 ]] && exit 0 || exit 1
+  if [[ "$OVERALL_PASS" -eq 1 ]]; then
+    rm -f "$(dirname "$REVIEWS_DIR")/review-failed.json" 2>/dev/null || true
+    exit 0
+  fi
+  exit 1
 fi
 
-# Snippet path (CHECK_MODE=snippet).
+# Snippet/commit path (CHECK_MODE=snippet or commit).
 DIFF_FILE="$(mktemp)"
 register_tmp "$DIFF_FILE"
 DIFF_SOURCE="auto"
 
-if [[ -n "$AI_REVIEW_DIFF_FILE" ]]; then
+if [[ "$CHECK_MODE" == "commit" ]]; then
+  # Only the last commit (HEAD~1..HEAD). Stable, no shifting diff.
+  EMPTY_TREE_COMMIT="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+  COMMIT_RANGE="HEAD~1..HEAD"
+  if ! "$GIT_CMD" rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+    COMMIT_RANGE="${EMPTY_TREE_COMMIT}..HEAD"
+  fi
+  if ! "$GIT_CMD" diff --no-color "$COMMIT_RANGE" >> "$DIFF_FILE" 2>/dev/null; then
+    echo "AI review: git diff $COMMIT_RANGE failed. Abort to avoid review with empty/incomplete diff." >&2
+    write_failed_report "git diff $COMMIT_RANGE failed"
+    exit 1
+  fi
+  if [[ ! -s "$DIFF_FILE" ]]; then
+    echo "Skipping AI review (CHECK_MODE=commit): no changes in last commit." >&2
+    write_skipped_report "no changes in last commit"
+    exit 0
+  fi
+  DIFF_SOURCE="commit"
+  echo "AI review: CHECK_MODE=commit (range: $COMMIT_RANGE — only last commit)." >&2
+elif [[ -n "$AI_REVIEW_DIFF_FILE" ]]; then
   diff_source_file="$(resolve_path "$AI_REVIEW_DIFF_FILE")"
   if [[ ! -f "$diff_source_file" ]]; then
     echo "AI review: AI_REVIEW_DIFF_FILE not found: $diff_source_file" >&2
@@ -613,15 +649,28 @@ BRANCH=""
   echo "## Raw response"
   echo ""
   echo '```'
-  [[ -n "$RESULT_TEXT" ]] && echo "$RESULT_TEXT" || echo "(no review text)"
+  if [[ -n "$RESULT_TEXT" ]]; then
+    redact_review_text "$RESULT_TEXT"
+  else
+    echo "(no review text)"
+  fi
   echo '```'
 } >> "$REVIEW_FILE"
 
-echo "Review saved: $REVIEW_FILE" >&2
+# review-failed.json for agent handoff on REJECT (see AGENTS.md).
+REVIEW_FAILED_JSON="$(dirname "$REVIEWS_DIR")/review-failed.json"
 if [[ "$PASS" -eq 1 ]]; then
+  rm -f "$REVIEW_FAILED_JSON" 2>/dev/null || true
+  echo "Review saved: $REVIEW_FILE" >&2
   echo "Codex AI review: PASS" >&2
 else
+  if command -v jq >/dev/null 2>&1; then
+    mkdir -p "$(dirname "$REVIEW_FAILED_JSON")"
+    echo "{\"verdict\":\"$REVIEW_VERDICT\",\"score\":$REVIEW_RATING,\"review_file\":\"$(json_escape "$REVIEW_FILE")\",\"timestamp\":\"$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')\"}" > "$REVIEW_FAILED_JSON"
+  fi
+  echo "Review saved: $REVIEW_FILE" >&2
   echo "Codex AI review: FAIL" >&2
+  echo "REVIEW_FAILED_AGENT_ACTION: Read $REVIEW_FAILED_JSON and AGENTS.md § \"Agent after failed AI review\"; fix all deductions (broad pass per file), commit, then re-run pipeline (e.g. npm run checks or git push)." >&2
 fi
 echo "Score: ${REVIEW_RATING}%" >&2
 echo "Verdict: ${REVIEW_VERDICT}" >&2
@@ -639,6 +688,6 @@ if [[ "$PASS" -eq 1 ]]; then
   report_status="pass"
   report_pass=true
 fi
-write_machine_report "{\"kind\":\"ai-review\",\"mode\":\"snippet\",\"status\":\"${report_status}\",\"pass\":${report_pass},\"score\":${REVIEW_RATING},\"minRating\":${MIN_RATING},\"verdict\":\"${REVIEW_VERDICT}\",\"findings\":${REVIEW_DEDUCTIONS_COUNT},\"diffSource\":\"${DIFF_SOURCE}\",\"reviewFile\":\"$(json_escape "$REVIEW_FILE")\"}"
+write_machine_report "{\"kind\":\"ai-review\",\"mode\":\"$(json_escape "$CHECK_MODE")\",\"status\":\"${report_status}\",\"pass\":${report_pass},\"score\":${REVIEW_RATING},\"minRating\":${MIN_RATING},\"verdict\":\"${REVIEW_VERDICT}\",\"findings\":${REVIEW_DEDUCTIONS_COUNT},\"diffSource\":\"${DIFF_SOURCE}\",\"reviewFile\":\"$(json_escape "$REVIEW_FILE")\"}"
 
 [[ "$PASS" -eq 1 ]] && exit 0 || exit 1
