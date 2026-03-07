@@ -46,7 +46,10 @@
     "format:check": "npm run format:check --prefix dashboard",
     "typecheck": "npm run typecheck --prefix dashboard",
     "build": "npm run build --prefix dashboard",
-    "test:run": "npm run build --prefix dashboard",
+    "build:dashboard": "npm run build --prefix dashboard",
+    "test:run": "npm run build:dashboard",
+    "mutation:build": "npm run build:dashboard -- --no-lint",
+    "test:mutation": "npm run mutation:build",
     "check:mock-data": "true"
   },
   "dependencies": {
