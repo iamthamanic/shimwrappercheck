@@ -904,8 +904,8 @@ fi
 run_refactor_orchestration
 
 if [[ "${#FAILED_CHECKS[@]}" -gt 0 ]]; then
-  # Join FAILED_CHECKS with comma in subshell so IFS change does not leak; without it output is space-separated.
-  failed_csv="$( IFS=','; echo "${FAILED_CHECKS[*]}" )"
+  # Join FAILED_CHECKS with comma without changing IFS; printf + sed avoids global IFS.
+  failed_csv="$(printf '%s,' "${FAILED_CHECKS[@]}" | sed 's/,$//')"
   echo "Failed checks: $failed_csv" >&2
   OVERALL_RC=1
 fi

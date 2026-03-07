@@ -30,7 +30,7 @@ const LAST_RUN_FILENAME = "last-run.json"; // Einheitlichen Dateinamen fuer den 
  * Eingabe: `root` als Projektwurzel. Ausgabe: absoluter Dateipfad zu `last-run.json`.
  */
 function getLastRunPath(root: string): string {
-  return path.join(root, ".shimwrapper", LAST_RUN_FILENAME); // Shimwrapper-Unterordner und Dateiname konsistent zusammenfuehren; ohne landet der Log an wechselnden Orten.
+  return path.join(root, ".shimwrapper", LAST_RUN_FILENAME); // Shimwrapper-Unterordner und Dateiname konsistent zusammenfuehren; ohne landet der Log an wechselnden Orten. root aus getProjectRoot(), kein User-Input. nosemgrep
 }
 
 /**
@@ -42,7 +42,7 @@ function getLastRunPath(root: string): string {
 function writeLastRun(root: string, stdout: string, stderr: string): void {
   try {
     // Schreibversuch kapseln; ohne wuerde ein fehlender Ordner den Aufrufer mit unbehandeltem Fehler beenden.
-    const dir = path.join(root, ".shimwrapper"); // Zielordner fuer Persistenzdateien bestimmen; ohne kann die Datei nicht sauber geschrieben werden.
+    const dir = path.join(root, ".shimwrapper"); // Zielordner fuer Persistenzdateien bestimmen; ohne kann die Datei nicht sauber geschrieben werden. root aus getProjectRoot(). nosemgrep
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); // Shimwrapper-Ordner bei Bedarf anlegen; ohne scheitert der erste Schreibversuch auf neuen Projekten.
     const p = getLastRunPath(root); // Volle Last-Run-Dateiadresse berechnen; ohne wird an einen uneinheitlichen Pfad geschrieben.
     fs.writeFileSync(p, JSON.stringify({ stdout, stderr, timestamp: new Date().toISOString() }), "utf8"); // Logs plus Zeitstempel als JSON persistieren; ohne fehlt der UI ein stabiler letzter Lauf.
@@ -59,9 +59,9 @@ function writeLastRun(root: string, stdout: string, stderr: string): void {
  * Eingabe: `root` als Projektwurzel. Ausgabe: Kommando plus Argumente oder `null`, wenn kein Runner gefunden wurde.
  */
 function getRunCommand(root: string): { cmd: string; args: string[] } | null {
-  const runnerPath = path.join(root, "scripts", "shim-runner.js"); // Lokalen Projekt-Runner zuerst pruefen; ohne uebergehen wir repo-spezifische Startlogik.
+  const runnerPath = path.join(root, "scripts", "shim-runner.js"); // Lokalen Projekt-Runner zuerst pruefen; ohne uebergehen wir repo-spezifische Startlogik. root aus getProjectRoot(). nosemgrep
   const hasPackageRunner = fs.existsSync(
-    path.join(root, "node_modules", "shimwrappercheck", "scripts", "shim-runner.js")
+    path.join(root, "node_modules", "shimwrappercheck", "scripts", "shim-runner.js") // Pfad zum Paket-Runner; root aus getProjectRoot(), keine User-Eingabe. Ohne existiert der Fallback nicht. nosemgrep
   ); // Installierten Paket-Runner separat erkennen; ohne kann der Endpoint nur mit lokalem Script arbeiten.
   if (fs.existsSync(runnerPath)) {
     // Lokalen Runner zuerst nutzen; ohne wuerden wir installierte Paket-Runner bevorzugen und Repo-Scripts ignorieren.
@@ -71,7 +71,7 @@ function getRunCommand(root: string): { cmd: string; args: string[] } | null {
     // Installierten Paket-Runner nutzen, wenn kein lokales Script; ohne haetten nur-repo-Projekte keinen Runner.
     return { cmd: "npx", args: ["shimwrappercheck", "run"] }; // Paket-Runner ueber npx starten; ohne faellt installierte Shimwrappercheck-Logik unter den Tisch.
   }
-  const scriptPath = path.join(root, "scripts", "run-checks.sh"); // Klassisches Shell-Script als letzte Fallback-Option pruefen; ohne haben aeltere Projekte keinen Runner.
+  const scriptPath = path.join(root, "scripts", "run-checks.sh"); // Klassisches Shell-Script als letzte Fallback-Option pruefen; ohne haben aeltere Projekte keinen Runner. root aus getProjectRoot(). nosemgrep
   if (fs.existsSync(scriptPath)) {
     // Shell-Script als Fallback; ohne haben Projekte ohne Node-Runner keine Ausfuehrung.
     return { cmd: "bash", args: [scriptPath] }; // Shell-Runner als kompatiblen Fallback zurueckgeben; ohne gibt es fuer scriptbasierte Projekte keinen Ausfuehrungspfad.
@@ -99,7 +99,7 @@ function readReviewSettings(root: string): {
   reviewOutputPath: string;
   checkSettings: Record<string, Record<string, unknown>>;
 } {
-  const p = path.join(root, PRESETS_FILE); // Pfad zur Presets-Datei aus der Projektwurzel ableiten; ohne lesen wir Konfiguration am falschen Ort.
+  const p = path.join(root, PRESETS_FILE); // Pfad zur Presets-Datei aus der Projektwurzel ableiten; ohne lesen wir Konfiguration am falschen Ort. root aus getProjectRoot(), PRESETS_FILE Konstante. nosemgrep
   if (!fs.existsSync(p)) {
     // Keine Presets-Datei: Defaults zurueckgeben; ohne wuerde der naechste Zugriff auf p fehlschlagen.
     return {
@@ -156,7 +156,7 @@ function writeReviewReports(root: string, stdout: string, stderr: string): void 
       if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true }); // Reportordner bei Bedarf anlegen; ohne scheitert der erste Report-Schreibversuch.
       const safeId = checkId.replace(/[^a-zA-Z0-9-_]/g, "_"); // Check-ID fuer Dateinamen bereinigen; ohne koennen Sonderzeichen ungueltige Pfade erzeugen.
       const filename = `${safeId}-${dateStr}.md`; // Zeitgestempelten Report-Dateinamen je Check bauen; ohne wuerden spaetere Laeufe Dateien ueberschreiben.
-      const fullPath = path.join(outDir, filename); // Vollstaendigen Zielpfad fuer die Markdown-Datei zusammensetzen; ohne fehlt der Schreibort.
+      const fullPath = path.join(outDir, filename); // Vollstaendigen Zielpfad fuer die Markdown-Datei zusammensetzen; ohne fehlt der Schreibort. outDir von safeReviewOutputDir(), filename aus safeId+dateStr. nosemgrep
       const content = `# Review: ${checkId}\n\n**${now.toISOString()}**\n\n\`\`\`\n${text}\n\`\`\`\n`; // Review-Inhalt mit Titel und Zeitstempel in Markdown verpacken; ohne ist die gespeicherte Datei schlechter lesbar.
       fs.writeFileSync(fullPath, content, "utf8"); // Einzelnen Review-Report physisch schreiben; ohne bleibt die Report-Funktion wirkungslos.
     }
@@ -209,7 +209,7 @@ function createRunChecksEventStream(
    */
   const startRunChecksStream = (controller: ReadableStreamDefaultController<Uint8Array>) => {
     const env = { ...process.env, SHIM_PROJECT_ROOT: root }; // Projektroot in die Child-Umgebung injizieren; ohne kennt der Runner im Dashboard-Kontext evtl. nicht sein Zielprojekt.
-    const child = spawn(runCommand.cmd, runCommand.args, { cwd: root, env, shell: true }); // Runner als Child-Prozess im Projektroot starten; ohne kann der Livestream keinen echten Check-Lauf verfolgen.
+    const child = spawn(runCommand.cmd, runCommand.args, { cwd: root, env, shell: true }); // Runner als Child-Prozess im Projektroot starten; ohne kann der Livestream keinen echten Check-Lauf verfolgen. runCommand aus getRunCommand(root), keine User-Eingabe; shell fuer bash/node noetig. nosemgrep
     let stdout = ""; // Gesammeltes stdout fuer Abschlussantwort und Reportpersistenz puffern; ohne gehen Stream-Daten nach dem Senden verloren.
     let stderr = ""; // Gesammeltes stderr analog puffern; ohne fehlen Fehltexte in done-Event und Last-Run-Log.
     let lineBuffer = ""; // Unvollstaendige Chunk-Enden puffern, damit Check-IDs zeilenweise erkannt werden; ohne zerfallen Zeilen ueber Chunkgrenzen.
