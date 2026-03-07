@@ -1,0 +1,10 @@
+# Generated and lock files
+node_modules
+*.lock
+package-lock.json
+# Build and report outputs
+reports/
+.next
+out
+build
+.stryker-tmp
