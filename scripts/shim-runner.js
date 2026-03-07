@@ -122,7 +122,9 @@ function commandExists(cmd) {
 }
 
 function resolveAiReviewProvider() {
-  const configured = normalizeAiReviewProvider(process.env.SHIM_AI_REVIEW_PROVIDER);
+  const configured = normalizeAiReviewProvider(
+    process.env.SHIM_AI_REVIEW_PROVIDER,
+  );
   if (configured !== "auto") return configured;
   return commandExists("codex") ? "codex" : "api";
 }

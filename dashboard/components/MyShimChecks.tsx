@@ -211,10 +211,9 @@ export default function MyShimChecks({
   const idealOrderDefs = IDEAL_CHECK_ORDER.map((id: CheckId) => CHECK_DEFINITIONS.find((c) => c.id === id)).filter(
     (d): d is CheckDef => d != null && d.role === roleToShow && (!tagFilter || d.tags.includes(tagFilter))
   );
-  const idealOrderFiltered =
-    search.trim()
-      ? idealOrderDefs.filter((c) => c.label.toLowerCase().includes(search.trim().toLowerCase()))
-      : idealOrderDefs;
+  const idealOrderFiltered = search.trim()
+    ? idealOrderDefs.filter((c) => c.label.toLowerCase().includes(search.trim().toLowerCase()))
+    : idealOrderDefs;
 
   const renderList = () => {
     const nodes: React.ReactNode[] = [

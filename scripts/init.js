@@ -220,10 +220,7 @@ async function main() {
 
   if (enableAiReview) {
     aiReviewProvider = (
-      await askInput(
-        "AI-Review-Provider waehlen (auto|codex|api)",
-        "auto",
-      )
+      await askInput("AI-Review-Provider waehlen (auto|codex|api)", "auto")
     )
       .toLowerCase()
       .replace(/\s+/g, "");
@@ -232,10 +229,7 @@ async function main() {
     }
 
     aiReviewCheckMode = (
-      await askInput(
-        "AI-Review-Scope waehlen (full|snippet|diff)",
-        "full",
-      )
+      await askInput("AI-Review-Scope waehlen (full|snippet|diff)", "full")
     )
       .toLowerCase()
       .replace(/\s+/g, "");
@@ -342,11 +336,7 @@ async function main() {
       true,
     );
     if (createExtractRefactorTodo) {
-      copyTemplate(
-        "extract-refactor-todo.sh",
-        extractRefactorTodoPath,
-        true,
-      );
+      copyTemplate("extract-refactor-todo.sh", extractRefactorTodoPath, true);
     }
   }
 
@@ -578,7 +568,12 @@ async function main() {
     console.log("package.json nicht gefunden; Scripts wurden nicht angepasst.");
   }
 
-  if (enableSupabase || enableGitWrapper || disableAiByDefault || enableAiReview) {
+  if (
+    enableSupabase ||
+    enableGitWrapper ||
+    disableAiByDefault ||
+    enableAiReview
+  ) {
     const configPath = path.join(projectRoot, ".shimwrappercheckrc");
     let writeConfig = true;
     if (exists(configPath)) {

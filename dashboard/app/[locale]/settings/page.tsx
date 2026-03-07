@@ -31,155 +31,217 @@ type Status = {
   lastError?: { check?: string; message?: string; suggestion?: string; timestamp?: string } | null;
 };
 
+/**
+ * SettingsPage: Verwaltet Presets, Trigger-Commandos, Checks, Reviews und Statusinformationen der Dashboard-Einstellungen.
+ * Zweck: Nutzer sollen die komplette Shim-Konfiguration, Check-Auswahl und Hilfsinformationen an einer Stelle bearbeiten koennen.
+ * Problem: Ohne diese Seite gaebe es keine zentrale UI fuer Presets, Review-Einstellungen, Status und das Starten von Checks.
+ * Eingabe: keine direkten Props. Ausgabe: React-Knoten fuer die gesamte Settings-Ansicht.
+ */
 export default function SettingsPage() {
-  const t = useTranslations("common");
-  const tSettings = useTranslations("settings");
-  const tStatus = useTranslations("statusCard");
-  const [tab, setTab] = useState<SettingsTab>("templates");
-  const [settings, setSettings] = useState<SettingsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [newPresetName, setNewPresetName] = useState("");
-  const [showNewPreset, setShowNewPreset] = useState(false);
-  const [info, setInfo] = useState<{ version: string; lastUpdated: string | null } | null>(null);
-  const [uiConfig, setUiConfig] = useState<{ portAuto: boolean; port: number } | null>(null);
-  const [uiConfigSaving, setUiConfigSaving] = useState(false);
-  const [status, setStatus] = useState<Status | null>(null);
-  const [statusLoading, setStatusLoading] = useState(true);
-  const [runResult, setRunResult] = useState<{ stdout: string; stderr: string; code: number } | null>(null);
-  const [triggerCommandosLastUpdated, setTriggerCommandosLastUpdated] = useState<Date | null>(null);
-  const [myChecksLastUpdated, setMyChecksLastUpdated] = useState<Date | null>(null);
-  const [roleTab, setRoleTabState] = useState<"enforce" | "hooks">("enforce");
+  const t = useTranslations("common"); // Gemeinsame UI-Texte fuer Buttons, Tabs und Labels laden; ohne bleiben Standardbegriffe unlokalisiert.
+  const tSettings = useTranslations("settings"); // Settings-spezifische Texte separat laden; ohne fehlen die Seiten- und Fehlermeldungen.
+  const tStatus = useTranslations("statusCard"); // Status-Card-Texte isoliert laden; ohne bleiben die Statuslabels sprachlich inkonsistent.
+  const [tab, setTab] = useState<SettingsTab>("templates"); // Aktiven Haupttab merken; ohne kann die Seite nicht zwischen Templates, Information und Reviews umschalten.
+  const [settings, setSettings] = useState<SettingsData | null>(null); // Aktuellen Settings-Stand im lokalen State halten; ohne koennen Formular und Checks nicht gerendert oder gespeichert werden.
+  const [loading, setLoading] = useState(true); // Ladezustand fuer den initialen Settings-Request halten; ohne fehlt der Seite ein sauberer Loading-/Retry-Pfad.
+  const [saving, setSaving] = useState(false); // Globalen Save-Zustand fuer den Haupt-Speichern-Button merken; ohne ist die UI waehrend Speichern nicht rueckmeldungsfaehig.
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null); // Erfolgs-/Fehlermeldung zentral halten; ohne kann die Seite Save- und Load-Rueckmeldungen nicht anzeigen.
+  const [newPresetName, setNewPresetName] = useState(""); // Eingabetext fuer neu anzulegende Presets speichern; ohne geht Formulartext bei jedem Render verloren.
+  const [showNewPreset, setShowNewPreset] = useState(false); // Sichtbarkeit des New-Preset-Formulars steuern; ohne ist der Create-Flow nicht ein-/ausblendbar.
+  const [info, setInfo] = useState<{ version: string; lastUpdated: string | null } | null>(null); // Versions- und Update-Infos aus `/api/info` halten; ohne fehlt der Information-Tab ein zentraler Datenblock.
+  const [uiConfig, setUiConfig] = useState<{ portAuto: boolean; port: number } | null>(null); // UI-Port-Konfiguration lokal bearbeitbar halten; ohne kann der Port-Formbereich keine Werte spiegeln.
+  const [uiConfigSaving, setUiConfigSaving] = useState(false); // Eigenen Saving-State fuer die UI-Port-Karte halten; ohne kann der Port-Save nicht separat blockiert werden.
+  const [status, setStatus] = useState<Status | null>(null); // Backend-/Projektstatus fuer die Statuskarten speichern; ohne bleibt der Information-Tab inhaltslos.
+  const [statusLoading, setStatusLoading] = useState(true); // Ladeindikator fuer die Statusabfrage halten; ohne gibt es keinen Unterschied zwischen "laedt noch" und "kein Status".
+  const [runResult, setRunResult] = useState<{ stdout: string; stderr: string; code: number } | null>(null); // Letztes Run-Checks-Ergebnis lokal puffern; ohne kann die Seite die finale Ausgabe nicht anzeigen.
+  const [triggerCommandosLastUpdated, setTriggerCommandosLastUpdated] = useState<Date | null>(null); // Zeitstempel fuer Trigger-Commandos-Saves anzeigen; ohne fehlt Freshness-Feedback.
+  const [myChecksLastUpdated, setMyChecksLastUpdated] = useState<Date | null>(null); // Zeitstempel fuer My-Checks-Saves anzeigen; ohne bleibt auch dieser Bereich zeitlich blind.
+  const [roleTab, setRoleTabState] = useState<"enforce" | "hooks">("enforce"); // Inneren Rollenfilter fuer Trigger-Commandos/My Checks halten; ohne kann innerhalb des Template-Tabs nicht gefiltert werden.
+  /**
+   * setRoleTab: Setzt den Rollenfilter und persistiert ihn in `sessionStorage`.
+   * Zweck: Die UI soll sich den zuletzt gewaehlten Rollen-Tab zwischen Seitenwechseln im Browser merken.
+   * Problem: Ohne diesen Helper bleibt die Rollenwahl fluechtig und springt bei jedem Reload auf den Default zurueck.
+   * Eingabe: `tab` als `"enforce"` oder `"hooks"`. Ausgabe: kein Rueckgabewert.
+   */
   const setRoleTab = useCallback((tab: "enforce" | "hooks") => {
-    setRoleTabState(tab);
+    setRoleTabState(tab); // Rollenfilter sofort im React-State umschalten; ohne reagiert die UI nicht auf den Klick.
     try {
-      if (typeof sessionStorage !== "undefined") sessionStorage.setItem("shimwrappercheck-roleTab", tab);
+      if (typeof sessionStorage !== "undefined") sessionStorage.setItem("shimwrappercheck-roleTab", tab); // Rollenwahl im Browser persistieren; ohne ist die Auswahl nach Reload verloren.
     } catch {
       /* ignore */
+      // SessionStorage-Fehler bewusst ignorieren; ohne kann fehlender Storage die gesamte Rollenumschaltung stoeren.
     }
   }, []);
+  /**
+   * useEffect(restore role tab): Stellt den zuletzt gespeicherten Rollenfilter aus `sessionStorage` wieder her.
+   * Zweck: Nutzer sollen nach Reloads denselben Rollen-Tab wiedersehen.
+   * Problem: Ohne diesen Restore-Effekt merkt sich die Seite die fruehere Rollenwahl trotz Persistenzversuch nicht.
+   * Eingabe: keine direkten Eingaben. Ausgabe: kein Rueckgabewert.
+   */
   useEffect(() => {
     try {
-      if (typeof sessionStorage === "undefined") return;
-      const stored = sessionStorage.getItem("shimwrappercheck-roleTab");
-      if (stored === "hooks" || stored === "enforce") setRoleTabState(stored);
+      if (typeof sessionStorage === "undefined") return; // Restore nur im Browser mit vorhandenem Storage versuchen; ohne crasht SSR oder restriktive Umgebungen.
+      const stored = sessionStorage.getItem("shimwrappercheck-roleTab"); // Vorherigen Rollenwert aus dem Browser lesen; ohne gibt es nichts wiederherzustellen.
+      if (stored === "hooks" || stored === "enforce") setRoleTabState(stored); // Nur bekannte Rollenwerte uebernehmen; ohne koennen kaputte Storage-Werte den State verunreinigen.
     } catch {
       /* ignore */
+      // SessionStorage-Fehler beim Restore schlucken; ohne kann ein lokaler Browserfehler die ganze Seite stoeren.
     }
   }, []);
-  const [presetMenuOpen, setPresetMenuOpen] = useState(false);
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [exportFileName, setExportFileName] = useState("");
-  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
-  const [renameValue, setRenameValue] = useState("");
-  const { refetch: refetchRunChecksLog, running, setRunning, setCurrentCheckId } = useRunChecksLog();
-  const pendingAddedCheckIdRef = useRef<string | null>(null);
+  const [presetMenuOpen, setPresetMenuOpen] = useState(false); // Dropdown-Status des aktiven Presets halten; ohne kann das Kontextmenue nicht sauber auf/zu gehen.
+  const [exportDialogOpen, setExportDialogOpen] = useState(false); // Export-Dialog sichtbar/unsichtbar machen; ohne fehlt die Export-Modalsteuerung.
+  const [exportFileName, setExportFileName] = useState(""); // Gewuenschten Export-Dateinamen zwischenspeichern; ohne geht Texteingabe im Dialog verloren.
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false); // Rename-Dialog steuern; ohne kann die Preset-Umbenennung nicht modal abgewickelt werden.
+  const [renameValue, setRenameValue] = useState(""); // Eingabewert fuer Preset-Umbenennung halten; ohne ist die Rename-Form nicht kontrolliert.
+  const { refetch: refetchRunChecksLog, running, setRunning, setCurrentCheckId } = useRunChecksLog(); // Globalen Run-Checks-Logkontext anbinden; ohne kann die Seite laufende Checks nicht synchron anzeigen.
+  const pendingAddedCheckIdRef = useRef<string | null>(null); // Neu hinzugefuegte Check-ID zwischen Save-Event und Reload puffern; ohne ginge das spaetere Aktivierungs-Event verloren.
 
-  const SETTINGS_FETCH_MS = 12_000;
+  const SETTINGS_FETCH_MS = 12_000; // Harte Timeout-Grenze fuer Settings-Ladevorgaenge definieren; ohne kann die Seite bei haengenden Requests zu lange blockieren.
 
-  const load = useCallback((onFulfilled?: () => void) => {
-    setLoading(true);
-    const ac = new AbortController();
-    const timeoutId = setTimeout(() => ac.abort(), SETTINGS_FETCH_MS);
-    fetch("/api/settings", { signal: ac.signal })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data?.error || !Array.isArray(data?.presets)) {
-          setSettings(null);
-          setMessage(
-            data?.error ? { type: "error", text: String(data.error) } : { type: "error", text: tSettings("loadError") }
-          );
-        } else {
-          setSettings(data);
-          setMessage(null);
-          if (data.presetsLastUpdated) {
-            const t = new Date(data.presetsLastUpdated);
-            if (!isNaN(t.getTime())) {
-              setTriggerCommandosLastUpdated(t);
-              setMyChecksLastUpdated(t);
+  /**
+   * load: Laedt den kompletten Settings-Stand und optional einen Callback nach erfolgreichem Abschluss.
+   * Zweck: Die Seite soll initial, nach Saves und nach Events immer denselben zentralen Ladepfad nutzen.
+   * Problem: Ohne diese Funktion waeren Initial-Load, Retry und Event-Reaktionen dupliziert und leichter inkonsistent.
+   * Eingabe: optional `onFulfilled`. Ausgabe: kein Rueckgabewert, sondern asynchroner State-Update-Flow.
+   */
+  const load = useCallback(
+    (onFulfilled?: () => void) => {
+      setLoading(true); // Ladeindikator vor dem Request aktivieren; ohne bleibt die UI waehrend eines Refreshes optisch stale.
+      const ac = new AbortController(); // Eigenen AbortController fuer den Settings-Request erzeugen; ohne laesst sich ein haengender Request nicht abbrechen.
+      const timeoutId = setTimeout(() => ac.abort(), SETTINGS_FETCH_MS); // Hard-Timeout fuer den Request setzen; ohne kann der Ladepfad bei Netzwerkproblemen endlos haengen.
+      fetch("/api/settings", { signal: ac.signal }) // Serverseitigen Settings-Stand abrufen; ohne arbeitet die Seite nur auf lokalem Altzustand.
+        .then((r) => r.json()) // JSON-Nutzlast auslesen; ohne kann die Antwort nicht validiert und in State uebernommen werden.
+        .then((data) => {
+          if (data?.error || !Array.isArray(data?.presets)) {
+            setSettings(null); // Offensichtlich ungueltige Antwort als fehlende Settings behandeln; ohne bleibt evtl. alter oder kaputter Zustand sichtbar.
+            setMessage(
+              data?.error
+                ? { type: "error", text: String(data.error) }
+                : { type: "error", text: tSettings("loadError") }
+            ); // Konkrete API-Fehlermeldung oder generischen Load-Fehler setzen; ohne fehlt dem Nutzer jede Rueckmeldung zum Ladeproblem.
+          } else {
+            setSettings(data); // Validen Settings-Stand in den lokalen State uebernehmen; ohne koennen Formulare und Listen nicht gerendert werden.
+            setMessage(null); // Alte Fehl-/Erfolgsmeldung nach erfolgreichem Reload loeschen; ohne bleibt veraltetes Feedback sichtbar.
+            if (data.presetsLastUpdated) {
+              const t = new Date(data.presetsLastUpdated); // Serverzeitpunkt in ein Date-Objekt umwandeln; ohne koennen Last-Updated-Anzeigen ihn nicht nutzen.
+              if (!isNaN(t.getTime())) {
+                setTriggerCommandosLastUpdated(t); // Trigger-Commandos-Zeitstempel mit dem Serverstand synchronisieren; ohne bleibt dort veraltetes Freshness-Feedback.
+                setMyChecksLastUpdated(t); // My-Checks-Zeitstempel genauso angleichen; ohne laufen die beiden Bereiche zeitlich auseinander.
+              }
             }
           }
-        }
-        onFulfilled?.();
-      })
-      .catch((err) => {
-        setSettings(null);
-        const isAbort = err?.name === "AbortError";
-        setMessage({ type: "error", text: isAbort ? tSettings("timeout") : tSettings("loadFailed") });
-      })
-      .finally(() => {
-        clearTimeout(timeoutId);
-        setLoading(false);
-      });
-  }, [tSettings]);
+          onFulfilled?.(); // Optionalen Anschluss-Callback erst nach verarbeiteten Daten ausfuehren; ohne koennen Folgeaktionen zu frueh laufen.
+        })
+        .catch((err) => {
+          setSettings(null); // Fehlerfall klar auf "keine Settings" setzen; ohne bleibt moeglicherweise ein falscher Altzustand stehen.
+          const isAbort = err?.name === "AbortError"; // Timeout-/Abort-Faelle gesondert erkennen; ohne kann die UI keine passendere Meldung ausgeben.
+          setMessage({ type: "error", text: isAbort ? tSettings("timeout") : tSettings("loadFailed") }); // Zwischen Timeout und generischem Ladefehler unterscheiden; ohne fehlt genaueres Fehlerfeedback.
+        })
+        .finally(() => {
+          clearTimeout(timeoutId); // Timeout-Timer immer aufraeumen; ohne sammelt jeder Load einen haengenden Timer an.
+          setLoading(false); // Ladezustand in jedem Fall wieder beenden; ohne bleibt die Seite nach Fehler oder Erfolg im Spinner-Zustand haengen.
+        });
+    },
+    [tSettings]
+  );
 
+  /**
+   * useEffect(initial load): Startet den ersten Settings-Load beim Mount der Seite.
+   * Zweck: Die Seite soll nach dem ersten Render sofort echte Konfigurationsdaten laden.
+   * Problem: Ohne diesen Effekt bleibt die Settings-Seite leer, bis man manuell einen Retry oder Save ausloest.
+   * Eingabe: keine direkten Eingaben. Ausgabe: kein Rueckgabewert.
+   */
   useEffect(() => {
-    load();
+    load(); // Initialen Settings-Load sofort anstossen; ohne koennen Tabs und Formulare keine Daten anzeigen.
   }, [load]);
 
+  /**
+   * useEffect(load info/ui-config): Laedt App-Info und UI-Port-Konfiguration fuer den Information-Tab.
+   * Zweck: Version, lastUpdated und UI-Port-Einstellungen sollen getrennt vom grossen Settings-Payload verfuegbar sein.
+   * Problem: Ohne diesen Effekt bleibt der Information-Tab inhaltlich leer oder nur mit Defaults gefuellt.
+   * Eingabe: keine direkten Eingaben. Ausgabe: kein Rueckgabewert.
+   */
   useEffect(() => {
-    fetch("/api/info")
-      .then((r) => r.json())
-      .then((data) => setInfo({ version: data.version ?? "–", lastUpdated: data.lastUpdated ?? null }))
-      .catch(() => setInfo({ version: "–", lastUpdated: null }));
-    fetch("/api/ui-config")
-      .then((r) => r.json())
-      .then((data) => setUiConfig({ portAuto: data.portAuto !== false, port: data.port ?? 3000 }))
-      .catch(() => setUiConfig({ portAuto: true, port: 3000 }));
+    fetch("/api/info") // App-Metadaten fuer Version/Update-Infos laden; ohne bleibt der Information-Block leer.
+      .then((r) => r.json()) // Info-Antwort als JSON lesen; ohne koennen Version und Zeitstempel nicht extrahiert werden.
+      .then((data) => setInfo({ version: data.version ?? "–", lastUpdated: data.lastUpdated ?? null })) // Fehlende Werte defensiv auf sichtbare Platzhalter normieren; ohne erscheinen leere oder undefinierte Felder.
+      .catch(() => setInfo({ version: "–", lastUpdated: null })); // Fehlerfall ebenfalls auf stabile Platzhalter setzen; ohne bleibt `info` moeglicherweise dauerhaft null.
+    fetch("/api/ui-config") // UI-Port-Konfiguration separat laden; ohne kann der Port-Formbereich keine echten Werte anzeigen.
+      .then((r) => r.json()) // UI-Config-JSON lesen; ohne sind Port-Auto/Fix-Werte nicht auswertbar.
+      .then((data) => setUiConfig({ portAuto: data.portAuto !== false, port: data.port ?? 3000 })) // API-Werte mit defensiven Defaults in den lokalen State uebernehmen; ohne brechen unvollstaendige Payloads das Formular.
+      .catch(() => setUiConfig({ portAuto: true, port: 3000 })); // Fehlerfall auf sicheren Auto-Port-Default setzen; ohne bleibt der UI-Config-Bereich leer.
   }, []);
 
+  /**
+   * useEffect(load status): Holt den Projektstatus fuer den Information-Tab.
+   * Zweck: StatusCards und letzte Fehler sollen nach Seitenaufruf automatisch sichtbar sein.
+   * Problem: Ohne diesen Effekt bleibt der Statusbereich permanent im Lade- oder Leerzustand.
+   * Eingabe: keine direkten Eingaben. Ausgabe: kein Rueckgabewert.
+   */
   useEffect(() => {
-    fetch("/api/status")
-      .then((r) => r.json())
+    fetch("/api/status") // Status-Endpoint fuer Projekt-/Shim-Zustand anfragen; ohne fehlt den StatusCards jede Datenbasis.
+      .then((r) => r.json()) // Status-Antwort als JSON lesen; ohne koennen wir sie nicht in den Status-State uebernehmen.
       .then((data) => {
-        setStatus(data);
-        setStatusLoading(false);
+        setStatus(data); // Erfolgreich geladenen Status in den lokalen State schreiben; ohne bleibt der UI-Block leer.
+        setStatusLoading(false); // Status-Ladezustand nach Erfolg beenden; ohne bleibt die Seite im Loading-Fallback haengen.
       })
-      .catch(() => setStatusLoading(false));
+      .catch(() => setStatusLoading(false)); // Auch bei Fehlern den Ladezustand aufloesen; ohne bleibt der Bereich endlos im Ladezustand.
   }, []);
 
+  /**
+   * useEffect(my-checks-saved): Reagiert auf gespeicherte My-Checks und aktiviert neu hinzugefuegte Checks nach dem Reload.
+   * Zweck: Nach Add/Reorder-Operationen soll die Settings-Seite sofort synchronisieren und neue Checks sichtbar fokussieren koennen.
+   * Problem: Ohne diesen Listener bleibt der My-Checks-Bereich nach Sidebar-/DnD-Saves stale.
+   * Eingabe: keine direkten Eingaben; nutzt Event-Detail und `load`. Ausgabe: Cleanup fuer den Listener.
+   */
   useEffect(() => {
     const onMyChecksSaved = (e: Event) => {
-      const addedCheckId = (e as CustomEvent<{ addedCheckId?: string }>).detail?.addedCheckId ?? null;
-      pendingAddedCheckIdRef.current = addedCheckId;
-      setMyChecksLastUpdated(new Date());
+      const addedCheckId = (e as CustomEvent<{ addedCheckId?: string }>).detail?.addedCheckId ?? null; // Optional neu hinzugefuegte Check-ID aus dem Event extrahieren; ohne ist spaetere Aktivierung nicht gezielt moeglich.
+      pendingAddedCheckIdRef.current = addedCheckId; // ID zwischen Event und Reload puffern; ohne geht sie waehrend des asynchronen Reloads verloren.
+      setMyChecksLastUpdated(new Date()); // Zeitstempel fuer sichtbares Save-Feedback aktualisieren; ohne bleibt der Bereich optisch alt.
       load(() => {
-        const id = pendingAddedCheckIdRef.current;
-        pendingAddedCheckIdRef.current = null;
+        const id = pendingAddedCheckIdRef.current; // Gepufferte Check-ID nach dem Reload wieder lesen; ohne wissen wir nicht mehr, welche Karte frisch hinzugekommen ist.
+        pendingAddedCheckIdRef.current = null; // Ref direkt leeren; ohne wird dieselbe Aktivierung spaeter versehentlich wiederholt.
         if (id && typeof window !== "undefined") {
           requestAnimationFrame(() => {
-            window.dispatchEvent(new CustomEvent("check-activated", { detail: { checkId: id } }));
+            window.dispatchEvent(new CustomEvent("check-activated", { detail: { checkId: id } })); // Aktivierungs-Event erst nach DOM-Update senden; ohne existiert die Zielkarte evtl. noch nicht.
           });
         }
       });
     };
-    window.addEventListener("my-checks-saved", onMyChecksSaved);
-    return () => window.removeEventListener("my-checks-saved", onMyChecksSaved);
+    window.addEventListener("my-checks-saved", onMyChecksSaved); // Globalen Save-Listener registrieren; ohne erreicht diese Seite Sidebar-/DnD-Saves nicht.
+    return () => window.removeEventListener("my-checks-saved", onMyChecksSaved); // Listener beim Unmount abbauen; ohne bleiben verwaiste Doppelreaktionen im Browser.
   }, [load]);
 
+  /**
+   * runChecks: Startet den Live-SSE-Lauf fuer `/api/run-checks` und uebernimmt Fortschritt plus Abschlussdaten.
+   * Zweck: Nutzer sollen Checks direkt aus der Settings-Seite starten und ihren Fortschritt verfolgen koennen.
+   * Problem: Ohne diesen Handler ist der "Run checks"-Button rein dekorativ und liefert keinen Log-/Statusfluss.
+   * Eingabe: keine. Ausgabe: kein Rueckgabewert.
+   */
   const runChecks = () => {
-    setRunResult(null);
-    setRunning(true);
-    setCurrentCheckId(null);
-    fetch("/api/run-checks", { method: "POST", headers: { Accept: "text/event-stream" } })
+    setRunResult(null); // Vorheriges Ergebnis vor neuem Lauf loeschen; ohne wird alte Ausgabe mit neuem Run vermischt.
+    setRunning(true); // Globalen Running-State setzen; ohne kann die UI den Start eines neuen Laufes nicht signalisieren.
+    setCurrentCheckId(null); // Aktuelle Check-ID vor dem Stream resetten; ohne bleibt der vorige Fortschrittsstand sichtbar.
+    fetch("/api/run-checks", { method: "POST", headers: { Accept: "text/event-stream" } }) // SSE-Lauf explizit als Stream anfordern; ohne kaeme nur der JSON-Fallback ohne Live-Fortschritt.
       .then(async (r) => {
-        if (!r.body) throw new Error("No body");
-        const reader = r.body.getReader();
-        const decoder = new TextDecoder();
-        let buf = "";
-        let doneData: { code?: number; stdout?: string; stderr?: string } = {};
+        if (!r.body) throw new Error("No body"); // Ohne Response-Body ist der Stream unbrauchbar; ohne diese Pruefung liest der Code auf `undefined`.
+        const reader = r.body.getReader(); // Stream-Reader fuer den SSE-Body erzeugen; ohne koennen keine Chunks gelesen werden.
+        const decoder = new TextDecoder(); // Uint8Array-Chunks wieder in Text umwandeln; ohne laesst sich das SSE-Format nicht parsen.
+        let buf = ""; // Unvollstaendige Stream-Teile zwischen Chunks puffern; ohne zerreissen Events ueber Chunkgrenzen.
+        let doneData: { code?: number; stdout?: string; stderr?: string } = {}; // Finale done-Daten separat sammeln; ohne fehlt spaeter die Abschlussantwort.
         while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-          const parts = buf.split("\n\n");
-          buf = parts.pop() ?? "";
+          const { done, value } = await reader.read(); // Naechsten Stream-Chunk lesen; ohne bewegt sich der Live-Lauf nicht vorwaerts.
+          if (done) break; // Streamende erkennen und Schleife verlassen; ohne liest der Code endlos weiter.
+          buf += decoder.decode(value, { stream: true }); // Chunk an den Textpuffer anhaengen; ohne gehen Event-Fragmente verloren.
+          const parts = buf.split("\n\n"); // SSE-Events ueber Leerzeilen trennen; ohne koennen Event und Daten nicht blockweise ausgewertet werden.
+          buf = parts.pop() ?? ""; // Letzten unvollstaendigen Block fuer den naechsten Chunk aufheben; ohne zerfallen Events an der Chunkgrenze.
           for (const block of parts) {
-            let blockEvent = "";
-            const lines = block.split("\n");
+            let blockEvent = ""; // Event-Typ pro SSE-Block zwischenspeichern; ohne lassen sich Datenzeilen keinem Event zuordnen.
+            const lines = block.split("\n"); // Block in einzelne SSE-Zeilen aufteilen; ohne koennen `event:` und `data:` nicht separat gelesen werden.
             for (const line of lines) {
-              if (line.startsWith("event: ")) blockEvent = line.slice(7).trim();
+              if (line.startsWith("event: "))
+                blockEvent = line.slice(7).trim(); // Eventnamen merken; ohne wissen wir bei `data:`-Zeilen nicht, ob es currentCheck oder done ist.
               else if (line.startsWith("data: ")) {
                 try {
                   const data = JSON.parse(line.slice(6)) as {
@@ -187,9 +249,10 @@ export default function SettingsPage() {
                     code?: number;
                     stdout?: string;
                     stderr?: string;
-                  };
-                  if (blockEvent === "currentCheck" && data.checkId) setCurrentCheckId(data.checkId);
-                  else if (blockEvent === "done") doneData = data;
+                  }; // Datenzeile aus JSON zur strukturierten SSE-Nutzlast parsen; ohne bleiben Check-ID und done-Daten nur roher Text.
+                  if (blockEvent === "currentCheck" && data.checkId)
+                    setCurrentCheckId(data.checkId); // Laufenden Check live in den Kontext spiegeln; ohne fehlt die Fortschrittsanzeige.
+                  else if (blockEvent === "done") doneData = data; // Abschlussdaten fuer spaeteren Zustand puffern; ohne fehlt stdout/stderr/code nach Streamende.
                 } catch {
                   // ignore
                 }
@@ -198,150 +261,202 @@ export default function SettingsPage() {
           }
         }
         setRunResult({
-          stdout: doneData.stdout ?? "",
-          stderr: doneData.stderr ?? "",
-          code: doneData.code ?? 1,
-        });
-        setRunning(false);
-        setCurrentCheckId(null);
-        refetchRunChecksLog();
+          stdout: doneData.stdout ?? "", // Stdout defensiv aus den Abschlussdaten uebernehmen; ohne koennen fehlende Felder die UI brechen.
+          stderr: doneData.stderr ?? "", // Stderr ebenfalls mit leerem Fallback lesen; ohne fehlt ein stabiler Fehlerkanal.
+          code: doneData.code ?? 1, // Exitcode auf Fehlerdefault normieren; ohne erscheint ein unvollstaendiger done-Block faelschlich erfolgreich.
+        }); // Komplettes Laufergebnis fuer die Ergebnisbox setzen; ohne bleibt der Nutzer nach Streamende ohne Abschlussdaten.
+        setRunning(false); // Running-Flag nach Abschluss loeschen; ohne bleibt der Run-Button dauerhaft gesperrt.
+        setCurrentCheckId(null); // Aktuellen Check nach Laufende resetten; ohne bleibt ein alter Check als aktiv stehen.
+        refetchRunChecksLog(); // Persistiertes Last-Run-Log nach dem Ende neu laden; ohne sieht der Logs-Tab nicht den frischen Lauf.
       })
       .catch(() => {
-        setRunResult({ stdout: "", stderr: tSettings("runChecksRequestFailed"), code: 1 });
-        setRunning(false);
-        setCurrentCheckId(null);
+        setRunResult({ stdout: "", stderr: tSettings("runChecksRequestFailed"), code: 1 }); // Auch Request-/Streamfehler in ein sichtbares Ergebnis ueberfuehren; ohne verschwindet der Fehler still.
+        setRunning(false); // Running-Flag auch im Fehlerfall loeschen; ohne bleibt die UI haengen.
+        setCurrentCheckId(null); // Aktuelle Check-ID bei Fehlern ebenfalls resetten; ohne bleibt veralteter Fortschritt sichtbar.
       });
   };
 
+  /**
+   * save: Speichert den aktuell bearbeiteten globalen Settings-Stand.
+   * Zweck: Nutzer sollen alle lokalen Aenderungen gesammelt persistieren koennen.
+   * Problem: Ohne diesen Handler bleibt der Haupt-Save-Button ohne Wirkung und lokale Einstellungen gehen bei Reload verloren.
+   * Eingabe: keine. Ausgabe: kein Rueckgabewert.
+   */
   const save = () => {
-    if (!settings) return;
-    setSaving(true);
-    setMessage(null);
+    if (!settings) return; // Ohne Settings gibt es nichts Sinnvolles zu speichern; ohne diese Guard senden wir kaputte Requests.
+    setSaving(true); // Globalen Saving-Zustand aktivieren; ohne bekommt der Nutzer kein Feedback waehrend des Speicherns.
+    setMessage(null); // Alte Meldung vor neuem Save loeschen; ohne ueberlagert veraltetes Feedback den aktuellen Versuch.
     fetch("/api/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(settings),
-    })
-      .then((r) => r.json())
+    }) // Kompletten Settings-Stand an den API-Endpunkt schicken; ohne bleiben die lokalen Aenderungen nur im Browser.
+      .then((r) => r.json()) // JSON-Antwort lesen; ohne kann Erfolg oder Fehler des Saves nicht ausgewertet werden.
       .then((data) => {
-        setSaving(false);
-        if (data.error) setMessage({ type: "error", text: data.error });
+        setSaving(false); // Saving-State nach Antwort beenden; ohne bleibt der UI-Block im Ladezustand stecken.
+        if (data.error)
+          setMessage({ type: "error", text: data.error }); // API-Fehler dem Nutzer sichtbar melden; ohne wirkt ein fehlgeschlagener Save wie ein stiller No-op.
         else {
-          setMessage({ type: "success", text: tSettings("saved") });
-          setTriggerCommandosLastUpdated(new Date());
-          setMyChecksLastUpdated(new Date());
+          setMessage({ type: "success", text: tSettings("saved") }); // Erfolgsmeldung fuer den Nutzer setzen; ohne fehlt positive Rueckmeldung nach Persistenz.
+          setTriggerCommandosLastUpdated(new Date()); // Trigger-Commandos-Zeitstempel als frisch gespeichert markieren; ohne bleibt dort altes Feedback stehen.
+          setMyChecksLastUpdated(new Date()); // My-Checks-Zeitstempel gleichzeitig aktualisieren; ohne wirken die beiden Bereiche zeitlich unsynchron.
         }
       })
       .catch(() => {
-        setSaving(false);
-        setMessage({ type: "error", text: tSettings("saveFailed") });
+        setSaving(false); // Saving-State auch im Fehlerfall aufloesen; ohne bleibt der Button dauerhaft blockiert.
+        setMessage({ type: "error", text: tSettings("saveFailed") }); // Generischen Save-Fehler zeigen; ohne hat der Nutzer keinen Hinweis zum Fehlschlag.
       });
   };
 
+  /**
+   * saveSettingsForTriggerCommandos: Persistiert Aenderungen aus dem Trigger-Commandos-Bereich sofort.
+   * Zweck: Unterkomponenten fuer Trigger-Commandos sollen direkt speichern koennen, ohne auf den globalen Save warten zu muessen.
+   * Problem: Ohne diesen spezialisierten Save-Pfad bleiben Trigger-Commando-Aenderungen lokal und unsynchron.
+   * Eingabe: `next` als kompletter naechster Settings-Stand. Ausgabe: kein Rueckgabewert.
+   */
   const saveSettingsForTriggerCommandos = (next: SettingsData) => {
-    setSettings(next);
-    setMessage(null);
+    setSettings(next); // Optimistischen lokalen Settings-State sofort uebernehmen; ohne reagiert die UI erst nach Serverantwort.
+    setMessage(null); // Alte Meldung vor neuem Bereichs-Save loeschen; ohne bleibt veraltetes Feedback sichtbar.
     fetch("/api/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(next),
-    })
-      .then((r) => r.json())
+    }) // Trigger-Commandos-Aenderungen als vollen Settings-Stand speichern; ohne werden Teilbereiche nicht serverseitig persistiert.
+      .then((r) => r.json()) // JSON-Antwort lesen; ohne fehlt die Rueckmeldung, ob der Save erfolgreich war.
       .then((data) => {
-        if (data.error) setMessage({ type: "error", text: data.error });
+        if (data.error)
+          setMessage({ type: "error", text: data.error }); // API-Fehler sofort als Meldung zeigen; ohne scheitert der Save still.
         else {
-          setMessage({ type: "success", text: tSettings("savedShort") });
-          setTriggerCommandosLastUpdated(new Date());
+          setMessage({ type: "success", text: tSettings("savedShort") }); // Kurze Erfolgsmeldung fuer Inline-Saves setzen; ohne fehlt direktes Feedback.
+          setTriggerCommandosLastUpdated(new Date()); // Nur den Trigger-Commando-Zeitstempel aktualisieren; ohne bleibt dieser Bereich optisch alt.
         }
       })
-      .catch(() => setMessage({ type: "error", text: tSettings("saveFailed") }));
+      .catch(() => setMessage({ type: "error", text: tSettings("saveFailed") })); // Netzwerk-/Transportfehler ebenfalls sichtbar machen; ohne sieht der Nutzer keinen Grund fuer ausbleibende Persistenz.
   };
 
+  /**
+   * saveSettingsForMyChecks: Persistiert Aenderungen aus dem My-Checks-Bereich sofort.
+   * Zweck: Check-Aktivierungen, Reihenfolgen und Detailaenderungen sollen ohne globalen Save synchron bleiben.
+   * Problem: Ohne diesen Handler koennen My-Checks-Unterkomponenten keine direkten Saves ausloesen.
+   * Eingabe: `next` als kompletter naechster Settings-Stand. Ausgabe: kein Rueckgabewert.
+   */
   const saveSettingsForMyChecks = (next: SettingsData) => {
-    setSettings(next);
-    setMessage(null);
+    setSettings(next); // Optimistischen State fuer My Checks sofort setzen; ohne fuehlt sich Reorder/Aktivierung traege an.
+    setMessage(null); // Alte Meldung loeschen, damit der neue Save-Versuch sauber bewertet wird; ohne stoeren alte Fehlertexte.
     fetch("/api/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(next),
-    })
-      .then((r) => r.json())
+    }) // My-Checks-Aenderungen an denselben Settings-Endpunkt schicken; ohne gehen Bereichsaenderungen verloren.
+      .then((r) => r.json()) // JSON-Result lesen; ohne koennen Erfolg und Fehler nicht unterschieden werden.
       .then((data) => {
-        if (data.error) setMessage({ type: "error", text: data.error });
+        if (data.error)
+          setMessage({ type: "error", text: data.error }); // API-Fehler an die Meldungsleiste durchreichen; ohne bleibt der Fehlschlag unsichtbar.
         else {
-          setMessage({ type: "success", text: tSettings("savedShort") });
-          setMyChecksLastUpdated(new Date());
+          setMessage({ type: "success", text: tSettings("savedShort") }); // Bereichsbezogene Erfolgsmeldung setzen; ohne fehlt direktes Save-Feedback.
+          setMyChecksLastUpdated(new Date()); // My-Checks-Zeitstempel als frisch gespeichert markieren; ohne bleibt der Bereich zeitlich stale.
         }
       })
-      .catch(() => setMessage({ type: "error", text: tSettings("saveFailed") }));
+      .catch(() => setMessage({ type: "error", text: tSettings("saveFailed") })); // Transportfehler in dieselbe Fehlermeldung ueberfuehren; ohne scheint der Save einfach ignoriert.
   };
 
-  const activePreset = settings?.presets?.find((p) => p.id === settings.activePresetId) ?? DEFAULT_VIBE_CODE_PRESET;
+  const activePreset = settings?.presets?.find((p) => p.id === settings.activePresetId) ?? DEFAULT_VIBE_CODE_PRESET; // Aktives Preset fuer Formbereiche und Dialoge aufloesen; ohne weiss die Seite nicht, welches Preset gerade editiert wird.
 
+  /**
+   * setActivePresetId: Schaltet das aktuell bearbeitete Preset lokal um.
+   * Zweck: Preset-Wechsel soll sofort die sichtbaren Formbereiche auf das gewaehlte Preset umstellen.
+   * Problem: Ohne diesen Handler bleiben die Preset-Buttons ohne Wirkung.
+   * Eingabe: `id` des Ziel-Presets. Ausgabe: kein Rueckgabewert.
+   */
   const setActivePresetId = (id: string) => {
-    if (!settings) return;
-    setSettings({ ...settings, activePresetId: id });
+    if (!settings) return; // Ohne geladenen Settings-Stand gibt es kein aktives Preset zum Umschalten.
+    setSettings({ ...settings, activePresetId: id }); // Aktives Preset lokal umstellen; ohne bleibt die Bearbeitungsansicht am alten Preset haengen.
   };
 
+  /**
+   * addCustomPreset: Legt lokal ein neues benutzerdefiniertes Preset an und aktiviert es.
+   * Zweck: Nutzer sollen neue Preset-Varianten direkt in der Settings-Seite erstellen koennen.
+   * Problem: Ohne diesen Handler ist das "Neues Preset"-Formular funktionslos.
+   * Eingabe: keine direkten Parameter; liest `newPresetName` und `settings`. Ausgabe: kein Rueckgabewert.
+   */
   const addCustomPreset = () => {
-    if (!newPresetName.trim() || !settings) return;
-    const id = "preset-" + Date.now();
+    if (!newPresetName.trim() || !settings) return; // Leeren Namen oder fehlende Settings frueh abweisen; ohne entstehen kaputte Presets.
+    const id = "preset-" + Date.now(); // Einfache eindeutige Preset-ID aus dem Zeitstempel bauen; ohne kann das neue Preset nicht referenziert werden.
     const newPreset: Preset = {
       id,
       name: newPresetName.trim(),
       providers: [],
       autoPush: false,
-    };
+    }; // Neues Basis-Preset mit leerer Providerliste vorbereiten; ohne muessten wir das Objekt beim SetState inline rekonstruieren.
     setSettings({
       ...settings,
       presets: [...settings.presets, newPreset],
       activePresetId: id,
-    });
-    setNewPresetName("");
-    setShowNewPreset(false);
+    }); // Neues Preset anhaengen und sofort aktivieren; ohne muesste der Nutzer es nach dem Anlegen erst suchen und auswaehlen.
+    setNewPresetName(""); // Eingabefeld nach erfolgreicher lokaler Erstellung leeren; ohne bleibt alter Text im Formular stehen.
+    setShowNewPreset(false); // Create-Form nach erfolgreicher Erstellung wieder schliessen; ohne bleibt das Eingabefeld offen.
   };
 
+  /**
+   * addProviderToPreset: Fuegt dem aktiven Preset einen Provider hinzu und setzt provider-spezifische Defaults.
+   * Zweck: Provider wie Supabase oder Git sollen mit passenden Standardbefehlen ins Preset aufgenommen werden.
+   * Problem: Ohne diesen Handler koennen Nutzer Presets keine zusaetzlichen Provider zuordnen.
+   * Eingabe: `provider`. Ausgabe: kein Rueckgabewert.
+   */
   const addProviderToPreset = (provider: ProviderId) => {
-    if (!settings || activePreset.providers.includes(provider)) return;
+    if (!settings || activePreset.providers.includes(provider)) return; // Ohne Settings oder bei bereits vorhandenem Provider keine doppelte Mutation ausfuehren.
     const presets = settings.presets.map((p) => {
-      if (p.id !== activePreset.id) return p;
-      const providers = [...p.providers, provider];
+      if (p.id !== activePreset.id) return p; // Nur das aktive Preset veraendern; ohne mutieren wir alle Presets gleichzeitig.
+      const providers = [...p.providers, provider]; // Providerliste immutabel erweitern; ohne wird das bestehende Presetobjekt direkt veraendert.
       return {
         ...p,
-        providers,
+        providers, // Erweitere Providerliste in das aktualisierte Preset uebernehmen; ohne bleibt der neue Provider trotz Klick unsichtbar.
         supabase:
           provider === "supabase"
             ? { enforce: [...SUPABASE_COMMAND_IDS], hook: [...SUPABASE_COMMAND_IDS] }
-            : p.supabase,
-        git: provider === "git" ? { enforce: ["push" as const] } : p.git,
-      };
+            : p.supabase, // Bei Supabase passende Standardbefehle vorbelegen; ohne ist der Provider zwar gesetzt, aber funktional leer.
+        git: provider === "git" ? { enforce: ["push" as const] } : p.git, // Git-Provider mit sinnvollem Push-Default initialisieren; ohne muss der Nutzer alles manuell nachpflegen.
+      }; // Aktualisiertes aktives Preset zurueckgeben; ohne wird die map-Transformation nicht wirksam.
     });
-    setSettings({ ...settings, presets });
+    setSettings({ ...settings, presets }); // Veraenderte Presetliste zurueck in den Settings-State schreiben; ohne bleibt die UI unveraendert.
   };
 
+  /**
+   * removeProviderFromPreset: Entfernt einen Provider aus dem aktiven Preset und loescht zugehoerige Provider-Defaults.
+   * Zweck: Nutzer sollen Provider wieder sauber aus Presets entfernen koennen.
+   * Problem: Ohne diesen Handler bleiben einmal hinzugefuegte Provider dauerhaft im Preset.
+   * Eingabe: `provider`. Ausgabe: kein Rueckgabewert.
+   */
   const removeProviderFromPreset = (provider: ProviderId) => {
-    if (!settings) return;
-    const presets = settings.presets.map((p) =>
-      p.id === activePreset.id
-        ? {
-            ...p,
-            providers: p.providers.filter((pr) => pr !== provider),
-            supabase: provider === "supabase" ? undefined : p.supabase,
-            git: provider === "git" ? undefined : p.git,
-          }
-        : p
-    );
-    setSettings({ ...settings, presets });
+    if (!settings) return; // Ohne Settings gibt es keine Presets zu bereinigen.
+    const presets = settings.presets.map(
+      (p) =>
+        p.id === activePreset.id
+          ? {
+              ...p,
+              providers: p.providers.filter((pr) => pr !== provider), // Provider aus der Liste des aktiven Presets entfernen; ohne bleibt er trotz Remove-Action sichtbar.
+              supabase: provider === "supabase" ? undefined : p.supabase, // Supabase-spezifische Zusatzdaten beim Entfernen mit loeschen; ohne bleiben tote Konfigurationsreste zurueck.
+              git: provider === "git" ? undefined : p.git, // Git-Zusatzdaten analog entfernen; ohne bleibt verwaiste Providerkonfiguration bestehen.
+            }
+          : p // Andere Presets unveraendert weiterreichen; ohne wuerden wir fremde Presets unbeabsichtigt anfassen.
+    ); // Gesamte neue Presetliste mit einem bereinigten aktiven Preset erzeugen; ohne kann der State nicht immutabel aktualisiert werden.
+    setSettings({ ...settings, presets }); // Bereinigte Presetliste in den Settings-State uebernehmen; ohne sieht die UI keine Aenderung.
   };
 
+  /**
+   * deletePreset: Entfernt ein benutzerdefiniertes Preset und faellt bei Bedarf auf das Default-Preset zurueck.
+   * Zweck: Nutzer sollen nicht mehr benoetigte Presets wieder loeschen koennen.
+   * Problem: Ohne diesen Handler wachsen Presetlisten nur an und koennen nicht bereinigt werden.
+   * Eingabe: `id` des zu loeschenden Presets. Ausgabe: kein Rueckgabewert.
+   */
   const deletePreset = (id: string) => {
-    if (!settings || id === DEFAULT_VIBE_CODE_PRESET.id) return;
-    const presets = settings.presets.filter((p) => p.id !== id);
+    if (!settings || id === DEFAULT_VIBE_CODE_PRESET.id) return; // Default-Preset und fehlende Settings vor versehentlicher Loeschung schuetzen; ohne verschwindet die sichere Basis.
+    const presets = settings.presets.filter((p) => p.id !== id); // Ziel-Preset aus der Liste herausfiltern; ohne bleibt es trotz Delete sichtbar.
     setSettings({
       ...settings,
       presets,
       activePresetId: settings.activePresetId === id ? DEFAULT_VIBE_CODE_PRESET.id : settings.activePresetId,
-    });
+    }); // Beim Loeschen des aktiven Presets auf das Default zurueckfallen; ohne bleibt `activePresetId` auf eine nicht existente ID zeigen.
   };
 
   const renamePreset = () => {

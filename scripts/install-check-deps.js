@@ -11,12 +11,7 @@ const fs = require("fs");
 const path = require("path");
 const cp = require("child_process");
 const readline = require("readline");
-const {
-  exists,
-  readRcFile,
-  parseCsv,
-  isEnabled,
-} = require("./lib/rc-utils");
+const { exists, readRcFile, parseCsv, isEnabled } = require("./lib/rc-utils");
 const {
   CHECK_CATALOG,
   CHECK_NPM_DEPENDENCIES,
@@ -100,7 +95,9 @@ async function askYesNo(question, defaultYes) {
     rl.question(`${question} [${hint}] `, resolve),
   );
   rl.close();
-  const normalized = String(answer || "").trim().toLowerCase();
+  const normalized = String(answer || "")
+    .trim()
+    .toLowerCase();
   if (!normalized) return defaultYes;
   return ["j", "ja", "y", "yes"].includes(normalized);
 }

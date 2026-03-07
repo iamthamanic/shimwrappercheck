@@ -220,7 +220,9 @@ async function main() {
   }
 
   console.log("");
-  if (await prompter.askYesNo("Einzelne Check-Toggles im Terminal setzen?", true)) {
+  if (
+    await prompter.askYesNo("Einzelne Check-Toggles im Terminal setzen?", true)
+  ) {
     for (const check of CHECK_CATALOG) {
       const enabled = await prompter.askYesNo(
         `${check.label} aktivieren?`,
@@ -271,6 +273,9 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("config failed:", error && error.message ? error.message : error);
+  console.error(
+    "config failed:",
+    error && error.message ? error.message : error,
+  );
   process.exit(1);
 });

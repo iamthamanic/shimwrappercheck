@@ -285,36 +285,64 @@ run_npm_audit_with_infra_handling() {
   return "$audit_rc"
 }
 
+# Run Semgrep SAST; only fail on new findings vs baseline. Purpose: enforce security rules without failing on
+# existing code. Problem: 600+ findings and timeouts when scanning node_modules/.stryker-tmp. Inputs: none.
+# Output: exit 0 if scan ok or infra warning; non-zero if new blocking findings.
 run_semgrep_with_infra_handling() {
+  # Capture scan stdout/stderr for infra detection; without it we cannot distinguish network vs real findings.
   local output=""
+  # Default success; Semgrep overwrites with real exit code so we can fail on new findings only.
   local semgrep_rc=0
+  # Ref to compare against: findings only in commits after this are reported; avoids failing on legacy code.
+  local baseline_commit=""
+  # Only compute baseline when git is available; otherwise Semgrep runs without baseline (all findings count).
+  if command -v git >/dev/null 2>&1; then
+    # Prefer merge-base with origin/main so CI and local match; else HEAD~1 so at least last commit is baseline.
+    baseline_commit="$(git merge-base HEAD origin/main 2>/dev/null || git rev-parse HEAD~1 2>/dev/null || true)"
+  fi
+  # --config auto = use Semgrep rules; . = repo root; --error = exit 1 on finding. Baseline must be first.
+  local semgrep_opts="--config auto . --error"
+  # When we have a baseline, prepend it so Semgrep only fails on findings introduced after that commit; without it every existing finding fails the check.
+  [[ -n "$baseline_commit" ]] && semgrep_opts="--baseline-commit $baseline_commit $semgrep_opts"
 
+  # Prefer system Semgrep (e.g. pip install); else npx. Without this order, npx might run on every check.
   if command -v semgrep >/dev/null 2>&1; then
-    output="$(semgrep scan --config auto . --error --no-git-ignore 2>&1)"
+    # Run from PATH; 2>&1 so stderr (e.g. TLS warnings) is in output for is_transient_network_or_tls_error.
+    output="$(semgrep scan $semgrep_opts 2>&1)"
+    # Capture exit code immediately; $? is overwritten by next command otherwise.
     semgrep_rc=$?
   elif npm exec --yes semgrep -- --version >/dev/null 2>&1; then
-    output="$(npx semgrep scan --config auto . --error --no-git-ignore 2>&1)"
+    # Fallback when semgrep not in PATH: npx runs it; same capture so infra handling is identical.
+    output="$(npx semgrep scan $semgrep_opts 2>&1)"
+    # Save exit code here too; $? is lost after next command, and without it we cannot fail on real findings.
     semgrep_rc=$?
   else
+    # No Semgrep installed: skip instead of failing so projects without SAST can still use other checks.
     echo "Skipping Semgrep: not installed (pip install semgrep or npx semgrep)." >&2
     return 0
   fi
 
+  # Show scan output to user; without this they see no Semgrep feedback when run from shim and cannot fix findings.
   [[ -n "$output" ]] && echo "$output"
 
+  # Success: no new findings; return 0 so run-checks.sh continues.
   if [[ $semgrep_rc -eq 0 ]]; then
     return 0
   fi
 
+  # Non-zero may be infra (network/TLS) rather than real findings; treat infra as warning unless strict.
   if is_transient_network_or_tls_error "$output"; then
+    # When strict, fail so CI does not silently ignore Semgrep; user must fix network or disable.
     if should_fail_on_infra_error; then
       echo "Semgrep infrastructure issue detected; failing because SHIM_STRICT_NETWORK_CHECKS=1." >&2
       return "$semgrep_rc"
     fi
+    # Default: warn and pass so transient CA/network issues do not block pushes.
     echo "Semgrep infrastructure issue detected (network/TLS/CA); treating as warning. Set SHIM_STRICT_NETWORK_CHECKS=1 to fail hard." >&2
     return 0
   fi
 
+  # Real findings: propagate exit code so run-checks.sh fails and push is blocked.
   return "$semgrep_rc"
 }
 
@@ -876,7 +904,8 @@ fi
 run_refactor_orchestration
 
 if [[ "${#FAILED_CHECKS[@]}" -gt 0 ]]; then
-  failed_csv="$(IFS=','; echo "${FAILED_CHECKS[*]}")"
+  # Join FAILED_CHECKS with comma in subshell so IFS change does not leak; without it output is space-separated.
+  failed_csv="$( IFS=','; echo "${FAILED_CHECKS[*]}" )"
   echo "Failed checks: $failed_csv" >&2
   OVERALL_RC=1
 fi

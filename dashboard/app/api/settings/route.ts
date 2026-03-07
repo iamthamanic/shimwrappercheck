@@ -109,8 +109,7 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
   const provider =
     providerRaw === "codex"
       ? "codex"
-      : providerRaw &&
-          ["api", "api-key", "apikey", "openai", "anthropic"].includes(providerRaw)
+      : providerRaw && ["api", "api-key", "apikey", "openai", "anthropic"].includes(providerRaw)
         ? "api"
         : providerRaw === "auto"
           ? "auto"
@@ -255,7 +254,8 @@ export async function GET() {
         }
         if (Array.isArray(parsed.checkOrder)) settings.checkOrder = parsed.checkOrder;
         if (typeof parsed.reviewOutputPath === "string") settings.reviewOutputPath = parsed.reviewOutputPath;
-        if (typeof (parsed as SettingsData).shimEnabled === "boolean") settings.shimEnabled = (parsed as SettingsData).shimEnabled;
+        if (typeof (parsed as SettingsData).shimEnabled === "boolean")
+          settings.shimEnabled = (parsed as SettingsData).shimEnabled;
       } catch {
         // use defaults
       }
@@ -319,7 +319,10 @@ export async function POST(request: NextRequest) {
     const rawReviewPath = typeof body.reviewOutputPath === "string" ? body.reviewOutputPath.trim() : "";
     if (rawReviewPath && !validateReviewOutputPathSegment(rawReviewPath)) {
       return NextResponse.json(
-        { error: "Invalid reviewOutputPath: use a relative path without '..' or leading slash; only letters, numbers, dots, hyphens, underscores." },
+        {
+          error:
+            "Invalid reviewOutputPath: use a relative path without '..' or leading slash; only letters, numbers, dots, hyphens, underscores.",
+        },
         { status: 400 }
       );
     }

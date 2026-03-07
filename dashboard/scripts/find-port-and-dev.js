@@ -252,7 +252,9 @@ async function main() {
       process.stderr.write(`Port ${startPort} is in use. Finding next available port...\n`);
       try {
         const port = await findAvailablePort(startPort);
-        process.stderr.write(`Dashboard started at http://localhost:${port} (configured port ${startPort} was busy).\n`);
+        process.stderr.write(
+          `Dashboard started at http://localhost:${port} (configured port ${startPort} was busy).\n`
+        );
         runDev(port);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

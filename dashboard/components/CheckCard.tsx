@@ -452,9 +452,7 @@ export default function CheckCard({
         className={`relative border border-dashed rounded-lg overflow-hidden transition-all duration-300 opacity-25 ${borderClass}`}
         data-check-card
       >
-        <div
-          className={`flex items-center gap-2 py-2 pr-3 pl-3 border-b border-dashed flex-wrap ${borderBottomClass}`}
-        >
+        <div className={`flex items-center gap-2 py-2 pr-3 pl-3 border-b border-dashed flex-wrap ${borderBottomClass}`}>
           {orderIndex != null && (
             <span
               className="flex items-center justify-center w-6 h-6 rounded text-white text-xs font-semibold shrink-0 bg-white/20 ml-2"
@@ -490,7 +488,12 @@ export default function CheckCard({
           </svg>
           <span className="text-xs text-white/50 ml-auto">{t("remove")}</span>
           <svg className="w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+            />
           </svg>
         </div>
       </div>
@@ -512,9 +515,7 @@ export default function CheckCard({
           <span className="loading loading-spinner loading-sm" />
         </span>
       )}
-      <div
-        className={`flex items-center gap-2 py-2 pr-3 pl-3 border-b flex-wrap ${borderBottomClass}`}
-      >
+      <div className={`flex items-center gap-2 py-2 pr-3 pl-3 border-b flex-wrap ${borderBottomClass}`}>
         {orderIndex != null && (
           <span
             className={`flex items-center justify-center w-6 h-6 rounded text-white text-xs font-semibold shrink-0 transition-colors duration-300 ${
@@ -1073,7 +1074,9 @@ export default function CheckCard({
                         {projectRulesSubTab === "form" && (
                           <div className="space-y-4">
                             {projectRulesRaw.trim() !== "" && parseRulesFromScript(projectRulesRaw) === null && (
-                              <p className="text-amber-500/90 text-sm mb-2">{t("projectRulesScriptNotParseableHint")}</p>
+                              <p className="text-amber-500/90 text-sm mb-2">
+                                {t("projectRulesScriptNotParseableHint")}
+                              </p>
                             )}
                             {projectRulesFormRules.length === 0 && (
                               <p className="text-neutral-400 text-sm mb-2">{t("projectRulesFormEmptyHint")}</p>
@@ -1089,9 +1092,11 @@ export default function CheckCard({
                                     className="select select-sm bg-neutral-800 border-neutral-600 text-white"
                                     value={rule.type}
                                     onChange={(e) => {
-                                      const typ = e.target.value as "forbidden_pattern" | "forbidden_regex" | "max_lines";
-                                      if (typ === "max_lines")
-                                        updateProjectRule(rule.id, { type: typ, maxLines: 300 });
+                                      const typ = e.target.value as
+                                        | "forbidden_pattern"
+                                        | "forbidden_regex"
+                                        | "max_lines";
+                                      if (typ === "max_lines") updateProjectRule(rule.id, { type: typ, maxLines: 300 });
                                       else updateProjectRule(rule.id, { type: typ, pattern: "" });
                                     }}
                                   >

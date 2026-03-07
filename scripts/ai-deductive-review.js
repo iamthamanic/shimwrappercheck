@@ -9,7 +9,10 @@ const fs = require("fs");
 const { execSync } = require("child_process");
 
 const LIMIT_BYTES = 51200;
-const THRESHOLD_RAW = Number.parseInt(process.env.SHIM_AI_MIN_RATING || "95", 10);
+const THRESHOLD_RAW = Number.parseInt(
+  process.env.SHIM_AI_MIN_RATING || "95",
+  10,
+);
 const THRESHOLD =
   Number.isFinite(THRESHOLD_RAW) && THRESHOLD_RAW >= 0 && THRESHOLD_RAW <= 100
     ? THRESHOLD_RAW
@@ -111,7 +114,9 @@ function limitDiff(out) {
 function getDiff(projectRoot) {
   const checkMode = normalizeCheckMode(process.env.CHECK_MODE);
   const rawDiff =
-    checkMode === "full" ? getFullDiff(projectRoot) : getSnippetDiff(projectRoot);
+    checkMode === "full"
+      ? getFullDiff(projectRoot)
+      : getSnippetDiff(projectRoot);
   return limitDiff(rawDiff);
 }
 
@@ -236,7 +241,8 @@ async function runAsync(projectRoot) {
   }
   if (!text && process.env.ANTHROPIC_API_KEY) text = await callAnthropic(diff);
   if (!text && process.env.OPENAI_API_KEY) text = await callOpenAI(diff);
-  if (!text) return { ok: true, skipped: true, reason: "no API key configured" };
+  if (!text)
+    return { ok: true, skipped: true, reason: "no API key configured" };
 
   let json;
   try {
@@ -288,7 +294,9 @@ if (require.main === module) {
         process.exit(0);
       }
 
-      console.error(`API-key AI review: FAIL (${result.message || "score below threshold"}).`);
+      console.error(
+        `API-key AI review: FAIL (${result.message || "score below threshold"}).`,
+      );
       if (result.suggestion) {
         console.error(`Deductions: ${result.suggestion}`);
       }
