@@ -4,7 +4,7 @@
   "reporters": ["html", "clear-text", "progress"],
   "testRunner": "command",
   "commandRunner": {
-    "command": "npm run mutation:build"
+    "command": "npm run test:mutation"
   },
   "mutate": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.jsx"],
   "ignorePatterns": [
