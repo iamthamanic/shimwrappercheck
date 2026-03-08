@@ -170,7 +170,7 @@ function checkGitleaks(opts) {
   const configPath = path.join(projectRoot, ".gitleaks.toml");
   const args = ["detect", "--no-git", "--source", ".", "--verbose"];
   if (fs.existsSync(configPath)) args.splice(1, 0, "--config", configPath);
-  const gitleaks = run("gitleaks", args);
+  const gitleaks = run("gitleaks", args, { shell: false });
   if (gitleaks.error && gitleaks.error.code === "ENOENT") return;
   if (gitleaks.status === 127 || gitleaks.status === 126) return;
   if (gitleaks.status !== 0 && gitleaks.status !== null) {
