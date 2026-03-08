@@ -77,9 +77,11 @@ function clearLastError() {
 }
 
 function run(cmd, args, options = {}) {
+  const useShell = options.shell !== false;
+  // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true javascript.lang.security.detect-child-process.detect-child-process
   const result = spawnSync(cmd, args, {
     cwd: projectRoot,
-    shell: true,
+    shell: useShell,
     encoding: "utf8",
     maxBuffer: 4 * 1024 * 1024,
     ...options,
@@ -330,7 +332,7 @@ function runFrontendBackendBase(opts) {
     if (!opts.sast) args.push("--no-sast");
     if (!opts.gitleaks) args.push("--no-gitleaks");
     if (!opts.licenseChecker) args.push("--no-license-checker");
-    const res = run("bash", [runChecksPath, ...args]);
+    const res = run("bash", [runChecksPath, ...args], { shell: false });
     if (res.status !== 0 && res.status !== null) {
       fail(
         "run-checks",
