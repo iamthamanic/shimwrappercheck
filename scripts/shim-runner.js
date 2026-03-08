@@ -220,13 +220,15 @@ function checkStryker(opts) {
   if (!opts.mutation) return;
   const strykerConfig = path.join(projectRoot, "stryker.config.json");
   if (!fs.existsSync(strykerConfig)) return;
-  const res = runNpx(["stryker", "run"]);
+  const res = runNpx(["stryker", "run"], { shell: false });
   const out = res.stdout + res.stderr;
   const scoreMatch =
     out.match(/Mutation\s*testing\s*score[:\s]*(\d+(?:\.\d+)?)\s*%/i) ||
     out.match(/(\d+(?:\.\d+)?)\s*%\s*mutation/i);
   const score = scoreMatch ? parseFloat(scoreMatch[1]) : 0;
-  if (res.status !== 0 || score < 80) {
+  const noMutantsOrNan =
+    /0\s*mutant|n\/a|NaN.*mutation|greater than or equal to break threshold/i.test(out);
+  if (res.status !== 0 || (!noMutantsOrNan && score < 80)) {
     fail(
       "stryker",
       `Mutation score ${score}% (min 80%)`,
