@@ -213,6 +213,10 @@ if [[ "$RUN_CHECKS" = true ]]; then
   if [[ -n "${SKIP_AI_REVIEW:-}" ]]; then
     run_ai_review=false
   fi
+  # On push: AI review always runs in commit mode and must pass; no bypass.
+  if [[ "$ARGS_TEXT_RAW" == *" push "* ]]; then
+    run_ai_review=true
+  fi
   if [[ "$ARGS_TEXT_RAW" == *" --no-explanation-check "* ]]; then
     run_explanation_check=false
   fi
@@ -225,7 +229,7 @@ if [[ "$RUN_CHECKS" = true ]]; then
     PUSH_CHECK_MODE=""
     if [[ "$ARGS_TEXT_RAW" == *" push "* ]]; then
       RUNNER_FULL="--full"
-      PUSH_CHECK_MODE="$(normalize_push_check_mode "${SHIM_GIT_CHECK_MODE_ON_PUSH:-commit}")"
+      PUSH_CHECK_MODE="commit"
     fi
     HAS_RUNNER=false
     [[ -f "$PROJECT_ROOT/scripts/shim-runner.js" ]] && HAS_RUNNER=true
@@ -236,16 +240,22 @@ if [[ "$RUN_CHECKS" = true ]]; then
       [[ "$run_backend" = true ]] && CHECKS_ARGS+=(--backend)
       [[ "$run_ai_review" = false ]] && CHECKS_ARGS+=(--no-ai-review)
       [[ "$run_explanation_check" = false ]] && CHECKS_ARGS+=(--no-explanation-check)
-      CHECKS_ARGS+=("${CHECKS_PASSTHROUGH[@]}")
+      if [[ "$ARGS_TEXT_RAW" == *" push "* ]]; then
+        for a in "${CHECKS_PASSTHROUGH[@]}"; do
+          [[ "$a" != "--no-ai-review" ]] && CHECKS_ARGS+=("$a")
+        done
+      else
+        CHECKS_ARGS+=("${CHECKS_PASSTHROUGH[@]}")
+      fi
       if [[ -f "$PROJECT_ROOT/scripts/cli.js" ]]; then
         if [[ -n "$PUSH_CHECK_MODE" ]]; then
-          CHECK_MODE="$PUSH_CHECK_MODE" node "$PROJECT_ROOT/scripts/cli.js" run ${RUNNER_FULL:+"$RUNNER_FULL"} "${CHECKS_ARGS[@]}"
+          env -u SKIP_AI_REVIEW CHECK_MODE="$PUSH_CHECK_MODE" node "$PROJECT_ROOT/scripts/cli.js" run ${RUNNER_FULL:+"$RUNNER_FULL"} "${CHECKS_ARGS[@]}"
         else
           node "$PROJECT_ROOT/scripts/cli.js" run ${RUNNER_FULL:+"$RUNNER_FULL"} "${CHECKS_ARGS[@]}"
         fi
       elif command -v npx >/dev/null 2>&1; then
         if [[ -n "$PUSH_CHECK_MODE" ]]; then
-          CHECK_MODE="$PUSH_CHECK_MODE" npx shimwrappercheck run ${RUNNER_FULL:+"$RUNNER_FULL"} "${CHECKS_ARGS[@]}"
+          env -u SKIP_AI_REVIEW CHECK_MODE="$PUSH_CHECK_MODE" npx shimwrappercheck run ${RUNNER_FULL:+"$RUNNER_FULL"} "${CHECKS_ARGS[@]}"
         else
           npx shimwrappercheck run ${RUNNER_FULL:+"$RUNNER_FULL"} "${CHECKS_ARGS[@]}"
         fi
@@ -265,9 +275,15 @@ if [[ "$RUN_CHECKS" = true ]]; then
         [[ "$run_backend" = true ]] && CHECKS_ARGS+=(--backend)
         [[ "$run_ai_review" = false ]] && CHECKS_ARGS+=(--no-ai-review)
         [[ "$run_explanation_check" = false ]] && CHECKS_ARGS+=(--no-explanation-check)
-        CHECKS_ARGS+=("${CHECKS_PASSTHROUGH[@]}")
+        if [[ "$ARGS_TEXT_RAW" == *" push "* ]]; then
+          for a in "${CHECKS_PASSTHROUGH[@]}"; do
+            [[ "$a" != "--no-ai-review" ]] && CHECKS_ARGS+=("$a")
+          done
+        else
+          CHECKS_ARGS+=("${CHECKS_PASSTHROUGH[@]}")
+        fi
         if [[ -n "$PUSH_CHECK_MODE" ]]; then
-          CHECK_MODE="$PUSH_CHECK_MODE" bash "$CHECKS_SCRIPT" "${CHECKS_ARGS[@]}"
+          env -u SKIP_AI_REVIEW CHECK_MODE="$PUSH_CHECK_MODE" bash "$CHECKS_SCRIPT" "${CHECKS_ARGS[@]}"
         else
           bash "$CHECKS_SCRIPT" "${CHECKS_ARGS[@]}"
         fi
