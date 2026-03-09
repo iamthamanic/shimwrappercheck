@@ -1,6 +1,8 @@
 /**
  * GET /api/status – project status for dashboard (checks script, config, AGENTS.md, husky).
  * Vercel-compatible; uses SHIM_PROJECT_ROOT when deployed.
+ * Zweck: Dashboard braucht Projekt-Root, Projektname und Datei-Existenz für Status-Anzeige. Ohne wäre die Info-Seite leer.
+ * Ausgabe: JSON mit projectRoot, projectName, config, presetsFile, agentsMd, runChecksScript, shimRunner, prePushHusky, prePushGit, supabase, lastError.
  */
 import { NextResponse } from "next/server";
 import path from "path";
@@ -9,11 +11,12 @@ import { getProjectRoot } from "@/lib/projectRoot";
 
 export async function GET() {
   try {
-    const root = getProjectRoot();
+    const root = getProjectRoot(); // Projekt-Root (SHIM_PROJECT_ROOT oder abgeleitet); ohne kennt die API das Zielprojekt nicht.
     if (!root || typeof root !== "string") {
       return NextResponse.json(
         {
           projectRoot: "",
+          projectName: "",
           config: false,
           presetsFile: false,
           agentsMd: false,
@@ -39,6 +42,19 @@ export async function GET() {
     const hasGitHook = fs.existsSync(path.join(root, ".git", "hooks", "pre-push"));
     const hasSupabase = fs.existsSync(path.join(root, "supabase", "config.toml"));
 
+    let projectName = path.basename(root); // Fallback: Ordnername des Roots; ohne wäre projectName bei fehlender package.json leer.
+    const pkgPath = path.join(root, "package.json");
+    if (fs.existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8")); // package.json lesen; ohne kommt kein name.
+        if (typeof pkg?.name === "string" && pkg.name.trim() !== "") {
+          projectName = pkg.name.trim(); // Offizieller Projektname für Sidebar "# Projekt <name>"; ohne bliebe nur der Ordnername.
+        }
+      } catch {
+        // Parsing-Fehler: Fallback projectName (path.basename) beibehalten; ohne würde projectName evtl. undefined.
+      }
+    }
+
     let lastError: { check?: string; message?: string; suggestion?: string; timestamp?: string } | null = null;
     const lastErrorPath = path.join(root, ".shim", "last_error.json");
     if (fs.existsSync(lastErrorPath)) {
@@ -51,6 +67,7 @@ export async function GET() {
 
     return NextResponse.json({
       projectRoot: root,
+      projectName,
       config: hasRc,
       presetsFile: hasPresets,
       agentsMd: hasAgents,
@@ -62,10 +79,11 @@ export async function GET() {
       lastError,
     });
   } catch (err) {
-    console.error("status error:", err);
+    console.error("status error:", err); // Log für Debugging; ohne fehlt der Grund für 500.
     return NextResponse.json(
       {
         projectRoot: "",
+        projectName: "", // Bei Fehler leere Werte; ohne könnte die UI veraltete oder ungültige Daten anzeigen.
         config: false,
         presetsFile: false,
         agentsMd: false,

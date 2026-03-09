@@ -79,10 +79,18 @@ The wizard asks about:
 **Start the dashboard later** (from the project root that contains `node_modules/shimwrappercheck`):
 
 ```bash
+npx shimwrappercheck dashboard
+```
+
+This starts the dashboard from the package directory so Next.js builds the dashboard app, not your host project (avoids "Module parse failed: Unexpected token" on `import type` if you run from the wrong folder). Optional: `npx shimwrappercheck dashboard -- --restart` to restart an already running instance.
+
+Alternatively, from inside the package:
+
+```bash
 cd node_modules/shimwrappercheck/dashboard && npm install && npm run dev
 ```
 
-Or from the repo root (if `npm run dashboard` exists in `package.json`):
+Or from the shimwrappercheck repo root (if `npm run dashboard` exists in `package.json`):
 
 ```bash
 npm run dashboard

@@ -99,6 +99,27 @@ if (cmd === "run") {
   return; // Nach Delegation beenden; ohne würde der CLI-Fluss weiterlaufen.
 }
 
+if (cmd === "dashboard") {
+  // Dashboard aus dem Paket-Verzeichnis starten; ohne würde "next dev" ggf. im Host-Projekt laufen und Build-Fehler (z. B. import type) im falschen Projekt verursachen.
+  const { spawn, spawnSync } = require("child_process"); // spawnSync fuer npm install, spawn fuer dev-Server; ohne fehlen Dashboard-Abhängigkeiten oder der Server startet nicht.
+  const dashboardDir = path.resolve(__dirname, "..", "dashboard"); // Immer das Dashboard im eigenen Paket (node_modules/shimwrappercheck/dashboard); unabhaengig von process.cwd().
+  const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm"; // Windows braucht npm.cmd; ohne schlaegt spawn("npm", ...) unter Windows fehl.
+  const installResult = spawnSync(npmCmd, ["install"], {
+    cwd: dashboardDir, // Dashboard hat eigene package.json; Abhängigkeiten müssen dort installiert sein, sonst schlaegt "npm run dev" fehl.
+    stdio: "inherit",
+  });
+  if (installResult.status !== 0) {
+    process.exit(installResult.status != null ? installResult.status : 1);
+  }
+  const child = spawn(npmCmd, ["run", "dev", ...restArgs], {
+    cwd: dashboardDir, // Next.js muss im Dashboard-Ordner laufen; sonst wird das Host-Projekt gebaut (falsches app/layout.tsx, Parser-Fehler).
+    stdio: "inherit",
+    env: { ...process.env, SHIM_PROJECT_ROOT: process.cwd() }, // Aktuelles CWD als Projekt-Root an das Dashboard uebergeben; ohne kennt die UI das richtige Projekt nicht.
+  });
+  child.on("exit", (code) => process.exit(code != null ? code : 1));
+  return;
+}
+
 if (cmd === "git") {
   // Git-Check-Pfad: git-checked.sh mit restlichen Argumenten aufrufen; ohne würde "git" nicht durch die Check-Hülle laufen.
   const { spawnSync } = require("child_process"); // Synchrone Prozessausführung für einfachen Exit-Code-Forward; ohne müssten wir asynchron exit(…) aufrufen.
@@ -116,6 +137,6 @@ if (cmd === "git") {
 // Kein bekannter Befehl: Nutzer informieren und mit Fehlercode beenden.
 console.error("Unknown command:", cmd); // Unbekannten Befehl ausgeben; ohne weiß der Nutzer nicht, warum der Aufruf fehlschlug.
 console.error(
-  "Usage: shimwrappercheck [setup|init|config|install|install-tools|install-check-deps|run|git]",
+  "Usage: shimwrappercheck [setup|init|config|install|install-tools|install-check-deps|run|dashboard|git]",
 ); // Unterstützte Befehle anzeigen; ohne fehlt die direkte Hilfestellung.
 process.exit(1); // Mit Fehlercode beenden; ohne interpretieren Aufrufer (Shims, CI) den unbekannten Befehl als Erfolg.

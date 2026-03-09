@@ -125,7 +125,7 @@ function runDev(port) {
   const url = `http://localhost:${port}`;
   process.stdout.write(`\nDashboard: ${url}\n`);
   process.stdout.write(`Open in browser: ${url}/de or ${url}/en\n\n`);
-  const cwd = path.join(__dirname, "..");
+  const cwd = path.resolve(path.join(__dirname, "..")); // Absoluter Pfad, damit Next.js garantiert dieses Verzeichnis als Projekt-Root nutzt (nicht das Host-Projekt bei Installation in node_modules).
   const nextBin = path.join(cwd, "node_modules", "next", "dist", "bin", "next");
   writeLock(port);
   const child = spawn(process.execPath, [nextBin, "dev", "-p", String(port)], {

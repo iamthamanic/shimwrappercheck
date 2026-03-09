@@ -113,6 +113,7 @@
   },
   "sidebar": {
     "myActiveShim": "My Active Shim",
+    "projectTag": "# Project",
     "shimModeChecks": "Checks",
     "shimModeNoChecks": "No checks",
     "shimNoChecksNotice": "No checks run before push or deploy."

@@ -10,22 +10,36 @@ import { getProjectRoot } from "@/lib/projectRoot";
 
 export type ToolStatus = { installed: boolean; label?: string; command?: string; repo?: string };
 
+/**
+ * Prüft, ob mindestens eine der angegebenen Abhängigkeiten in der package.json vorkommt.
+ * Zweck: Tool-Erkennung für Check-Status (z. B. eslint, prettier). Ohne würde die API nicht wissen, ob ein Paket installiert ist.
+ * Eingabe: pkg (gelesene package.json), names (z. B. ["eslint", "prettier"]). Ausgabe: true wenn mindestens ein Name als key oder Präfix existiert.
+ */
 function hasDep(
   pkg: { devDependencies?: Record<string, string>; dependencies?: Record<string, string> },
   names: string[]
 ): boolean {
-  const dev = { ...pkg.devDependencies, ...pkg.dependencies };
-  const keys = Object.keys(dev);
+  const dev = { ...pkg.devDependencies, ...pkg.dependencies }; // dev + dependencies zusammenführen; ohne würden nur devDeps geprüft.
+  const keys = Object.keys(dev); // Alle Paketnamen; ohne kann some() nicht matchen.
   return names.some(
-    (n) => keys.includes(n) || keys.some((k) => k === n || k.startsWith(n + "/") || k.startsWith("@" + n))
+    (n) => keys.includes(n) || keys.some((k) => k === n || k.startsWith(n + "/") || k.startsWith("@" + n)) // Scoped oder Unterpaket (z. B. @playwright/test) abdecken; ohne fehlen Treffer.
   );
 }
 
+/**
+ * Prüft, ob in package.json ein Script mit dem angegebenen Namen existiert.
+ * Zweck: Erkennung von "lint", "e2e" etc. ohne zwingende Paket-Installation. Ohne würde nur hasDep genutzt.
+ * Eingabe: pkg (package.json), name (Script-Key). Ausgabe: true wenn scripts[name] existiert.
+ */
 function hasScript(pkg: { scripts?: Record<string, string> }, name: string): boolean {
-  return !!pkg.scripts?.[name];
+  return !!pkg.scripts?.[name]; // Optional Chaining, damit fehlende scripts nicht crashen; ohne wäre pkg.scripts undefined riskant.
 }
 
-/** Returns the first dependency name that exists (as key or key prefix). */
+/**
+ * Gibt das Label der ersten Treffer-Abhängigkeit aus der Kandidatenliste zurück.
+ * Zweck: Anzeige des konkreten Tool-Namens (z. B. "Playwright") statt nur installed. Ohne bliebe das Label generisch.
+ * Eingabe: pkg (package.json), candidates (z. B. [{ dep: "playwright", label: "Playwright" }]). Ausgabe: label oder null.
+ */
 function whichDep(
   pkg: { devDependencies?: Record<string, string>; dependencies?: Record<string, string> },
   candidates: { dep: string; label: string }[]
@@ -387,11 +401,37 @@ export async function GET() {
               repo: strykerRepo,
             };
 
-    tools.e2e = {
-      installed: true,
-      label: "E2E optional (z. B. Playwright)",
-      repo: "https://github.com/microsoft/playwright",
-    };
+    // E2E: Playwright, Cypress oder E2E-Script im Projekt – nur dann grün; sonst rot mit Install-Befehl.
+    const e2eTool =
+      whichDep(pkg, [
+        { dep: "@playwright/test", label: "Playwright" },
+        { dep: "playwright", label: "Playwright" },
+        { dep: "cypress", label: "Cypress" },
+      ]) ??
+      whichDep(dashboardPkg, [
+        { dep: "@playwright/test", label: "Playwright" },
+        { dep: "playwright", label: "Playwright" },
+        { dep: "cypress", label: "Cypress" },
+      ]); // Zuerst Projekt-Root, dann Monorepo-Dashboard; ohne würde nur Root geprüft.
+    const e2eOk =
+      !!e2eTool ||
+      hasScript(pkg, "e2e") ||
+      hasScript(pkg, "test:e2e") ||
+      hasScript(dashboardPkg, "e2e") ||
+      hasScript(dashboardPkg, "test:e2e"); // Paket oder Script reicht; ohne wären nur Pakete erkannt.
+    const playwrightRepo = "https://github.com/microsoft/playwright";
+    tools.e2e = e2eOk
+      ? {
+          installed: true,
+          label: e2eTool ? `${e2eTool} erkannt` : "E2E-Script erkannt",
+          repo: playwrightRepo,
+        }
+      : {
+          installed: false,
+          label: "E2E-Tool nicht gefunden",
+          command: "npm i -D @playwright/test", // Copy-Paste für Nutzer; ohne fehlt der Install-Hinweis im Dashboard.
+          repo: playwrightRepo,
+        };
 
     // Hooks: keine lokale Tool-Installation
     tools.healthPing = { installed: true, label: "Supabase/Shell" };

@@ -658,7 +658,7 @@ export default function CheckCard({
                       <span className="text-green-500">✓ {toolStatus.label ?? t("toolPresent")}</span>
                     ) : (
                       <>
-                        <span className="text-amber-500">✗ {toolStatus.label ?? t("toolNotFound")}</span>
+                        <span className="text-red-500">✗ {toolStatus.label ?? t("toolNotFound")}</span>
                         {toolStatus.command && (
                           <span className="inline-flex items-center gap-1 flex-wrap">
                             <code className="bg-black/30 px-1.5 py-0.5 rounded text-[11px] break-all">
@@ -1025,7 +1025,7 @@ export default function CheckCard({
                           <span className="text-green-500">✓ {toolStatus.label ?? t("toolPresent")}</span>
                         ) : (
                           <>
-                            <span className="text-amber-500">✗ {toolStatus.label ?? t("toolNotFound")}</span>
+                            <span className="text-red-500">✗ {toolStatus.label ?? t("toolNotFound")}</span>
                             {toolStatus.command && (
                               <span className="inline-flex items-center gap-1 flex-wrap">
                                 <code className="bg-black/30 px-1.5 py-0.5 rounded text-sm break-all">

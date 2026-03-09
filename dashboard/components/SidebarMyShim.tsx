@@ -30,6 +30,7 @@ export default function SidebarMyShim() {
   const [myChecksLastUpdated, setMyChecksLastUpdated] = useState<Date | null>(null); // Zeitstempel fuer My-Checks merken; ohne kann die Sidebar Aenderungen nicht zeitlich kennzeichnen.
   const [roleTab, setRoleTab] = useState<EnforceHooksTab>("enforce"); // Aktiven Rollen-Tab halten; ohne lassen sich Enforce- und Hook-Ansicht nicht umschalten.
   const [tagFilter, setTagFilter] = useState<"all" | "frontend" | "backend">("all"); // Aktiven Tag-Filter halten; ohne kann die Check-Liste nicht nach Frontend/Backend gefiltert werden.
+  const [projectName, setProjectName] = useState<string | null>(null); // Projektname aus Status-API; ohne kann die Sidebar nicht anzeigen, fuer welches Projekt das Dashboard laeuft.
   const sidebarRef = useRef<HTMLDivElement>(null); // DOM-Ref fuer native Dragover/Drop-Events behalten; ohne koennen wir den Sidebar-Drop nicht direkt verdrahten.
   const settingsRef = useRef<SettingsData | null>(settings); // Aktuellsten Settings-Stand fuer Event-Handler ausserhalb des Render-Zyklus bereithalten; ohne arbeiten Drop-Handler leichter mit stale State.
   settingsRef.current = settings; // Ref bei jedem Render synchron halten; ohne sieht der Drop-Handler evtl. einen veralteten Settings-Snapshot.
@@ -76,6 +77,24 @@ export default function SidebarMyShim() {
     window.addEventListener("settings-updated", handler); // Globale Settings-Aenderungen abonnieren; ohne aktualisiert sich die Sidebar nach externen Saves nicht.
     return () => window.removeEventListener("settings-updated", handler); // Listener beim Unmount entfernen; ohne bleiben doppelte Handler und Memory-Leaks zurueck.
   }, [load]);
+
+  /**
+   * useEffect(status): Laedt Projektname von der Status-API fuer die Anzeige neben "Mein aktiver Shim".
+   * Zweck: Nutzer sehen sofort, fuer welches Projekt das Dashboard geoeffnet ist (z. B. bei mehreren Repos).
+   * Quelle: package.json "name" im Projekt-Root, Fallback Ordnername (SHIM_PROJECT_ROOT oder cwd).
+   */
+  useEffect(() => {
+    fetch("/api/status")
+      .then((r) => r.json())
+      .then((data) => {
+        if (typeof data?.projectName === "string" && data.projectName.trim() !== "") {
+          setProjectName(data.projectName.trim());
+        } else {
+          setProjectName(null);
+        }
+      })
+      .catch(() => setProjectName(null));
+  }, []);
 
   /**
    * useEffect(trigger-commandos-saved): Aktualisiert den Zeitstempel, wenn Trigger-Commandos gespeichert wurden.
@@ -335,7 +354,14 @@ export default function SidebarMyShim() {
   return (
     <div ref={sidebarRef} className="p-4 space-y-6 flex flex-col min-h-0 overflow-y-auto">
       <div className="flex items-center justify-between gap-2 shrink-0 min-w-0">
-        <h2 className="text-lg font-semibold text-white shrink-0">{tSidebar("myActiveShim")}</h2>
+        <div className="flex flex-col gap-0.5 min-w-0 shrink">
+          <h2 className="text-lg font-semibold text-white shrink-0">{tSidebar("myActiveShim")}</h2>
+          {projectName != null && projectName !== "" && (
+            <span className="text-xs text-white/70 truncate" title={projectName}>
+              {tSidebar("projectTag")} {projectName}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-1 min-w-0">
           {activePreset?.name != null && activePreset.name !== "" && (
             <span

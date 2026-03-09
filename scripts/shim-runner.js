@@ -227,7 +227,9 @@ function checkStryker(opts) {
     out.match(/(\d+(?:\.\d+)?)\s*%\s*mutation/i);
   const score = scoreMatch ? parseFloat(scoreMatch[1]) : 0;
   const noMutantsOrNan =
-    /0\s*mutant|n\/a|NaN.*mutation|greater than or equal to break threshold/i.test(out);
+    /0\s*mutant|n\/a|NaN.*mutation|greater than or equal to break threshold/i.test(
+      out,
+    );
   if (res.status !== 0 || (!noMutantsOrNan && score < 80)) {
     fail(
       "stryker",
