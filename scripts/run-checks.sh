@@ -148,10 +148,6 @@ run_ruff=true
 run_shellcheck=true
 run_refactor=false
 
-continue_on_error="${SHIM_CONTINUE_ON_ERROR:-0}"
-if [[ "$continue_on_error" != "1" ]]; then
-  continue_on_error="0"
-fi
 
 if [[ $# -eq 0 ]]; then
   run_frontend=true
@@ -828,6 +824,9 @@ run_one() {
 FAILED_CHECKS=()
 OVERALL_RC=0
 
+# Run a single check; on failure record it and continue so all checks run (no early exit).
+# Intentional aggregation: failure is recorded in FAILED_CHECKS and propagated at script end
+# via OVERALL_RC and "Failed checks: ..." + exit 1, so the control flow has a single exit gate.
 run_step() {
   local id="$1"
   should_run_check "$id" || return 0
@@ -839,11 +838,8 @@ run_step() {
 
   if [[ $rc -ne 0 ]]; then
     FAILED_CHECKS+=("$id")
-    if [[ "$continue_on_error" == "1" ]]; then
-      echo "Check failed (continuing): $id" >&2
-      return 0
-    fi
-    return "$rc"
+    echo "Check failed (continuing with remaining checks): $id" >&2
+    return 0
   fi
 
   return 0
@@ -907,6 +903,7 @@ if [[ "${#FAILED_CHECKS[@]}" -gt 0 ]]; then
   # Join FAILED_CHECKS with comma without changing IFS; printf + sed avoids global IFS.
   failed_csv="$(printf '%s,' "${FAILED_CHECKS[@]}" | sed 's/,$//')"
   echo "Failed checks: $failed_csv" >&2
+  # Always propagate failure so the pipeline gate is not bypassed (no exit 0 when checks failed).
   OVERALL_RC=1
 fi
 
