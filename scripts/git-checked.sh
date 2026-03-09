@@ -5,7 +5,9 @@ set -euo pipefail
 
 WRAPPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Resolve real git once: avoid using PATH so we never call this shim again.
+# resolve_real_git: Ermittelt den Pfad zur echten Git-Binary.
+# Zweck: Keine Rekursion (Shim ruft nicht sich selbst). Ohne wuerde PATH das Shim erneut treffen.
+# Eingabe: keine. Ausgabe: absoluter Pfad oder leer (stdout).
 resolve_real_git() {
   local r="${SHIM_GIT_REAL_BIN:-${GIT_REAL_BIN:-}}"
   if [[ -z "$r" ]]; then
@@ -24,6 +26,9 @@ resolve_real_git() {
 
 GIT_CMD="$(resolve_real_git)"
 
+# resolve_project_root: Projekt-Root fuer .shimwrappercheckrc und run-checks.
+# Zweck: Checks und Config liegen im Repo-Root. Ohne wuerden Pfade ins Leere zeigen.
+# Eingabe: keine. Ausgabe: absoluter Pfad (stdout).
 resolve_project_root() {
   if [[ -n "${SHIM_PROJECT_ROOT:-}" ]]; then
     echo "$SHIM_PROJECT_ROOT"
@@ -57,6 +62,30 @@ CHECKS_PASSTHROUGH=()
 RUN_CHECKS=true
 CHECKS_ONLY=false
 
+# Returns 0 if the git subcommand is "push" (one of GIT_ARGS). Call after GIT_ARGS is built.
+is_push_command() {
+  local a
+  for a in "${GIT_ARGS[@]}"; do
+    [[ "$a" == "push" ]] && return 0
+  done
+  return 1
+}
+
+# build_checks_passthrough_filtered: Baut CHECKS_PASSTHROUGH_FILTERED; bei push ohne --no-ai-review.
+# Zweck: Ein zentraler Ort fuer die Filterlogik (DRY); Push erzwingt AI-Review.
+build_checks_passthrough_filtered() {
+  if is_push_command; then
+    CHECKS_PASSTHROUGH_FILTERED=()
+    for a in "${CHECKS_PASSTHROUGH[@]}"; do
+      [[ "$a" != "--no-ai-review" ]] && CHECKS_PASSTHROUGH_FILTERED+=("$a")
+    done
+  else
+    CHECKS_PASSTHROUGH_FILTERED=("${CHECKS_PASSTHROUGH[@]}")
+  fi
+}
+
+# matches_command_list: Prueft, ob einer der Begriffe in list im Text vorkommt (z. B. "push").
+# Zweck: SHIM_GIT_ENFORCE_COMMANDS gegen die Nutzer-Eingabe matchen.
 matches_command_list() {
   local list="$1"
   local text="$2"
@@ -82,6 +111,7 @@ matches_command_list() {
   return 1
 }
 
+# trim: Entfernt fuehrende und nachfolgende Leerzeichen; normalisiert Konfig-Werte.
 trim() {
   local s="$1"
   # shellcheck disable=SC2001
@@ -89,6 +119,8 @@ trim() {
   echo "$s"
 }
 
+# has_backend_changes: Prueft, ob in der Dateiliste Pfade unter Backend-Mustern vorkommen.
+# Zweck: Backend-Checks nur bei Aenderungen z. B. in supabase/functions.
 has_backend_changes() {
   local files="$1"
   local patterns="${SHIM_BACKEND_PATH_PATTERNS:-supabase/functions,src/supabase/functions}"
@@ -113,6 +145,7 @@ has_backend_changes() {
   return 1
 }
 
+# normalize_push_check_mode: Mappt Konfigurationswerte auf commit/snippet/full.
 normalize_push_check_mode() {
   local mode="$1"
   mode="$(echo "$mode" | tr '[:upper:]' '[:lower:]')"
@@ -153,6 +186,8 @@ if [[ "$CHECKS_ONLY" != true ]]; then
   fi
 fi
 
+# resolve_checks_script: Liefert den absoluten Pfad zum Check-Skript (run-checks.sh oder SHIM_GIT_CHECKS_SCRIPT).
+# Zweck: Ohne festen Pfad findet der Shim das Skript nicht bei wechselndem CWD.
 resolve_checks_script() {
   local script="${SHIM_GIT_CHECKS_SCRIPT:-}"
   if [[ -n "$script" ]]; then
@@ -214,7 +249,7 @@ if [[ "$RUN_CHECKS" = true ]]; then
     run_ai_review=false
   fi
   # On push: AI review always runs in commit mode and must pass; no bypass.
-  if [[ "$ARGS_TEXT_RAW" == *" push "* ]]; then
+  if is_push_command; then
     run_ai_review=true
   fi
   if [[ "$ARGS_TEXT_RAW" == *" --no-explanation-check "* ]]; then
@@ -225,9 +260,10 @@ if [[ "$RUN_CHECKS" = true ]]; then
   fi
 
   if [[ "$run_frontend" = true ]] || [[ "$run_backend" = true ]]; then
+    build_checks_passthrough_filtered
     RUNNER_FULL=""
     PUSH_CHECK_MODE=""
-    if [[ "$ARGS_TEXT_RAW" == *" push "* ]]; then
+    if is_push_command; then
       RUNNER_FULL="--full"
       PUSH_CHECK_MODE="commit"
     fi
@@ -240,13 +276,7 @@ if [[ "$RUN_CHECKS" = true ]]; then
       [[ "$run_backend" = true ]] && CHECKS_ARGS+=(--backend)
       [[ "$run_ai_review" = false ]] && CHECKS_ARGS+=(--no-ai-review)
       [[ "$run_explanation_check" = false ]] && CHECKS_ARGS+=(--no-explanation-check)
-      if [[ "$ARGS_TEXT_RAW" == *" push "* ]]; then
-        for a in "${CHECKS_PASSTHROUGH[@]}"; do
-          [[ "$a" != "--no-ai-review" ]] && CHECKS_ARGS+=("$a")
-        done
-      else
-        CHECKS_ARGS+=("${CHECKS_PASSTHROUGH[@]}")
-      fi
+      CHECKS_ARGS+=("${CHECKS_PASSTHROUGH_FILTERED[@]}")
       if [[ -f "$PROJECT_ROOT/scripts/cli.js" ]]; then
         if [[ -n "$PUSH_CHECK_MODE" ]]; then
           env -u SKIP_AI_REVIEW CHECK_MODE="$PUSH_CHECK_MODE" node "$PROJECT_ROOT/scripts/cli.js" run ${RUNNER_FULL:+"$RUNNER_FULL"} "${CHECKS_ARGS[@]}"
@@ -275,13 +305,7 @@ if [[ "$RUN_CHECKS" = true ]]; then
         [[ "$run_backend" = true ]] && CHECKS_ARGS+=(--backend)
         [[ "$run_ai_review" = false ]] && CHECKS_ARGS+=(--no-ai-review)
         [[ "$run_explanation_check" = false ]] && CHECKS_ARGS+=(--no-explanation-check)
-        if [[ "$ARGS_TEXT_RAW" == *" push "* ]]; then
-          for a in "${CHECKS_PASSTHROUGH[@]}"; do
-            [[ "$a" != "--no-ai-review" ]] && CHECKS_ARGS+=("$a")
-          done
-        else
-          CHECKS_ARGS+=("${CHECKS_PASSTHROUGH[@]}")
-        fi
+        CHECKS_ARGS+=("${CHECKS_PASSTHROUGH_FILTERED[@]}")
         if [[ -n "$PUSH_CHECK_MODE" ]]; then
           env -u SKIP_AI_REVIEW CHECK_MODE="$PUSH_CHECK_MODE" bash "$CHECKS_SCRIPT" "${CHECKS_ARGS[@]}"
         else
@@ -296,7 +320,7 @@ fi
 
 # Enforce single commit when pushing: AI review (commit mode) only reviews HEAD~1..HEAD; older commits would stay unreviewed.
 # Only when upstream exists (normal push); first push (no upstream yet) is not enforced.
-if [[ "$ARGS_TEXT_RAW" == *" push "* ]] && [[ -n "$GIT_CMD" ]] && [[ -x "$GIT_CMD" ]]; then
+if is_push_command && [[ -n "$GIT_CMD" ]] && [[ -x "$GIT_CMD" ]]; then
   if "$GIT_CMD" rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
     AHEAD="$("$GIT_CMD" rev-list --count @{u}..HEAD 2>/dev/null || true)"
     if [[ -n "$AHEAD" ]] && [[ "$AHEAD" =~ ^[0-9]+$ ]] && [[ "$AHEAD" -gt 1 ]]; then
