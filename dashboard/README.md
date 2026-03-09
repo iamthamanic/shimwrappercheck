@@ -4,12 +4,24 @@ Next.js Web UI for shimwrappercheck: status, run checks, edit `.shimwrappercheck
 
 ## Run locally
 
+**From the shimwrappercheck repo (development):**
+
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
+**From another project (where shimwrappercheck is installed):**
+
+Always start the dashboard via the CLI so it runs from the package directory, not your project's:
+
+```bash
+npx shimwrappercheck dashboard
+```
+
+Do **not** run your project's `npm run dev` to open the shimwrappercheck UI. The dashboard is self-contained (its own `app/`, `i18n/`, etc.). If you see `Module not found: Can't resolve '@/i18n/navigation'`, Next.js is building your project instead of the dashboard — use `npx shimwrappercheck dashboard` from your project root.
+
+Open http://localhost:3000 (or the port shown).
 
 ## Quality checks
 

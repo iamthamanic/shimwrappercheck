@@ -82,7 +82,7 @@ The wizard asks about:
 npx shimwrappercheck dashboard
 ```
 
-This starts the dashboard from the package directory so Next.js builds the dashboard app, not your host project (avoids "Module parse failed: Unexpected token" on `import type` if you run from the wrong folder). Optional: `npx shimwrappercheck dashboard -- --restart` to restart an already running instance.
+This starts the dashboard from the package directory so Next.js builds the dashboard app, not your host project. If you see **"Module not found: Can't resolve '@/i18n/navigation'"**, you are running your project's `npm run dev` (or similar) instead of the dashboard — use `npx shimwrappercheck dashboard` from your project root. Optional: `npx shimwrappercheck dashboard -- --restart` to restart an already running instance.
 
 Alternatively, from inside the package:
 

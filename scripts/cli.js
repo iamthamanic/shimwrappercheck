@@ -100,21 +100,21 @@ if (cmd === "run") {
 }
 
 if (cmd === "dashboard") {
-  // Dashboard aus dem Paket-Verzeichnis starten; ohne würde "next dev" ggf. im Host-Projekt laufen und Build-Fehler (z. B. import type) im falschen Projekt verursachen.
-  const { spawn, spawnSync } = require("child_process"); // spawnSync fuer npm install, spawn fuer dev-Server; ohne fehlen Dashboard-Abhängigkeiten oder der Server startet nicht.
-  const dashboardDir = path.resolve(__dirname, "..", "dashboard"); // Immer das Dashboard im eigenen Paket (node_modules/shimwrappercheck/dashboard); unabhaengig von process.cwd().
-  const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm"; // Windows braucht npm.cmd; ohne schlaegt spawn("npm", ...) unter Windows fehl.
+  // Dashboard NUR aus dem Paket-Verzeichnis starten. Sonst wuerde Next.js im Host-Projekt laufen (dort fehlt @/i18n/navigation) und Build-Fehler verursachen. Shimwrappercheck ist nur fuer das "Projekt" (Config/Checks) zustaendig; die UI kommt immer aus dem Paket.
+  const { spawn, spawnSync } = require("child_process");
+  const dashboardDir = path.resolve(__dirname, "..", "dashboard"); // Immer node_modules/shimwrappercheck/dashboard; unabhaengig von process.cwd().
+  const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
   const installResult = spawnSync(npmCmd, ["install"], {
-    cwd: dashboardDir, // Dashboard hat eigene package.json; Abhängigkeiten müssen dort installiert sein, sonst schlaegt "npm run dev" fehl.
+    cwd: dashboardDir,
     stdio: "inherit",
   });
   if (installResult.status !== 0) {
     process.exit(installResult.status != null ? installResult.status : 1);
   }
   const child = spawn(npmCmd, ["run", "dev", ...restArgs], {
-    cwd: dashboardDir, // Next.js muss im Dashboard-Ordner laufen; sonst wird das Host-Projekt gebaut (falsches app/layout.tsx, Parser-Fehler).
+    cwd: dashboardDir, // Next.js laeuft immer im Paket-Dashboard; Host-Projekt wird nur ueber SHIM_PROJECT_ROOT fuer Config/Checks genutzt.
     stdio: "inherit",
-    env: { ...process.env, SHIM_PROJECT_ROOT: process.cwd() }, // Aktuelles CWD als Projekt-Root an das Dashboard uebergeben; ohne kennt die UI das richtige Projekt nicht.
+    env: { ...process.env, SHIM_PROJECT_ROOT: process.cwd() }, // Aktuelles CWD = das Projekt, fuer das die UI .shimwrappercheckrc/AGENTS.md anzeigt und Checks startet.
   });
   child.on("exit", (code) => process.exit(code != null ? code : 1));
   return;

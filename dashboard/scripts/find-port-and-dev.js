@@ -122,10 +122,20 @@ function normalizeStartPort(port) {
 }
 
 function runDev(port) {
+  const cwd = path.resolve(path.join(__dirname, "..")); // Absoluter Pfad, damit Next.js garantiert dieses Verzeichnis als Projekt-Root nutzt (nicht das Host-Projekt bei Installation in node_modules).
+  const i18nNav = path.join(cwd, "i18n", "navigation.ts");
+  if (!fs.existsSync(i18nNav)) {
+    process.stderr.write(
+      "Error: Dashboard must run from the shimwrappercheck package directory.\n" +
+        "  Current cwd has no i18n/navigation.ts (expected in dashboard/).\n" +
+        "  From your project, run: npx shimwrappercheck dashboard\n" +
+        "  Do not run your project's 'npm run dev' to start the shimwrappercheck UI.\n"
+    );
+    process.exit(1);
+  }
   const url = `http://localhost:${port}`;
   process.stdout.write(`\nDashboard: ${url}\n`);
   process.stdout.write(`Open in browser: ${url}/de or ${url}/en\n\n`);
-  const cwd = path.resolve(path.join(__dirname, "..")); // Absoluter Pfad, damit Next.js garantiert dieses Verzeichnis als Projekt-Root nutzt (nicht das Host-Projekt bei Installation in node_modules).
   const nextBin = path.join(cwd, "node_modules", "next", "dist", "bin", "next");
   writeLock(port);
   const child = spawn(process.execPath, [nextBin, "dev", "-p", String(port)], {
