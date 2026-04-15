@@ -196,7 +196,9 @@
     "shimRunnerDetail": "Node orchestrator (npx shimwrappercheck run)",
     "huskyPrePush": "Husky pre-push",
     "gitPrePushHook": "Git pre-push Hook",
-    "supabase": "Supabase"
+    "supabase": "Supabase",
+    "mcpServer": "MCP Server",
+    "mcpServerDetail": "Agent integration (mcp/server.js)"
   },
   "config": {
     "title": "Config (.shimwrappercheckrc)",

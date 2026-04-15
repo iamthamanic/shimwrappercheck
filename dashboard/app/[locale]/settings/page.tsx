@@ -28,6 +28,7 @@ type Status = {
   prePushHusky?: boolean;
   prePushGit?: boolean;
   supabase?: boolean;
+  mcpServer?: boolean;
   lastError?: { check?: string; message?: string; suggestion?: string; timestamp?: string } | null;
 };
 
@@ -668,6 +669,7 @@ export default function SettingsPage() {
                 <StatusCard label={tStatus("huskyPrePush")} ok={!!status.prePushHusky} />
                 <StatusCard label={tStatus("gitPrePushHook")} ok={!!status.prePushGit} />
                 <StatusCard label={tStatus("supabase")} ok={!!status.supabase} />
+                <StatusCard label={tStatus("mcpServer")} ok={!!status.mcpServer} detail={tStatus("mcpServerDetail")} />
               </div>
               {status?.projectRoot && (
                 <p className="mt-2 text-sm text-neutral-400">

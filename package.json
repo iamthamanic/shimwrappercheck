@@ -28,7 +28,10 @@
     "dashboard/next-env.d.ts",
     "dashboard/README.md",
     "README.md",
-    "AGENTS.md"
+    "AGENTS.md",
+    "mcp/package.json",
+    "mcp/server.js",
+    "scripts/mcp-setup.js"
   ],
   "engines": {
     "node": ">=18"
@@ -41,6 +44,8 @@
     "init": "node bin/shimwrappercheck init",
     "supabase:checked": "supabase",
     "git:checked": "./bin/git",
+    "mcp": "node mcp/server.js",
+    "mcp-setup": "node scripts/mcp-setup.js",
     "dashboard:check": "npm run check --prefix dashboard",
     "lint": "npm run lint --prefix dashboard",
     "format:check": "npm run format:check --prefix dashboard",

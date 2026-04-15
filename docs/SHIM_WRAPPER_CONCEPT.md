@@ -76,6 +76,45 @@ To avoid recursion:
 - The **dashboard** (`dashboard/`) is a Next.js Web UI: status, run checks, edit `.shimwrappercheckrc`, and edit **AGENTS.md**.
 - **AGENTS.md** at project root is read by AI agents (Cursor, Codex). It can be edited via the dashboard so agents and humans share one source of truth; agents should respect its content.
 
+## MCP Server
+
+shimwrappercheck includes a **zero-dependency MCP server** (mcp/server.js) that lets AI agents control the shim via structured tool calls over stdio (JSON-RPC 2.0 / MCP protocol).
+
+### Tools
+
+- **run_checks**: Execute checks with structured results (pass/fail, stdout, stderr, last error for self-healing).
+- **get_check_status**: Read .shim/last_error.json for the last check failure (check name, message, suggestion, raw output).
+- **get_config** / **set_config**: Read/write .shimwrappercheckrc as structured key-value pairs.
+- **list_checks**: List all available checks with labels, env-keys, and enabled status.
+- **toggle_check**: Enable or disable a specific check by env-key.
+- **get_latest_report**: Read the latest AI review report markdown.
+
+### Agent workflow
+
+1. Agent calls run_checks before push/deploy.
+2. If failed: get_check_status returns the exact error for self-healing.
+3. Agent fixes code, calls run_checks again.
+4. Agent can toggle_check or set_config to adjust check scope.
+5. get_latest_report for detailed AI review deductions.
+
+### CLI integration
+
+Start via CLI: npx shimwrappercheck mcp (auto-installs MCP deps if needed).
+
+Or add directly to MCP client config:
+
+```json
+{
+  "mcpServers": {
+    "shimwrappercheck": {
+      "command": "node",
+      "args": ["/path/to/shimwrappercheck/mcp/server.js"],
+      "env": { "SHIM_PROJECT_ROOT": "/path/to/your/project" }
+    }
+  }
+}
+```
+
 ## Setup checklist
 
 1. Add checks script (repo-specific).
@@ -83,5 +122,6 @@ To avoid recursion:
 3. Add a pre-push hook for redundancy.
 4. Validate PATH (or use `npx supabase`).
 5. Optionally run the dashboard to manage config and AGENTS.md.
-6. Optional terminal mode: `npx shimwrappercheck config` for full CLI-based configuration.
-7. Optional dependency bootstrap: `npx shimwrappercheck install-check-deps`.
+6. Optionally add the MCP server to your AI agent config for structured tool access.
+7. Optional terminal mode: `npx shimwrappercheck config` for full CLI-based configuration.
+8. Optional dependency bootstrap: `npx shimwrappercheck install-check-deps`.

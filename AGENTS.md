@@ -14,6 +14,22 @@ It can be edited via the dashboard (Config → AGENTS.md) so agents and humans s
 - Run `npx shimwrappercheck init` for setup; `npx shimwrappercheck install` for PATH shims (installed shims call `shimwrappercheck@latest` so they stay current).
 - **Check-Tools (Variante B):** Tools (ESLint, Prettier, TypeScript, Vitest, Vite) können **projektlos** in `.shimwrapper/checktools/` liegen. Beim `init` optional anlegen; danach `npx shimwrappercheck install-tools` (oder `npm install` in `.shimwrapper/checktools`). `run-checks.sh` nutzt diese Binaries, wenn vorhanden; sonst Projekt-`node_modules`/npm-Skripte. So bleiben Checks pro Projekt getrennt.
 
+## MCP Server (Agent Integration)
+
+**→ Shimwrappercheck:** The MCP server lets AI agents control the shim via structured tool calls (JSON-RPC over stdio). It lives in `mcp/server.js` and is zero-dependency (Node builtins only). Adding tools or changing MCP behavior affects `mcp/server.js`, `mcp/README.md`, and `templates/mcp-config.json`.
+
+- **Start:** `npx shimwrappercheck mcp` or `node mcp/server.js` (sets `SHIM_PROJECT_ROOT` from CWD).
+- **10 Tools:** `run_checks`, `get_check_status`, `get_config`, `set_config`, `list_checks`, `toggle_check`, `get_latest_report`, `configure_mcp`, `list_mcp_clients`, `get_agents_md`.
+- **Agent self-configure (key feature):** An agent can configure its own MCP client to use shimwrappercheck — no manual JSON/TOML editing needed:
+  1. Call `list_mcp_clients` to see which clients are available and which already have shimwrappercheck.
+  2. Call `configure_mcp` with `client` (e.g. `"cursor"`, `"claude-desktop"`, `"codex-cli"`) to write the config automatically.
+  3. Or from the terminal: `npx shimwrappercheck mcp-setup` (all clients) or `npx shimwrappercheck mcp-setup --client codex-cli` (specific). Use `--print` for dry-run.
+- **Agent workflow:** Call `run_checks` before deploy/push → if failed, `get_check_status` for the exact error (self-healing) → fix → re-run → `toggle_check` or `set_config` to adjust scope → `get_latest_report` for AI review deductions.
+- **Read project rules:** `get_agents_md` returns the project's AGENTS.md content so agents know current rules.
+- **MCP client config:** Codex CLI uses TOML (`~/.codex/config.toml`), Cursor/Claude Desktop use JSON. The `configure_mcp` tool and `mcp-setup` CLI handle both formats automatically.
+- **CLI-Anything supplement:** [CLI-Anything](https://github.com/HKUDS/CLI-Anything) can auto-wrap additional CLI commands (`init`, `setup`, `install`) as MCP tools. The purpose-built server above is primary; CLI-Anything is optional for broader coverage.
+- When changing MCP tools or adding new ones, update `mcp/server.js`, `mcp/README.md`, and this section.
+
 ## Dashboard
 
 **→ Shimwrappercheck:** The dashboard _is part of_ shimwrappercheck. It lives in `dashboard/` and is the config UI for the shim (status, run checks, edit `.shimwrappercheckrc`, edit this AGENTS.md). Adding new check types or changing presets touches `dashboard/lib/checks.ts` and related docs.
@@ -30,11 +46,21 @@ It can be edited via the dashboard (Config → AGENTS.md) so agents and humans s
 - Follow the schema in `docs/CHECK_DESCRIPTION_STYLE.md` for every check description (`summary` and `info`).
 - Ensure descriptions match real behavior (commands, pass/fail logic, and skip conditions).
 
+## Quality target: mindestens 95% (Explanation + AI Review)
+
+**→ Shimwrappercheck:** Code in this repo must **from the first line** aim for **at least 95%** on both the Full Explanation check and the AI code review. That means:
+
+- **Explain from the start:** When writing or changing code, apply the Full Explanation standard from the first line (docstrings + inline comments). Do not leave commenting for later; partial compliance fails the check.
+- **Checklist in mind:** When writing or changing code, keep the AI review checklist in mind from the start (SOLID, security, robustness, maintainability). Address deductions proactively so the review reaches **at least 95%** (configurable via `SHIM_AI_MIN_RATING` / `SHIM_EXPLANATION_MIN_RATING`; project goal is 95%).
+- **Script exceptions:** For small, single-purpose scripts (e.g. single file, glue/shell/Node under a few hundred lines), documented trade-offs are acceptable: e.g. env-based paths, `|| true` where intentional. Block comments for logical blocks may suffice instead of every-line comments if every function has a docstring. The AI review may apply SRP/DI/coupling more leniently for script-only code; security (path traversal, input validation, silent fails) and robustness must still be met. See the prompts in `scripts/ai-explanation-check.sh` and `scripts/ai-code-review.sh` for the exact script rules the checker uses.
+
+**Mindestens 95% sollen erreicht werden.** Do not push with failing or warning checks.
+
 ## Coding Standard: Mandatory Full Explanation Comments
 
 **→ Shimwrappercheck:** The **Full Explanation** check is implemented in `scripts/ai-explanation-check.sh` and wired in `dashboard/lib/checks.ts` (explanationCheck). When you add or change code in this repo, it must satisfy this standard if the check is enabled. Changing the check logic or skip flags affects the shim and the dashboard check list.
 
-Projects can enforce the **Full Explanation** check (see `dashboard/lib/checks.ts` → `explanationCheck`). Standard: every function has a docstring (why it exists, what problem it solves, inputs/outputs); every non-trivial line has an inline comment (what happens, why needed, what breaks if removed); no clean-code-only output; output must be complete files, never partial snippets. **Additional rule:** If code is not fully commented, the output is invalid; regenerate until compliant. The check runs via `scripts/ai-explanation-check.sh` (Codex); skip with `--no-explanation-check` or `SKIP_EXPLANATION_CHECK=1`. **If the check fails:** fix the code (add docstrings and inline comments), then re-run the check until it passes; do not push without passing.
+Projects can enforce the **Full Explanation** check (see `dashboard/lib/checks.ts` → `explanationCheck`). Standard: every function has a docstring (why it exists, what problem it solves, inputs/outputs); every non-trivial line has an inline comment (what happens, why needed, what breaks if removed); no clean-code-only output; output must be complete files, never partial snippets. **Apply this from the first line of new or changed code; do not defer commenting.** **Additional rule:** If code is not fully commented (or, for scripts, not meeting the script exception in the check prompt), the output is invalid; regenerate until compliant. The check runs via `scripts/ai-explanation-check.sh` (Codex); skip with `--no-explanation-check` or `SKIP_EXPLANATION_CHECK=1`. **If the check fails:** fix the code (add docstrings and inline comments, or add block comments per logical block where the prompt allows), then re-run the check until it passes; do not push without passing.
 
 ## Project rules
 

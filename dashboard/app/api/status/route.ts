@@ -41,6 +41,9 @@ export async function GET() {
     const hasHusky = fs.existsSync(path.join(root, ".husky", "pre-push"));
     const hasGitHook = fs.existsSync(path.join(root, ".git", "hooks", "pre-push"));
     const hasSupabase = fs.existsSync(path.join(root, "supabase", "config.toml"));
+    const hasMcpServer =
+      fs.existsSync(path.join(root, "mcp", "server.js")) ||
+      fs.existsSync(path.join(root, "node_modules", "shimwrappercheck", "mcp", "server.js")); // MCP-Server für Agent-Integration; ohne fehlt der MCP-Status in der UI.
 
     let projectName = path.basename(root); // Fallback: Ordnername des Roots; ohne wäre projectName bei fehlender package.json leer.
     const pkgPath = path.join(root, "package.json");
@@ -76,6 +79,7 @@ export async function GET() {
       prePushHusky: hasHusky,
       prePushGit: hasGitHook,
       supabase: hasSupabase,
+      mcpServer: hasMcpServer,
       lastError,
     });
   } catch (err) {
@@ -92,6 +96,7 @@ export async function GET() {
         prePushHusky: false,
         prePushGit: false,
         supabase: false,
+        mcpServer: false,
         lastError: null,
         error: err instanceof Error ? err.message : "Unknown error",
       },

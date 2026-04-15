@@ -637,6 +637,8 @@ async function main() {
     }
   }
   console.log("- pruefe ggf. scripts/run-checks.sh und passe die Checks an");
+  console.log("- MCP-Server fuer Agenten: npx shimwrappercheck mcp");
+  console.log("- MCP-Client-Config: siehe templates/mcp-config.json");
   console.log("- Terminal-Konfiguration spaeter: npx shimwrappercheck config");
   console.log(
     "- Check-Dependencies nachinstallieren: npx shimwrappercheck install-check-deps",

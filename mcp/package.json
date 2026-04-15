@@ -1,0 +1,17 @@
+{
+  "name": "shimwrappercheck-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for shimwrappercheck – lets AI agents run checks, read/write config, and self-heal errors via structured tool calls. Zero dependencies.",
+  "type": "commonjs",
+  "main": "server.js",
+  "bin": {
+    "shimwrappercheck-mcp": "server.js"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

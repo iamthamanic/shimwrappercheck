@@ -1,0 +1,47 @@
+{
+  "_comment": "MCP server config for shimwrappercheck. Copy the relevant section into your MCP client config.",
+  "claude_desktop": {
+    "mcpServers": {
+      "shimwrappercheck": {
+        "command": "node",
+        "args": ["/ABSOLUTE/PATH/TO/shimwrappercheck/mcp/server.js"],
+        "env": {
+          "SHIM_PROJECT_ROOT": "/ABSOLUTE/PATH/TO/YOUR/PROJECT"
+        }
+      }
+    }
+  },
+  "cursor": {
+    "mcpServers": {
+      "shimwrappercheck": {
+        "command": "node",
+        "args": ["/ABSOLUTE/PATH/TO/shimwrappercheck/mcp/server.js"],
+        "env": {
+          "SHIM_PROJECT_ROOT": "${workspaceFolder}"
+        }
+      }
+    }
+  },
+  "codex_cli": {
+    "mcpServers": {
+      "shimwrappercheck": {
+        "command": "node",
+        "args": ["/ABSOLUTE/PATH/TO/shimwrappercheck/mcp/server.js"],
+        "env": {
+          "SHIM_PROJECT_ROOT": "/ABSOLUTE/PATH/TO/YOUR/PROJECT"
+        }
+      }
+    }
+  },
+  "via_npx": {
+    "mcpServers": {
+      "shimwrappercheck": {
+        "command": "npx",
+        "args": ["shimwrappercheck", "mcp"],
+        "env": {
+          "SHIM_PROJECT_ROOT": "/ABSOLUTE/PATH/TO/YOUR/PROJECT"
+        }
+      }
+    }
+  }
+}

@@ -102,21 +102,47 @@ if (cmd === "run") {
 if (cmd === "dashboard") {
   // Dashboard NUR aus dem Paket-Verzeichnis starten. Sonst wuerde Next.js im Host-Projekt laufen (dort fehlt @/i18n/navigation) und Build-Fehler verursachen. Shimwrappercheck ist nur fuer das "Projekt" (Config/Checks) zustaendig; die UI kommt immer aus dem Paket.
   const { spawn, spawnSync } = require("child_process");
-  const dashboardDir = path.resolve(__dirname, "..", "dashboard"); // Immer node_modules/shimwrappercheck/dashboard; unabhaengig von process.cwd().
-  const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
+  const dashboardDir = path.resolve(__dirname, "..", "dashboard"); // Immer node_modules/shimwrappercheck/dashboard; unabhaengig von process.cwd(). Ohne würde cwd des Aufrufers genutzt.
+  const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm"; // Windows braucht npm.cmd; ohne schlaegt spawn unter Windows fehl.
   const installResult = spawnSync(npmCmd, ["install"], {
     cwd: dashboardDir,
     stdio: "inherit",
   });
   if (installResult.status !== 0) {
-    process.exit(installResult.status != null ? installResult.status : 1);
+    process.exit(installResult.status != null ? installResult.status : 1); // npm install fehlgeschlagen; ohne würden Abhängigkeiten fehlen und "npm run dev" scheitern.
   }
   const child = spawn(npmCmd, ["run", "dev", ...restArgs], {
     cwd: dashboardDir, // Next.js laeuft immer im Paket-Dashboard; Host-Projekt wird nur ueber SHIM_PROJECT_ROOT fuer Config/Checks genutzt.
     stdio: "inherit",
-    env: { ...process.env, SHIM_PROJECT_ROOT: process.cwd() }, // Aktuelles CWD = das Projekt, fuer das die UI .shimwrappercheckrc/AGENTS.md anzeigt und Checks startet.
+    env: { ...process.env, SHIM_PROJECT_ROOT: process.cwd() }, // Aktuelles CWD = das Projekt, fuer das die UI .shimwrappercheckrc/AGENTS.md anzeigt und Checks startet. Ohne kennt die UI das Zielprojekt nicht.
   });
-  child.on("exit", (code) => process.exit(code != null ? code : 1));
+  child.on("exit", (code) => process.exit(code != null ? code : 1)); // Exit-Code des Kindprozesses durchreichen; ohne würde der Aufruf immer als Erfolg erscheinen.
+  return;
+}
+
+if (cmd === "mcp-setup") {
+  // MCP-Setup-Befehl: Konfiguriert MCP-Clients (Cursor, Claude, Codex) so dass Agenten shimwrappercheck nutzen können.
+  process.argv = [
+    process.argv[0], // Node-Binary beibehalten; ohne könnte das Kindmodul mit falschem Interpreter starten.
+    path.join(__dirname, "mcp-setup.js"), // Pfad zum MCP-Setup-Script; ohne findet require das Modul nicht.
+    ...restArgs, // Nutzer-Argumente durchreichen (z.B. --client cursor, --print); ohne fehlen die Optionen.
+  ];
+  require(path.join(__dirname, "mcp-setup")); // MCP-Setup-Modul ausführen; ohne bleibt der Befehl wirkungslos.
+  return; // Nach Delegation beenden; ohne würde "Unknown command" folgen.
+}
+
+if (cmd === "mcp") {
+  // MCP-Server starten: Ermöglicht AI-Agenten strukturierte Kontrolle über shimwrappercheck (Checks, Config, Status).
+  // Zero-dependency: server.js nutzt nur Node.js-Builtins; kein npm install nötig.
+  const { spawn } = require("child_process");
+  const mcpDir = path.resolve(__dirname, "..", "mcp"); // MCP-Server liegt immer im Paket; unabhaengig von process.cwd().
+  const serverPath = path.join(mcpDir, "server.js"); // Absoluter Pfad zum MCP-Server; ohne könnte der Prozess die Datei nicht finden.
+  const child = spawn(process.execPath, [serverPath, ...restArgs], {
+    cwd: mcpDir, // Server läuft im mcp-Verzeichnis; ohne könnten relative Pfade im Server fehlschlagen.
+    stdio: "inherit", // stdio direkt durchreichen für MCP-Protokoll über stdin/stdout; ohne könnte der Agent nicht kommunizieren.
+    env: { ...process.env, SHIM_PROJECT_ROOT: process.cwd() }, // Projektroot an den Server übergeben; ohne weiß der Server nicht, welches Projekt geprüft werden soll.
+  });
+  child.on("exit", (code) => process.exit(code != null ? code : 1)); // Exit-Code durchreichen; ohne erscheint der Aufruf immer als Erfolg.
   return;
 }
 
@@ -137,6 +163,6 @@ if (cmd === "git") {
 // Kein bekannter Befehl: Nutzer informieren und mit Fehlercode beenden.
 console.error("Unknown command:", cmd); // Unbekannten Befehl ausgeben; ohne weiß der Nutzer nicht, warum der Aufruf fehlschlug.
 console.error(
-  "Usage: shimwrappercheck [setup|init|config|install|install-tools|install-check-deps|run|dashboard|git]",
+  "Usage: shimwrappercheck [setup|init|config|install|install-tools|install-check-deps|run|dashboard|mcp-setup|mcp|git]",
 ); // Unterstützte Befehle anzeigen; ohne fehlt die direkte Hilfestellung.
 process.exit(1); // Mit Fehlercode beenden; ohne interpretieren Aufrufer (Shims, CI) den unbekannten Befehl als Erfolg.
