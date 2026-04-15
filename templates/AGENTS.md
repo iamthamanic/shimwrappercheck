@@ -28,16 +28,26 @@ Checks are configured in the dashboard or `.shimwrappercheckrc` (toggles and ord
 - **Full Explanation (Codex):** Separate check that enforces the **Mandatory Full Explanation Comments** standard (see below). Skip with `--no-explanation-check` or `SKIP_EXPLANATION_CHECK=1`. **If the check fails:** you must fix the code (add missing docstrings and inline comments), then run the checks again. Do not push or deploy until the Full Explanation check passes.
 - **Post-deploy hooks (optional):** Health Ping, Edge Logs after Supabase deploy.
 
+## Quality target: at least 95% (Explanation + AI Review)
+
+Code must **from the first line** aim for **at least 95%** on both the Full Explanation check and the AI code review.
+
+- **Explain from the start:** When writing or changing code, apply the Full Explanation standard from the first line (docstrings + inline comments). Do not leave commenting for later; partial compliance fails the check.
+- **Checklist in mind:** When writing or changing code, keep the AI review checklist in mind from the start (SOLID, security, robustness, maintainability). Address deductions proactively so the review reaches **at least 95%** (configurable via `SHIM_AI_MIN_RATING` / `SHIM_EXPLANATION_MIN_RATING`; project goal is 95%).
+- **Script exceptions:** For small, single-purpose scripts (e.g. single file, glue/shell/Node under a few hundred lines), documented trade-offs are acceptable (e.g. env-based paths, `|| true` where intentional). Block comments for logical blocks may suffice instead of every-line comments if every function has a docstring. The AI review may apply SRP/DI/coupling more leniently for script-only code; security (path traversal, input validation, silent fails) and robustness must still be met.
+
+**At least 95% must be achieved.** Do not push with failing or warning checks.
+
 ## Coding Standard: Mandatory Full Explanation Comments
 
-All code must be delivered with full natural-language commentary. The **Full Explanation** check enforces this; if the code is not fully commented, the check fails.
+All code must be delivered with full natural-language commentary. The **Full Explanation** check enforces this; if the code is not fully commented, the check fails. **Apply this from the first line of new or changed code; do not defer commenting.**
 
-**If the Full Explanation check does not pass:** Treat it as a hard requirement. Fix the reported issues (add docstrings and inline comments for every function and non-trivial line), then run the check again (e.g. `npm run checks` or `scripts/run-checks.sh`). Repeat until the check passes. Do not bypass the check or push without passing.
+**If the Full Explanation check does not pass:** Treat it as a hard requirement. Fix the reported issues (add docstrings and inline comments for every function and non-trivial line, or block comments per logical block where the check allows for scripts), then run the check again (e.g. `npm run checks` or `scripts/run-checks.sh`). Repeat until the check passes. Do not bypass the check or push without passing.
 
 **Rules:**
 
 1. Every function must include a docstring explaining: why it exists, what problem it solves, what inputs/outputs mean.
-2. Every non-trivial line must be commented inline: what is happening, why it is necessary, what would break if removed.
+2. Every non-trivial line must be commented inline: what is happening, why it is necessary, what would break if removed (for small scripts, block comments per logical block are acceptable if every function has a docstring).
 3. No "clean code only" output is allowed. Explanation is mandatory.
 4. Output must always be complete files, never partial snippets.
 
@@ -50,7 +60,7 @@ const user = await db.getUser(id);
 if (!user) throw new Error("User not found");
 ```
 
-**Additional rule:** If the code is not fully commented, the output is considered invalid. Regenerate until compliant.
+**Additional rule:** If the code is not fully commented (or, for scripts, not meeting the script exception in the check), the output is considered invalid. Regenerate until compliant.
 
 If the project enforces **zero warnings** (e.g. ESLint `--max-warnings 0`), treat any warning as a failure.
 

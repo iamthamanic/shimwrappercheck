@@ -227,6 +227,23 @@ npx shimwrappercheck config
 
 This mode asks about trigger commands, AI review provider/scope, check toggles, check order, and can then automatically install dependencies for active checks.
 
+### Structured terminal commands (non-interactive)
+
+For automation, agents, and CLI-Anything, shimwrappercheck now also exposes non-interactive subcommands with optional JSON output:
+
+```bash
+npx shimwrappercheck --help
+npx shimwrappercheck config get --json
+npx shimwrappercheck config set CHECK_MODE=full SHIM_RUN_LINT=1 --json
+npx shimwrappercheck checks list --json
+npx shimwrappercheck checks toggle SHIM_RUN_AI_REVIEW off --json
+npx shimwrappercheck status last-error --json
+npx shimwrappercheck report latest --json
+npx shimwrappercheck agents-md --json
+npx shimwrappercheck mcp clients --json
+npx shimwrappercheck mcp configure --client codex-cli --dry-run --json
+```
+
 ### Check tools (project-local tools folder)
 
 If `.shimwrapper/checktools/` was created during `init` (or created manually with `package.json` from `templates/checktools-package.json`), install tools there:
@@ -403,6 +420,17 @@ npx shimwrappercheck mcp-setup --print
 1. Call `list_mcp_clients` -- see available clients and which ones already have shimwrappercheck
 2. Call `configure_mcp` with `{"client": "codex-cli"}` -- config is written automatically
 
+**Option 2b: Structured CLI parity**
+If you want the same operations without connecting to MCP first:
+
+```bash
+npx shimwrappercheck mcp clients --json
+npx shimwrappercheck mcp configure --client codex-cli --dry-run --json
+npx shimwrappercheck checks list --json
+npx shimwrappercheck config get --json
+npx shimwrappercheck status last-error --json
+```
+
 **Option 3: Manual config**
 - **Cursor**: add to `.cursor/mcp.json`
 - **Claude Desktop**: add to `claude_desktop_config.json`
@@ -455,11 +483,17 @@ All existing server entries are preserved when `configure_mcp` or `mcp-setup` wr
 
 ### CLI-Anything (optional supplement)
 
-[CLI-Anything](https://github.com/HKUDS/CLI-Anything) can auto-wrap additional CLI commands as MCP tools. The purpose-built server above is primary; CLI-Anything can supplement for broader coverage:
+[CLI-Anything](https://github.com/HKUDS/CLI-Anything) can auto-wrap additional CLI commands as MCP tools. The purpose-built server above is primary; CLI-Anything can supplement for broader coverage now that shimwrappercheck exposes stable non-interactive subcommands and `npx shimwrappercheck --help` lists them:
 
 ```bash
 pip install cli-anything
 cli-anything wrap "npx shimwrappercheck" --output mcp-cli-anything.json
+
+# Useful commands for wrapping:
+npx shimwrappercheck checks list --json
+npx shimwrappercheck config get --json
+npx shimwrappercheck mcp clients --json
+npx shimwrappercheck mcp configure --client codex-cli --dry-run --json
 ```
 
 Full details: `mcp/README.md`

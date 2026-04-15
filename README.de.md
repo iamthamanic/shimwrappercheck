@@ -219,6 +219,23 @@ npx shimwrappercheck config
 
 Der Modus fragt u. a. Trigger-Commands, AI-Review-Provider/Scope, Check-Toggles, Check-Reihenfolge und kann anschließend Dependencies für aktive Checks automatisch installieren.
 
+### Strukturierte Terminal-Befehle (nicht interaktiv)
+
+Für Automatisierung, Agents und CLI-Anything gibt es zusätzlich nicht-interaktive Subcommands mit optionaler JSON-Ausgabe:
+
+```bash
+npx shimwrappercheck --help
+npx shimwrappercheck config get --json
+npx shimwrappercheck config set CHECK_MODE=full SHIM_RUN_LINT=1 --json
+npx shimwrappercheck checks list --json
+npx shimwrappercheck checks toggle SHIM_RUN_AI_REVIEW off --json
+npx shimwrappercheck status last-error --json
+npx shimwrappercheck report latest --json
+npx shimwrappercheck agents-md --json
+npx shimwrappercheck mcp clients --json
+npx shimwrappercheck mcp configure --client codex-cli --dry-run --json
+```
+
 ### Check-Tools (projektlos)
 
 Wenn beim `init` der Ordner `.shimwrapper/checktools/` angelegt wurde (oder manuell mit `package.json` aus `templates/checktools-package.json`), Tools dort installieren:

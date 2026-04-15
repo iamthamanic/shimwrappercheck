@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Full Explanation check: Codex only. Enforces "Mandatory Full Explanation Comments" (docstrings + inline comments).
 # Called from run-checks.sh. Uses full changed files instead of diff snippets so Rule 4 ("never partial snippets") can be evaluated fairly.
-# Output: JSON score/deductions/verdict. PASS only when compliant (score >= 95 and verdict ACCEPT).
+# Output: JSON score/deductions/verdict. PASS when compliant (score >= SHIM_EXPLANATION_MIN_RATING, default 90, and verdict ACCEPT).
 # Input limited to whole files up to ~50KB total. Timeout 180s when timeout(1) is available.
 set -euo pipefail # Bash-Strict-Mode aktivieren; ohne werden unset Variablen und Fehler in Pipes leichter uebersehen.
 
@@ -32,6 +32,7 @@ CHECK_MODE="${CHECK_MODE:-commit}" # Standard-Mode explizit setzen; ohne variier
 
 DIFF_EXCLUDE_SPEC=':(exclude)*.tsbuildinfo' # Generierte Build-Artefakte ausschliessen; ohne erzeugen sie falsche Kommentar-Abzuege.
 LIMIT_BYTES="${SHIM_AI_DIFF_LIMIT_BYTES:-51200}" # Groessenlimit lesen; ohne kann der Prompt fuer Codex zu gross werden.
+EXPLANATION_MIN_RATING="${SHIM_EXPLANATION_MIN_RATING:-90}" # Mindest-Score fuer PASS (0-100); ohne waere die Schwelle nicht konfigurierbar (Ziel ~90% Qualitaet).
 APPENDED_FILES=0 # Zaehlt vollstaendig aufgenommene Dateien; ohne koennen wir die erste Datei nicht bevorzugt zulassen.
 
 CHANGED_FILES_FILE="$(mktemp)" # Temp-Datei fuer Pfadliste anlegen; ohne haben wir keine Zwischenablage fuer git diff --name-only.
@@ -167,7 +168,11 @@ fi
 
 INPUT_LIMITED="$(cat "$INPUT_FILE")" # Vollstaendigen Prompt aus den aufgenommenen Dateien zusammensetzen; ohne bekommt Codex keinen Eingabetext.
 
-PROMPT=$(cat << 'PROMPT_END' # Bewertungsanweisung als einzelnes Heredoc bauen; ohne wird das JSON-Format fuer Codex leichter inkonsistent.
+# Mindest-Score numerisch (Default 90); ohne koennte die Pass-Pruefung mit nicht-numerischem Wert fehlschlagen.
+EXPLANATION_MIN_RATING="$(printf '%s' "$EXPLANATION_MIN_RATING" | sed -n '/^[0-9]\+$/p')"
+[[ -z "$EXPLANATION_MIN_RATING" ]] && EXPLANATION_MIN_RATING=90
+
+PROMPT=$(cat << PROMPT_END # Bewertungsanweisung mit konfigurierbarem Schwellwert; ohne waere 90%-Ziel nicht steuerbar.
 Du prüfst ausschließlich die Einhaltung des Standards "Mandatory Full Explanation Comments". Keine Architektur-, Performance- oder Sicherheitsbewertung.
 
 Regeln (alle müssen erfüllt sein):
@@ -176,11 +181,13 @@ Regeln (alle müssen erfüllt sein):
 3. Kein "nur sauberer Code" ohne Erklärung; Erklärung ist Pflicht.
 4. Ausgabe sind immer vollständige Dateien, nie Teil-Snippets.
 
-Zusatzregel: Ist der Code nicht vollständig kommentiert, gilt die Ausgabe als ungültig.
+Script-Ausnahme: Bei kleinen Scripts/Dateien (z. B. eine Datei, unter ca. 300 Zeilen, reines Glue-/Shell-/Node-Script): Block-Kommentare für logische Blöcke sind ausreichend, wenn jede Funktion einen Docstring hat. "Nicht-trivial" = Zeilen mit Logik, Verzweigung, I/O, Fehlerbehandlung; reine Deklarationen/leere Zeilen/triviale Zuweisungen können ohne Inline-Kommentar bleiben.
 
-Starte mit 100 Punkten. Für jeden Verstoß: Abzug (z. B. -10 für fehlende Docstrings, -5 pro fehlender/trivialer Kommentar bei nicht-trivialen Zeilen). verdict: "ACCEPT" nur wenn score >= 95 und alle vier Regeln erfüllt; sonst "REJECT".
+Zusatzregel: Ist der Code nicht vollständig kommentiert (bzw. bei Scripts nicht der Script-Ausnahme entsprechend), gilt die Ausgabe als ungültig.
 
-Bei REJECT: In der "reason" der deductions kann kurz stehen, dass der Code nachgebessert (Docstrings/Inline-Kommentare ergänzt) und der Check erneut ausgeführt werden muss, bis er besteht.
+Starte mit 100 Punkten. Für jeden Verstoß: Abzug (z. B. -10 für fehlende Docstrings, -5 pro fehlender/trivialer Kommentar bei nicht-trivialen Zeilen). verdict: "ACCEPT" nur wenn score >= ${EXPLANATION_MIN_RATING} und die Regeln (bzw. Script-Ausnahme) erfüllt; sonst "REJECT".
+
+Bei REJECT: In der "reason" der deductions kann kurz stehen, dass der Code nachgebessert (Docstrings/Inline- oder Block-Kommentare ergänzt) und der Check erneut ausgeführt werden muss, bis er besteht.
 
 Gib das Ergebnis NUR als ein einziges gültiges JSON-Objekt aus, kein anderer Text. Format:
 {"score": number, "deductions": [{"point": "Kurzname", "minus": number, "reason": "Begründung"}], "verdict": "ACCEPT" oder "REJECT"}
@@ -273,7 +280,7 @@ if [[ -n "$RESULT_TEXT" ]]; then # Parsing nur versuchen, wenn ueberhaupt Antwor
 fi
 
 PASS=0 # PASS-Flag konservativ mit 0 starten; ohne koennen alte Werte aus dem Shell-Kontext stoeren.
-if [[ "$REVIEW_VERDICT" == "ACCEPT" ]] && [[ "$REVIEW_RATING" -ge 95 ]]; then # Harte Pass-Schwelle gem. Check-Regel anwenden; ohne wird ACCEPT allein zu locker.
+if [[ "$REVIEW_VERDICT" == "ACCEPT" ]] && [[ "$REVIEW_RATING" -ge "$EXPLANATION_MIN_RATING" ]]; then # Konfigurierbare Pass-Schwelle (Default 90%) anwenden; ohne waere die Qualitaetslatte nicht einhaltbar.
   PASS=1 # Nur hohes ACCEPT gilt als bestanden; ohne waere die Schwelle des Checks aufgeweicht.
 fi
 

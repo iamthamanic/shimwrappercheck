@@ -14,12 +14,15 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 # Load .shimwrappercheckrc so CHECK_MODE, SHIM_AI_*, SHIM_RUN_* etc. are set (e.g. when dashboard runs this script)
+# Preserve CHECK_MODE from env so pre-push can force CHECK_MODE=commit even if rc has snippet.
+CHECK_MODE_FROM_ENV="${CHECK_MODE:-}"
 if [[ -f "$ROOT_DIR/.shimwrappercheckrc" ]]; then
   set -a
   # shellcheck source=/dev/null
   source "$ROOT_DIR/.shimwrappercheckrc" 2>/dev/null || true
   set +a
 fi
+[[ -n "$CHECK_MODE_FROM_ENV" ]] && CHECK_MODE="$CHECK_MODE_FROM_ENV"
 
 # Alias for agent/refactor workflows: if only REFACTOR_REPORT_FILE is set, map it to SHIM_REPORT_FILE.
 if [[ -z "${SHIM_REPORT_FILE:-}" ]] && [[ -n "${REFACTOR_REPORT_FILE:-}" ]]; then

@@ -7,6 +7,17 @@
  */
 const path = require("path"); // Pfad-Operationen für Script-Pfade nutzen; ohne können wir __dirname nicht zu relativen Modulpfaden zusammensetzen.
 
+/**
+ * Strukturierte CLI-Subcommands ausführen.
+ * Zweck: Nicht-interaktive JSON-kompatible Befehle (config get/set, checks list, mcp clients, ...) zentral an scripts/structured-cli.js delegieren.
+ * Problem: Ohne diese Hilfsfunktion müssten wir dieselbe require/main-Logik in mehreren Branches duplizieren.
+ * Eingabe: args (string[]). Ausgabe: void (structured-cli übernimmt den Exit-Code selbst).
+ */
+function runStructuredCli(args) {
+  const structuredCli = require(path.join(__dirname, "structured-cli")); // Strukturierte CLI nur bei Bedarf laden; ohne würden interaktive Flows unnötig zusätzlich Code laden.
+  process.exit(structuredCli.main(args)); // Exit-Code aus structured-cli direkt an die Shell zurückgeben; ohne würden Fehler als Erfolg enden.
+}
+
 // Wenn installierte Shims "npx shimwrappercheck@latest -- git ..." aufrufen, steht in argv[2] "--" und in argv[3] der echte Befehl.
 let cmd = process.argv[2]; // Rohen ersten Argumentwert als Befehlskandidat lesen; ohne wüssten wir nicht, welcher Subbefehl gemeint ist.
 let restArgs = process.argv.slice(3); // Alle weiteren Argumente für das delegierte Script vorbereiten; ohne gingen Optionen und Ziele des Aufrufers verloren.
@@ -19,6 +30,13 @@ if (
   // Shim-Aufruf erkannt: Befehl und Rest-Argumente aus argv extrahieren.
   cmd = process.argv[3]; // Echten Befehl hinter dem "--" übernehmen; ohne bleibt cmd auf "--" und der Dispatch schlägt fehl.
   restArgs = process.argv.slice(4); // Argumente hinter dem Befehl (z. B. "push") für das Check-Script weiterreichen; ohne fehlen sie dem git-checked/supabase-Check.
+}
+
+if (cmd === "help" || cmd === "--help" || cmd === "-h") {
+  // Hilfe explizit ausgeben, statt in den Init-Wizard zu fallen; ohne könnten CLI-Anything und Nutzer die Befehlsoberfläche nicht sauber entdecken.
+  const structuredCli = require(path.join(__dirname, "structured-cli")); // Help-Renderer aus der strukturierten CLI laden; ohne müssten wir die Kommandoliste doppelt pflegen.
+  structuredCli.printTopLevelHelp(); // Kombinierte Hilfe für interaktive und maschinenlesbare Befehle ausgeben; ohne bliebe die neue CLI-Parität unsichtbar.
+  return; // Nach Help sofort beenden; ohne würde weiterer Dispatch-Code laufen.
 }
 
 if (cmd === "setup") {
@@ -77,6 +95,12 @@ if (cmd === "install-check-deps" || cmd === "deps") {
 }
 
 if (cmd === "config" || cmd === "configure") {
+  if (restArgs[0] && ["get", "set"].includes(restArgs[0])) {
+    // Nicht-interaktive Config-Subcommands an die strukturierte CLI delegieren; ohne gäbe es keine CLI-Parität zu get_config/set_config.
+    runStructuredCli(["config", ...restArgs]); // Top-Level-Befehl mit Unterbefehl weiterreichen; ohne könnte structured-cli den Kontext nicht auflösen.
+    return; // Nach Delegation beenden; ohne würde zusätzlich configure.js starten.
+  }
+
   // Beide Schreibweisen für Konfiguration akzeptieren; ohne wäre nur eine Variante nutzbar.
   process.argv = [
     process.argv[0], // Node-Binary beibehalten; ohne könnte configure.js mit falschem Interpreter starten.
@@ -88,6 +112,12 @@ if (cmd === "config" || cmd === "configure") {
 }
 
 if (cmd === "run") {
+  if (restArgs.includes("--json")) {
+    // JSON-Ausgabe signalisiert den maschinenlesbaren Run-Pfad; ohne müssten Agenten Shell-Output parsen.
+    runStructuredCli(["run", ...restArgs]); // Strukturierte Run-Optionen an structured-cli geben; ohne gäbe es keine run_checks-Parität via CLI.
+    return; // Nach Delegation beenden; ohne würde zusätzlich shim-runner.js laufen.
+  }
+
   // "run" leitet an den Shim-Runner weiter (run-checks etc.); ohne gäbe es keinen Einstieg für Check-Läufe aus der CLI.
   const runArgs = restArgs; // Argumente für den Runner getrennt halten; ohne würden sie beim Umbau von process.argv verloren gehen.
   process.argv = [
@@ -132,6 +162,12 @@ if (cmd === "mcp-setup") {
 }
 
 if (cmd === "mcp") {
+  if (restArgs[0] && ["clients", "configure"].includes(restArgs[0])) {
+    // Maschinenlesbare MCP-Helfer (Clients auflisten / konfigurieren) über die strukturierte CLI abfangen; ohne bliebe dafür nur MCP selbst oder mcp-setup.
+    runStructuredCli(["mcp", ...restArgs]); // Subcommand-Kette vollständig weiterreichen; ohne ginge z. B. --client codex-cli verloren.
+    return; // Nach Delegation beenden; ohne würde fälschlich der MCP-Server starten.
+  }
+
   // MCP-Server starten: Ermöglicht AI-Agenten strukturierte Kontrolle über shimwrappercheck (Checks, Config, Status).
   // Zero-dependency: server.js nutzt nur Node.js-Builtins; kein npm install nötig.
   const { spawn } = require("child_process");
@@ -160,9 +196,15 @@ if (cmd === "git") {
   return;
 }
 
+if (["checks", "status", "report", "agents-md"].includes(cmd)) {
+  // Neue strukturierte Top-Level-Befehle direkt an structured-cli delegieren; ohne gäbe es keine CLI-Parität für Query-/Toggle-Operationen.
+  runStructuredCli([cmd, ...restArgs]); // Befehl plus Rest-Argumente unverändert weiterreichen; ohne könnte structured-cli die Anfrage nicht ausführen.
+  return; // Nach Delegation beenden; ohne würde der Unknown-Command-Zweig greifen.
+}
+
 // Kein bekannter Befehl: Nutzer informieren und mit Fehlercode beenden.
 console.error("Unknown command:", cmd); // Unbekannten Befehl ausgeben; ohne weiß der Nutzer nicht, warum der Aufruf fehlschlug.
 console.error(
-  "Usage: shimwrappercheck [setup|init|config|install|install-tools|install-check-deps|run|dashboard|mcp-setup|mcp|git]",
+  "Usage: shimwrappercheck [setup|init|config|install|install-tools|install-check-deps|run|dashboard|mcp-setup|mcp|git|checks|status|report|agents-md|help]",
 ); // Unterstützte Befehle anzeigen; ohne fehlt die direkte Hilfestellung.
 process.exit(1); // Mit Fehlercode beenden; ohne interpretieren Aufrufer (Shims, CI) den unbekannten Befehl als Erfolg.

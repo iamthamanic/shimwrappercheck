@@ -1,6 +1,6 @@
 {
   "name": "shimwrappercheck",
-  "version": "0.4.15",
+  "version": "0.4.16",
   "description": "CLI-Shim, der Projekt-Checks ausführt, bevor ein echtes CLI-Kommando (z. B. Supabase, Git) läuft. Optional: Web-Dashboard zum Konfigurieren von Presets, Trigger-Befehlen, Checks und AGENTS.md.",
   "license": "MIT",
   "bin": {
@@ -31,7 +31,15 @@
     "AGENTS.md",
     "mcp/package.json",
     "mcp/server.js",
-    "scripts/mcp-setup.js"
+    "mcp/README.md",
+    "scripts/mcp-setup.js",
+    "scripts/structured-cli.js",
+    "scripts/lib/mcp-client-config.js",
+    "scripts/lib/mcp-client-toml.js",
+    "scripts/lib/project-api.js",
+    "scripts/lib/project-config-api.js",
+    "scripts/lib/project-runtime-api.js",
+    "scripts/lib/structured-cli-helpers.js"
   ],
   "engines": {
     "node": ">=18"

@@ -27,7 +27,8 @@ It can be edited via the dashboard (Config → AGENTS.md) so agents and humans s
 - **Agent workflow:** Call `run_checks` before deploy/push → if failed, `get_check_status` for the exact error (self-healing) → fix → re-run → `toggle_check` or `set_config` to adjust scope → `get_latest_report` for AI review deductions.
 - **Read project rules:** `get_agents_md` returns the project's AGENTS.md content so agents know current rules.
 - **MCP client config:** Codex CLI uses TOML (`~/.codex/config.toml`), Cursor/Claude Desktop use JSON. The `configure_mcp` tool and `mcp-setup` CLI handle both formats automatically.
-- **CLI-Anything supplement:** [CLI-Anything](https://github.com/HKUDS/CLI-Anything) can auto-wrap additional CLI commands (`init`, `setup`, `install`) as MCP tools. The purpose-built server above is primary; CLI-Anything is optional for broader coverage.
+- **Structured CLI parity:** The MCP core operations are also available as non-interactive CLI commands with `--json`, e.g. `config get`, `config set`, `checks list`, `checks toggle`, `status last-error`, `report latest`, `agents-md`, `mcp clients`, `mcp configure`. Use `npx shimwrappercheck --help` for the current command list.
+- **CLI-Anything supplement:** [CLI-Anything](https://github.com/HKUDS/CLI-Anything) can auto-wrap those stable CLI commands as MCP tools. The purpose-built server above is primary; CLI-Anything is optional for broader coverage.
 - When changing MCP tools or adding new ones, update `mcp/server.js`, `mcp/README.md`, and this section.
 
 ## Dashboard

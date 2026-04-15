@@ -462,12 +462,17 @@ function writeTomlMcpConfig(configPath, config) {
   const lines = existingRaw.split(/\r?\n/);
   const filteredLines = [];
   let skipSection = false; // Flag ob wir in einer zu entfernenden Sektion sind.
+  const shimSectionPattern = /^\[mcp_servers\.shimwrappercheck(?:\.env)?\]$/; // Haupt- und .env-Sektion gemeinsam erkennen; ohne bleibt die alte Env-Sektion stehen.
   for (const line of lines) {
     const trimmed = line.trim();
     // Prüfen ob eine neue Sektion beginnt; ohne würden wir immer noch skippen.
     if (trimmed.startsWith("[") && !trimmed.startsWith("[[")) {
-      const isShimSection = trimmed.startsWith("[mcp_servers.shimwrappercheck]");
-      skipSection = isShimSection; // Nur shimwrappercheck-Sektion skippen; andere Sektionen behalten.
+      const isShimSection = shimSectionPattern.test(trimmed); // Exakte Prüfung auf shimwrappercheck oder shimwrappercheck.env; ohne würden ähnlich benannte Sektionen falsch matchen.
+      skipSection = isShimSection; // Nur die Zielsektionen skippen; andere Sektionen behalten.
+      if (!skipSection) {
+        filteredLines.push(line); // Neue fremde Sektion sofort behalten; ohne ginge ihr Header beim Wechsel aus der Skip-Phase verloren.
+      }
+      continue; // Header-Zeile ist bereits verarbeitet; ohne würden wir sie ggf. doppelt pushen.
     }
     if (!skipSection) {
       filteredLines.push(line); // Zeile behalten; ohne würden wir auch andere Sektionen löschen.

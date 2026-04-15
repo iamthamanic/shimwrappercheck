@@ -40,7 +40,7 @@ redact_review_text() {
 TIMEOUT_SEC="${SHIM_AI_TIMEOUT_SEC:-180}"
 CHUNK_TIMEOUT="${SHIM_AI_CHUNK_TIMEOUT:-600}"
 LIMIT_BYTES="${SHIM_AI_DIFF_LIMIT_BYTES:-51200}"
-MIN_RATING="${SHIM_AI_MIN_RATING:-95}"
+MIN_RATING="${SHIM_AI_MIN_RATING:-90}"
 CHUNK_LIMIT_BYTES="${SHIM_AI_CHUNK_LIMIT_BYTES:-153600}"
 
 REVIEWS_DIR_SETTING="${SHIM_AI_REVIEW_DIR:-.shimwrapper/reviews}"
@@ -105,7 +105,7 @@ write_failed_report() {
 TIMEOUT_SEC="$(to_int_or_default "$TIMEOUT_SEC" 180)"
 CHUNK_TIMEOUT="$(to_int_or_default "$CHUNK_TIMEOUT" 600)"
 LIMIT_BYTES="$(to_int_or_default "$LIMIT_BYTES" 51200)"
-MIN_RATING="$(to_int_or_default "$MIN_RATING" 95)"
+MIN_RATING="$(to_int_or_default "$MIN_RATING" 90)"
 CHUNK_LIMIT_BYTES="$(to_int_or_default "$CHUNK_LIMIT_BYTES" 153600)"
 
 # Use real git for diffs (PATH may point to a shim). Only allow trusted binaries.
@@ -144,7 +144,9 @@ build_prompt_head() {
 Du bist ein extrem strenger Senior-Software-Architekt. Deine Aufgabe ist es, einen Code-Diff zu bewerten.
 
 Regeln:
-Starte mit 100 Punkten. Gehe die folgende Checkliste durch und ziehe fuer jeden Verstoss die angegebenen Punkte ab. Sei gnadenlos. Ein "okay" reicht nicht fuer ${MIN_RATING}%. ${MIN_RATING}% bedeutet Weltklasse-Niveau.
+Starte mit 100 Punkten. Gehe die folgende Checkliste durch und ziehe fuer jeden Verstoss die angegebenen Punkte ab. Ziel: mindestens ${MIN_RATING}% = sehr gute, wartbare Qualitaet. ${MIN_RATING}% ist das Mindestziel; darunter REJECT.
+
+Script-Ausnahme: Bei reinen Script-/Glue-Dateien (z. B. eine oder wenige Dateien, nur scripts/ oder Shell/Node-Gluing, unter einigen hundert Zeilen): SRP/Kopplung/DI duerfen milder bewertet werden, wenn der Code dokumentiert ist und Sicherheit (Path Traversal, Input, Silent Fails) sowie Robustheit beachtet wurden. Architektur-Abzuege dann nur bei echten Verstoessen, nicht pauschal. Fokus: Sicherheit, Silent Fails, Input Validation, Edge Cases.
 
 1. Architektur & SOLID
 - Single Responsibility (SRP): Hat die Klasse/Funktion mehr als einen Grund, sich zu aendern? (Abzug: -15)

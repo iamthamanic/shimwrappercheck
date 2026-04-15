@@ -26,6 +26,18 @@ If the agent already has MCP access, it can call:
 1. `list_mcp_clients` — see which clients are available
 2. `configure_mcp` — write the config automatically (e.g. `{"client": "codex-cli"}`)
 
+### Option B2: Structured CLI parity
+
+If you want the same operations without opening an MCP connection first:
+
+```bash
+npx shimwrappercheck mcp clients --json
+npx shimwrappercheck mcp configure --client codex-cli --dry-run --json
+npx shimwrappercheck checks list --json
+npx shimwrappercheck config get --json
+npx shimwrappercheck status last-error --json
+```
+
 ### Option C: Manual config
 
 Add to your MCP client config:
@@ -98,4 +110,11 @@ Supported clients and formats:
 
 ## CLI-Anything Integration
 
-[CLI-Anything](https://github.com/HKUDS/CLI-Anything) can auto-generate an MCP wrapper from CLI help text. For shimwrappercheck, the purpose-built server above is recommended because it provides structured JSON, direct config I/O, and check catalog integration. CLI-Anything can supplement for broader command coverage.
+[CLI-Anything](https://github.com/HKUDS/CLI-Anything) can auto-generate an MCP wrapper from CLI help text. For shimwrappercheck, the purpose-built server above is recommended because it provides structured JSON, direct config I/O, and check catalog integration. CLI-Anything can supplement for broader command coverage now that `npx shimwrappercheck --help` exposes stable non-interactive subcommands such as:
+
+```bash
+npx shimwrappercheck checks list --json
+npx shimwrappercheck config get --json
+npx shimwrappercheck mcp clients --json
+npx shimwrappercheck mcp configure --client codex-cli --dry-run --json
+```

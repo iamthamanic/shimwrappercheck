@@ -101,6 +101,18 @@ shimwrappercheck includes a **zero-dependency MCP server** (mcp/server.js) that 
 
 Start via CLI: npx shimwrappercheck mcp (auto-installs MCP deps if needed).
 
+Structured CLI parity for the MCP core operations is also available:
+
+- `npx shimwrappercheck config get --json`
+- `npx shimwrappercheck config set KEY=VALUE --json`
+- `npx shimwrappercheck checks list --json`
+- `npx shimwrappercheck checks toggle SHIM_RUN_LINT off --json`
+- `npx shimwrappercheck status last-error --json`
+- `npx shimwrappercheck report latest --json`
+- `npx shimwrappercheck agents-md --json`
+- `npx shimwrappercheck mcp clients --json`
+- `npx shimwrappercheck mcp configure --client codex-cli --dry-run --json`
+
 Or add directly to MCP client config:
 
 ```json
