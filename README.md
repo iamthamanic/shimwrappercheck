@@ -434,6 +434,7 @@ npx shimwrappercheck mcp configure --client codex-cli --dry-run --json
 npx shimwrappercheck checks list --json
 npx shimwrappercheck config get --json
 npx shimwrappercheck status last-error --json
+npx shimwrappercheck check-update --json
 ```
 
 **Option 3: Manual config**
@@ -443,7 +444,7 @@ npx shimwrappercheck status last-error --json
 - **Codex CLI**: add to `~/.codex/config.toml` (TOML format)
 - Template: `templates/mcp-config.json`
 
-### MCP tools (10)
+### MCP tools (11)
 
 | Tool                | What it does                                                      | When to use                              |
 | ------------------- | ----------------------------------------------------------------- | ---------------------------------------- |
@@ -457,6 +458,7 @@ npx shimwrappercheck status last-error --json
 | `configure_mcp`     | Write MCP client config for a specific client                     | To self-configure an MCP client          |
 | `list_mcp_clients`  | List Cursor/Claude/Codex with config paths and status             | Before `configure_mcp`                   |
 | `get_agents_md`     | Read the project's AGENTS.md                                      | To check project rules and conventions   |
+| `check_update`      | Check if a newer shimwrappercheck version is available on npm     | To know if an update is needed           |
 
 ### Agent workflow
 
@@ -464,16 +466,19 @@ npx shimwrappercheck status last-error --json
 1. SELF-CONFIGURE (once)
    list_mcp_clients -> configure_mcp({"client": "codex-cli"})
 
-2. BEFORE PUSH/DEPLOY
-   run_checks -> passed? -> push : go to step 3
+2. CHECK FOR UPDATES (optional, recommended)
+   check_update -> outdated? -> "npm i -D shimwrappercheck@latest"
 
-3. SELF-HEALING (on failure)
+3. BEFORE PUSH/DEPLOY
+   run_checks -> passed? -> push : go to step 4
+
+4. SELF-HEALING (on failure)
    get_check_status -> fix the error -> run_checks again
 
-4. FINE-TUNE (optional)
+5. FINE-TUNE (optional)
    list_checks -> toggle_check or set_config to adjust scope
 
-5. REVIEW (optional)
+6. REVIEW (optional)
    get_latest_report -> read AI review deductions and scores
 ```
 
