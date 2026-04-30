@@ -876,7 +876,7 @@ run_refactor_orchestration
 
 if [[ "${#FAILED_CHECKS[@]}" -gt 0 ]]; then
 	failed_csv="$(
-		IFS=','
+		IFS=',' # nosemgrep: ifs-tampering
 		echo "${FAILED_CHECKS[*]}"
 	)"
 	echo "Failed checks: $failed_csv" >&2

@@ -11,6 +11,7 @@ build_backend_regex() {
   patterns="${SHIM_BACKEND_PATH_PATTERNS:-supabase/functions,src/supabase/functions}"
   regex=""
   old_ifs=$IFS
+  # nosemgrep: ifs-tampering
   IFS=','
   for raw in $patterns; do
     prefix=$(trim "$raw")
