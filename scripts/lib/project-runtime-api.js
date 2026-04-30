@@ -184,8 +184,8 @@ function runChecks(projectRootInput, opts = {}) {
     env.CHECK_MODE = opts.checkMode;
   }
 
+  // nosemgrep: detect-child-process
   const result = spawnSync(runner.command, args, {
-    // nosemgrep: detect-child-process
     cwd: projectRoot,
     env,
     encoding: "utf8",
