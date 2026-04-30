@@ -86,7 +86,7 @@ function printAgentsMd(result) {
  * Purpose: Allow the main dispatcher and tests to call the same implementation.
  * Inputs: argv (string[]), options (object). Output: process exit code number.
  */
-function main(argv = process.argv.slice(2), options = {}) {
+async function main(argv = process.argv.slice(2), options = {}) {
   const args = [...argv];
   const projectRoot = options.projectRoot || getProjectPaths().projectRoot;
   const packageRoot = path.join(__dirname, "..");
@@ -213,6 +213,22 @@ function main(argv = process.argv.slice(2), options = {}) {
 
       printCommandHelp("report");
       return 1;
+    }
+
+    if (command === "check-update" || command === "check-update") {
+      const asJson = takeFlag(args, "--json");
+      const { checkUpdate } = require("./check-update");
+      const result = await checkUpdate();
+      emitResult(result, asJson, (r) => {
+        if (r.outdated) {
+          console.log(`⚠️  ${r.message}`);
+        } else if (!r.latest) {
+          console.log(`⚠️  ${r.message}`);
+        } else {
+          console.log(`✅ ${r.message}`);
+        }
+      });
+      return 0;
     }
 
     if (command === "agents-md") {

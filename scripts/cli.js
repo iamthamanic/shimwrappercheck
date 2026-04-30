@@ -15,7 +15,13 @@ const path = require("path"); // Pfad-Operationen für Script-Pfade nutzen; ohne
  */
 function runStructuredCli(args) {
   const structuredCli = require(path.join(__dirname, "structured-cli")); // Strukturierte CLI nur bei Bedarf laden; ohne würden interaktive Flows unnötig zusätzlich Code laden.
-  process.exit(structuredCli.main(args)); // Exit-Code aus structured-cli direkt an die Shell zurückgeben; ohne würden Fehler als Erfolg enden.
+  structuredCli
+    .main(args)
+    .then((code) => process.exit(code ?? 0))
+    .catch((err) => {
+      console.error(err.message || err);
+      process.exit(1);
+    }); // Exit-Code asynchron aus structured-cli an Shell zurückgeben; ohne würden Fehler als Erfolg enden.
 }
 
 // Wenn installierte Shims "npx shimwrappercheck@latest -- git ..." aufrufen, steht in argv[2] "--" und in argv[3] der echte Befehl.

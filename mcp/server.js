@@ -683,6 +683,12 @@ const TOOLS = [
     },
   },
   {
+    name: "check_update",
+    description:
+      "Check whether a newer version of shimwrappercheck is available on npm. Returns { current, latest, outdated, message }. Useful for agents to know if they are on an outdated version.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
     name: "get_latest_report",
     description:
       "Read the latest AI review report (markdown) from the reports directory. Useful after running checks with AI review enabled to see detailed deductions and scores.",
@@ -849,6 +855,13 @@ function handleToolCall(toolName, args) {
 
     case "get_latest_report": {
       return findLatestReport();
+    }
+
+    case "check_update": {
+      const { checkUpdate } = require(
+        path.join(__dirname, "..", "scripts", "check-update"),
+      );
+      return checkUpdate();
     }
 
     case "configure_mcp": {
