@@ -25,6 +25,7 @@ build_backend_regex() {
       regex="$regex|^$esc/"
     fi
   done
+  # nosemgrep: ifs-tampering
   IFS=$old_ifs
   printf "%s" "$regex"
 }
