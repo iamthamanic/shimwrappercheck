@@ -403,6 +403,7 @@ shimwrappercheck ships with an **MCP server** (`mcp/server.js`) that lets AI age
 ### Setup for agents (do this first)
 
 **Option 1: Terminal command (fastest)**
+
 ```bash
 # Configure all detected MCP clients at once
 npx shimwrappercheck mcp-setup
@@ -417,6 +418,7 @@ npx shimwrappercheck mcp-setup --print
 ```
 
 **Option 2: MCP tool call (if already connected)**
+
 1. Call `list_mcp_clients` -- see available clients and which ones already have shimwrappercheck
 2. Call `configure_mcp` with `{"client": "codex-cli"}` -- config is written automatically
 
@@ -432,6 +434,7 @@ npx shimwrappercheck status last-error --json
 ```
 
 **Option 3: Manual config**
+
 - **Cursor**: add to `.cursor/mcp.json`
 - **Claude Desktop**: add to `claude_desktop_config.json`
 - **Codex CLI**: add to `~/.codex/config.toml` (TOML format)
@@ -439,18 +442,18 @@ npx shimwrappercheck status last-error --json
 
 ### MCP tools (10)
 
-| Tool | What it does | When to use |
-|------|-------------|-------------|
-| `run_checks` | Run checks, get structured pass/fail + stdout/stderr + last error | Before every push/deploy |
-| `get_check_status` | Read `.shim/last_error.json` with check name, error, suggestion | After `run_checks` fails -- self-healing |
-| `get_config` | Read `.shimwrappercheckrc` as key-value pairs | To check current settings |
-| `set_config` | Update config keys in `.shimwrappercheckrc` | To change settings programmatically |
-| `list_checks` | List all checks with ID, label, env-key, enabled status | To see what checks exist |
-| `toggle_check` | Enable/disable a check by env-key (e.g. `SHIM_RUN_LINT`) | To adjust check scope |
-| `get_latest_report` | Read latest AI review report (markdown) | To see deductions and scores |
-| `configure_mcp` | Write MCP client config for a specific client | To self-configure an MCP client |
-| `list_mcp_clients` | List Cursor/Claude/Codex with config paths and status | Before `configure_mcp` |
-| `get_agents_md` | Read the project's AGENTS.md | To check project rules and conventions |
+| Tool                | What it does                                                      | When to use                              |
+| ------------------- | ----------------------------------------------------------------- | ---------------------------------------- |
+| `run_checks`        | Run checks, get structured pass/fail + stdout/stderr + last error | Before every push/deploy                 |
+| `get_check_status`  | Read `.shim/last_error.json` with check name, error, suggestion   | After `run_checks` fails -- self-healing |
+| `get_config`        | Read `.shimwrappercheckrc` as key-value pairs                     | To check current settings                |
+| `set_config`        | Update config keys in `.shimwrappercheckrc`                       | To change settings programmatically      |
+| `list_checks`       | List all checks with ID, label, env-key, enabled status           | To see what checks exist                 |
+| `toggle_check`      | Enable/disable a check by env-key (e.g. `SHIM_RUN_LINT`)          | To adjust check scope                    |
+| `get_latest_report` | Read latest AI review report (markdown)                           | To see deductions and scores             |
+| `configure_mcp`     | Write MCP client config for a specific client                     | To self-configure an MCP client          |
+| `list_mcp_clients`  | List Cursor/Claude/Codex with config paths and status             | Before `configure_mcp`                   |
+| `get_agents_md`     | Read the project's AGENTS.md                                      | To check project rules and conventions   |
 
 ### Agent workflow
 
@@ -473,11 +476,11 @@ npx shimwrappercheck status last-error --json
 
 ### Supported MCP clients
 
-| Client | Config path | Format |
-|--------|-----------|--------|
-| Cursor IDE | `~/.cursor/mcp.json` | JSON |
-| Claude Desktop | `~/Library/Application Support/Claude/claude_desktop_config.json` | JSON |
-| Codex CLI | `~/.codex/config.toml` | TOML |
+| Client         | Config path                                                       | Format |
+| -------------- | ----------------------------------------------------------------- | ------ |
+| Cursor IDE     | `~/.cursor/mcp.json`                                              | JSON   |
+| Claude Desktop | `~/Library/Application Support/Claude/claude_desktop_config.json` | JSON   |
+| Codex CLI      | `~/.codex/config.toml`                                            | TOML   |
 
 All existing server entries are preserved when `configure_mcp` or `mcp-setup` writes the config.
 

@@ -23,6 +23,7 @@ npx shimwrappercheck mcp-setup --print
 ### Option B: Via MCP tool call (for agents already connected)
 
 If the agent already has MCP access, it can call:
+
 1. `list_mcp_clients` — see which clients are available
 2. `configure_mcp` — write the config automatically (e.g. `{"client": "codex-cli"}`)
 
@@ -43,6 +44,7 @@ npx shimwrappercheck status last-error --json
 Add to your MCP client config:
 
 **Cursor** (`.cursor/mcp.json`):
+
 ```json
 {
   "mcpServers": {
@@ -56,6 +58,7 @@ Add to your MCP client config:
 ```
 
 **Codex CLI** (`~/.codex/config.toml`):
+
 ```toml
 [mcp_servers.shimwrappercheck]
 command = "node"
@@ -66,18 +69,18 @@ SHIM_PROJECT_ROOT = "/path/to/your/project"
 
 ## Tools (10)
 
-| Tool | Description |
-|------|-------------|
-| `run_checks` | Run checks with structured pass/fail results, stdout, stderr, last error |
-| `get_check_status` | Get last check error from `.shim/last_error.json` for self-healing |
-| `get_config` | Read `.shimwrappercheckrc` as structured key-value pairs |
-| `set_config` | Update config keys in `.shimwrappercheckrc` |
-| `list_checks` | List all checks with enabled/disabled status |
-| `toggle_check` | Enable or disable a specific check by env-key |
-| `get_latest_report` | Read the latest AI review report |
-| `configure_mcp` | **Self-configure** an MCP client (Cursor, Claude Desktop, Codex CLI) |
-| `list_mcp_clients` | List supported MCP clients with config paths and status |
-| `get_agents_md` | Read the project's AGENTS.md for current rules |
+| Tool                | Description                                                              |
+| ------------------- | ------------------------------------------------------------------------ |
+| `run_checks`        | Run checks with structured pass/fail results, stdout, stderr, last error |
+| `get_check_status`  | Get last check error from `.shim/last_error.json` for self-healing       |
+| `get_config`        | Read `.shimwrappercheckrc` as structured key-value pairs                 |
+| `set_config`        | Update config keys in `.shimwrappercheckrc`                              |
+| `list_checks`       | List all checks with enabled/disabled status                             |
+| `toggle_check`      | Enable or disable a specific check by env-key                            |
+| `get_latest_report` | Read the latest AI review report                                         |
+| `configure_mcp`     | **Self-configure** an MCP client (Cursor, Claude Desktop, Codex CLI)     |
+| `list_mcp_clients`  | List supported MCP clients with config paths and status                  |
+| `get_agents_md`     | Read the project's AGENTS.md for current rules                           |
 
 ## Agent self-configure flow
 
@@ -97,6 +100,7 @@ Agent via MCP tool call (if already connected):
 ```
 
 Supported clients and formats:
+
 - **Cursor IDE**: `~/.cursor/mcp.json` (JSON)
 - **Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json` (JSON)
 - **Codex CLI**: `~/.codex/config.toml` (TOML)

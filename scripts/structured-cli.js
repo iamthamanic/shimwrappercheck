@@ -92,7 +92,12 @@ function main(argv = process.argv.slice(2), options = {}) {
   const packageRoot = path.join(__dirname, "..");
   const command = args.shift();
 
-  if (!command || command === "help" || command === "--help" || command === "-h") {
+  if (
+    !command ||
+    command === "help" ||
+    command === "--help" ||
+    command === "-h"
+  ) {
     printTopLevelHelp();
     return 0;
   }
@@ -113,7 +118,9 @@ function main(argv = process.argv.slice(2), options = {}) {
           if (separatorIndex <= 0) {
             throw new Error(`Expected KEY=VALUE assignment, got: ${arg}`);
           }
-          assignments[arg.slice(0, separatorIndex)] = arg.slice(separatorIndex + 1);
+          assignments[arg.slice(0, separatorIndex)] = arg.slice(
+            separatorIndex + 1,
+          );
         }
 
         if (Object.keys(assignments).length === 0) {
@@ -121,7 +128,9 @@ function main(argv = process.argv.slice(2), options = {}) {
         }
 
         emitResult(setConfig(projectRoot, assignments), asJson, (result) => {
-          console.log(`Updated ${result.updatedKeys.length} key(s) in ${result.path}`);
+          console.log(
+            `Updated ${result.updatedKeys.length} key(s) in ${result.path}`,
+          );
         });
         return 0;
       }
@@ -136,7 +145,9 @@ function main(argv = process.argv.slice(2), options = {}) {
       if (subcommand === "list" && args.length === 0) {
         emitResult(listChecks(projectRoot), asJson, (result) => {
           for (const check of result.checks) {
-            console.log(`${check.enabled ? "on " : "off"} ${check.envKey} ${check.label}`);
+            console.log(
+              `${check.enabled ? "on " : "off"} ${check.envKey} ${check.label}`,
+            );
           }
         });
         return 0;
@@ -149,9 +160,13 @@ function main(argv = process.argv.slice(2), options = {}) {
           throw new Error("checks toggle requires <ENV_KEY> <on|off>.");
         }
 
-        emitResult(toggleCheck(projectRoot, envKey, enabled), asJson, (result) => {
-          console.log(result.message);
-        });
+        emitResult(
+          toggleCheck(projectRoot, envKey, enabled),
+          asJson,
+          (result) => {
+            console.log(result.message);
+          },
+        );
         return 0;
       }
 
@@ -165,15 +180,20 @@ function main(argv = process.argv.slice(2), options = {}) {
       if (subcommand === "last-error" && args.length === 0) {
         const error = readLastError(projectRoot);
         emitResult(
-          error ? { hasError: true, error } : { hasError: false, message: "No last error found." },
+          error
+            ? { hasError: true, error }
+            : { hasError: false, message: "No last error found." },
           asJson,
           (result) => {
             if (!result.hasError) {
               console.log(result.message);
               return;
             }
-            console.log(`${result.error.check || "unknown"}: ${result.error.message || "Unknown error"}`);
-            if (result.error.suggestion) console.log(`Suggestion: ${result.error.suggestion}`);
+            console.log(
+              `${result.error.check || "unknown"}: ${result.error.message || "Unknown error"}`,
+            );
+            if (result.error.suggestion)
+              console.log(`Suggestion: ${result.error.suggestion}`);
           },
         );
         return 0;
@@ -211,7 +231,9 @@ function main(argv = process.argv.slice(2), options = {}) {
       if (subcommand === "clients" && args.length === 0) {
         emitResult({ clients: listMcpClients() }, asJson, (result) => {
           for (const client of result.clients) {
-            console.log(`${client.name}: ${client.configPath} (${client.shimwrappercheckConfigured ? "configured" : "not configured"})`);
+            console.log(
+              `${client.name}: ${client.configPath} (${client.shimwrappercheckConfigured ? "configured" : "not configured"})`,
+            );
           }
         });
         return 0;
@@ -220,9 +242,13 @@ function main(argv = process.argv.slice(2), options = {}) {
       if (subcommand === "configure") {
         const dryRun = takeFlag(args, "--dry-run") || takeFlag(args, "--print");
         const client = takeOption(args, "--client");
-        const serverPath = takeOption(args, "--server-path") || resolveServerPath(projectRoot, packageRoot);
+        const serverPath =
+          takeOption(args, "--server-path") ||
+          resolveServerPath(projectRoot, packageRoot);
         if (!client) {
-          throw new Error("mcp configure requires --client <cursor|claude-desktop|codex-cli>.");
+          throw new Error(
+            "mcp configure requires --client <cursor|claude-desktop|codex-cli>.",
+          );
         }
         if (args.length > 0) {
           throw new Error(`Unknown mcp configure option(s): ${args.join(" ")}`);
@@ -239,7 +265,9 @@ function main(argv = process.argv.slice(2), options = {}) {
         }
 
         emitResult(result, asJson, (output) => {
-          console.log(`${output.client}: ${output.dryRun ? "would" : "did"} ${output.action} ${output.configPath}`);
+          console.log(
+            `${output.client}: ${output.dryRun ? "would" : "did"} ${output.action} ${output.configPath}`,
+          );
           if (output.dryRun) {
             console.log("");
             process.stdout.write(output.preview);
@@ -266,7 +294,17 @@ function main(argv = process.argv.slice(2), options = {}) {
     throw new Error(`Unknown structured command: ${command}`);
   } catch (error) {
     console.error(error.message);
-    if (["config", "checks", "status", "report", "mcp", "run", "agents-md"].includes(command)) {
+    if (
+      [
+        "config",
+        "checks",
+        "status",
+        "report",
+        "mcp",
+        "run",
+        "agents-md",
+      ].includes(command)
+    ) {
       printCommandHelp(command);
     } else {
       printTopLevelHelp();

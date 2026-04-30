@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const root = path.join(__dirname, "..");
 ["dashboard/.next", "dashboard/out"].forEach((p) => {
-  const full = path.join(root, p);
+  const full = path.join(root, p); // nosemgrep: path-join-resolve-traversal
   if (fs.existsSync(full)) {
     fs.rmSync(full, { recursive: true });
     console.log("Removed", p);

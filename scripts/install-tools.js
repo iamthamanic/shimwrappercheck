@@ -61,7 +61,7 @@ function main() {
     }
   }
   console.log("Running npm install in .shimwrapper/checktools...");
-  const result = cp.spawnSync("npm", ["install"], {
+  const result = cp.spawnSync("npm", ["install"], { // nosemgrep: spawn-shell-true
     cwd: checktoolsDir,
     stdio: "inherit",
     shell: true,

@@ -41,7 +41,10 @@ function parseTomlMcpServers(raw) {
 
     const key = kvMatch[1];
     let value = kvMatch[2].trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
       value = value.slice(1, -1);
     }
 
@@ -109,7 +112,9 @@ function generateTomlMcpEntry(name, config) {
  * Inputs: configPath (string), serverConfig (object). Output: void.
  */
 function writeTomlMcpConfig(configPath, serverConfig) {
-  const existingRaw = fs.existsSync(configPath) ? fs.readFileSync(configPath, "utf8") : "";
+  const existingRaw = fs.existsSync(configPath)
+    ? fs.readFileSync(configPath, "utf8")
+    : "";
   const lines = existingRaw.split(/\r?\n/);
   const filteredLines = [];
   let skipSection = false;

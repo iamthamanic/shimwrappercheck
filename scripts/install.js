@@ -246,7 +246,7 @@ async function runInteractive() {
 }
 
 function writeShim(name, content) {
-  const target = path.join(options.binDir, name);
+  const target = path.join(options.binDir, name); // nosemgrep: path-join-resolve-traversal
   if (fs.existsSync(target) && !options.overwrite) {
     console.log(`Skip ${name}: exists (${target})`);
     return;

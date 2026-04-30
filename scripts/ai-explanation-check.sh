@@ -62,7 +62,7 @@ collect_changed_paths() { # Sammellogik als Funktion kapseln; ohne waere CHECK_M
   git diff --cached --name-only --diff-filter=ACMR -- . "$DIFF_EXCLUDE_SPEC" >> "$CHANGED_FILES_FILE" 2>/dev/null || true # Staged Pfade sammeln; ohne bleibt Index-Code ungeprueft.
 
   if [[ ! -s "$CHANGED_FILES_FILE" ]]; then # Nur bei leerer Worktree-Liste auf Branch-/Commit-Fallbacks gehen; ohne wuerden echte lokale Aenderungen unnötig vermischt.
-    if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then # Upstream nur nutzen, wenn einer existiert; ohne scheitert dieser Pfad auf lokalen Branches.
+    if git rev-parse --abbrev-ref --symbolic-full-name "@{u}" >/dev/null 2>&1; then # Upstream nur nutzen, wenn einer existiert; ohne scheitert dieser Pfad auf lokalen Branches.
       range="@{u}...HEAD" # Upstream-Range fuer cleanen Worktree waehlen; ohne sieht pre-push keine reinen Commit-Aenderungen.
     elif git rev-parse --verify HEAD~1 >/dev/null 2>&1; then # Sonst auf letzten lokalen Commit zurueckfallen; ohne gibt es ohne Upstream keinen Vergleich.
       range="HEAD~1...HEAD" # Lokalen Fallback nutzen; ohne fehlt auf Branches ohne Upstream jede Vergleichsbasis.

@@ -11,8 +11,8 @@
  * @returns {number}
  */
 function toIntOrDefault(value, fallback) {
-	const n = Number.parseInt(String(value ?? ""), 10);
-	return Number.isFinite(n) ? n : fallback;
+  const n = Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(n) ? n : fallback;
 }
 
 /**
@@ -22,14 +22,14 @@ function toIntOrDefault(value, fallback) {
  * @returns {string}
  */
 function limitDiff(diff, limitBytes) {
-	const buf = Buffer.from(diff, "utf8");
-	if (buf.length <= limitBytes * 2) return diff;
-	const half = Math.floor(limitBytes / 2);
-	return (
-		buf.subarray(0, half).toString("utf8") +
-		`\n... [truncated ${buf.length - limitBytes} bytes] ...\n` +
-		buf.subarray(buf.length - half).toString("utf8")
-	);
+  const buf = Buffer.from(diff, "utf8");
+  if (buf.length <= limitBytes * 2) return diff;
+  const half = Math.floor(limitBytes / 2);
+  return (
+    buf.subarray(0, half).toString("utf8") +
+    `\n... [truncated ${buf.length - limitBytes} bytes] ...\n` +
+    buf.subarray(buf.length - half).toString("utf8")
+  );
 }
 
 /**
@@ -38,26 +38,26 @@ function limitDiff(diff, limitBytes) {
  * @returns {{score:number,deductions:Array<any>,verdict:string}|null}
  */
 function parseReviewJson(text) {
-	if (!text) return null;
-	const cleaned = text
-		.replace(/```json\s*/gi, "")
-		.replace(/```\s*$/gm, "")
-		.trim();
-	const match = cleaned.match(/\{[\s\S]*\}/);
-	if (!match) return null;
-	try {
-		const json = JSON.parse(match[0]);
-		const score = Number(json.score ?? 0);
-		const verdict = String(json.verdict || "REJECT").toUpperCase();
-		const deductions = Array.isArray(json.deductions) ? json.deductions : [];
-		return {
-			score,
-			verdict: verdict === "ACCEPT" ? "ACCEPT" : "REJECT",
-			deductions,
-		};
-	} catch {
-		return null;
-	}
+  if (!text) return null;
+  const cleaned = text
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*$/gm, "")
+    .trim();
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  try {
+    const json = JSON.parse(match[0]);
+    const score = Number(json.score ?? 0);
+    const verdict = String(json.verdict || "REJECT").toUpperCase();
+    const deductions = Array.isArray(json.deductions) ? json.deductions : [];
+    return {
+      score,
+      verdict: verdict === "ACCEPT" ? "ACCEPT" : "REJECT",
+      deductions,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -66,21 +66,21 @@ function parseReviewJson(text) {
  * @param {string} label
  */
 function validateCustomConfig(label) {
-	const baseUrl = process.env.SHIM_AI_CUSTOM_BASE_URL || "";
-	const apiKey = process.env.SHIM_AI_CUSTOM_API_KEY || "";
-	const model = process.env.SHIM_AI_CUSTOM_MODEL || "";
-	const isLocal =
-		(process.env.SHIM_AI_OLLAMA_MODE || "").toLowerCase() === "local" ||
-		baseUrl.includes("localhost") ||
-		baseUrl.includes("127.0.0.1");
-	const missing = [];
-	if (!baseUrl) missing.push("SHIM_AI_CUSTOM_BASE_URL");
-	if (!isLocal && !apiKey) missing.push("SHIM_AI_CUSTOM_API_KEY");
-	if (!model) missing.push("SHIM_AI_CUSTOM_MODEL");
-	if (missing.length) {
-		console.error(`${label}: missing env vars: ${missing.join(", ")}`);
-		process.exit(1);
-	}
+  const baseUrl = process.env.SHIM_AI_CUSTOM_BASE_URL || "";
+  const apiKey = process.env.SHIM_AI_CUSTOM_API_KEY || "";
+  const model = process.env.SHIM_AI_CUSTOM_MODEL || "";
+  const isLocal =
+    (process.env.SHIM_AI_OLLAMA_MODE || "").toLowerCase() === "local" ||
+    baseUrl.includes("localhost") ||
+    baseUrl.includes("127.0.0.1");
+  const missing = [];
+  if (!baseUrl) missing.push("SHIM_AI_CUSTOM_BASE_URL");
+  if (!isLocal && !apiKey) missing.push("SHIM_AI_CUSTOM_API_KEY");
+  if (!model) missing.push("SHIM_AI_CUSTOM_MODEL");
+  if (missing.length) {
+    console.error(`${label}: missing env vars: ${missing.join(", ")}`);
+    process.exit(1);
+  }
 }
 
 /**
@@ -91,18 +91,18 @@ function validateCustomConfig(label) {
  * @returns {{score:number,verdict:string,deductions:Array<any>,pass:number}}
  */
 function evaluateReviewResponse(text, minRating) {
-	const parsed = parseReviewJson(text);
-	const score = parsed?.score ?? 0;
-	const verdict = parsed?.verdict ?? "REJECT";
-	const deductions = parsed?.deductions ?? [];
-	const pass = verdict === "ACCEPT" && score >= minRating ? 1 : 0;
-	return { score, verdict, deductions, pass };
+  const parsed = parseReviewJson(text);
+  const score = parsed?.score ?? 0;
+  const verdict = parsed?.verdict ?? "REJECT";
+  const deductions = parsed?.deductions ?? [];
+  const pass = verdict === "ACCEPT" && score >= minRating ? 1 : 0;
+  return { score, verdict, deductions, pass };
 }
 
 module.exports = {
-	toIntOrDefault,
-	limitDiff,
-	parseReviewJson,
-	evaluateReviewResponse,
-	validateCustomConfig,
+  toIntOrDefault,
+  limitDiff,
+  parseReviewJson,
+  evaluateReviewResponse,
+  validateCustomConfig,
 };

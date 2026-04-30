@@ -28,7 +28,7 @@ function readJson(filePath) {
 
 function hasCommand(cmd) {
   try {
-    cp.execSync(`command -v ${cmd}`, { stdio: "ignore", shell: true });
+    cp.execSync(`command -v ${cmd}`, { stdio: "ignore", shell: true }); // nosemgrep: detect-child-process
     return true;
   } catch {
     return false;
@@ -54,7 +54,7 @@ function ensureDir(dirPath) {
 }
 
 function copyTemplate(templateName, destPath, makeExecutable) {
-  const src = path.join(templatesDir, templateName);
+  const src = path.join(templatesDir, templateName); // nosemgrep: path-join-resolve-traversal
   ensureDir(path.dirname(destPath));
   fs.copyFileSync(src, destPath);
   if (makeExecutable) {

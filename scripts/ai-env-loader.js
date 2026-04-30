@@ -10,9 +10,9 @@ const fs = require("fs");
 const path = require("path");
 
 const GLOBAL_ENV_PATH = path.join(
-	require("os").homedir(),
-	".shimwrappercheck",
-	".env",
+  require("os").homedir(),
+  ".shimwrappercheck",
+  ".env",
 );
 
 /**
@@ -20,14 +20,14 @@ const GLOBAL_ENV_PATH = path.join(
  * Only sets vars that are not already defined (local .env or shell exports take precedence).
  */
 function loadGlobalEnv() {
-	if (!fs.existsSync(GLOBAL_ENV_PATH)) return;
-	const content = fs.readFileSync(GLOBAL_ENV_PATH, "utf8");
-	for (const line of content.split("\n")) {
-		const m = line.match(/^([A-Za-z0-9_]+)\s*=\s*(.*)$/);
-		if (m && !process.env[m[1]]) {
-			process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
-		}
-	}
+  if (!fs.existsSync(GLOBAL_ENV_PATH)) return;
+  const content = fs.readFileSync(GLOBAL_ENV_PATH, "utf8");
+  for (const line of content.split("\n")) {
+    const m = line.match(/^([A-Za-z0-9_]+)\s*=\s*(.*)$/);
+    if (m && !process.env[m[1]]) {
+      process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+    }
+  }
 }
 
 // Auto-load on first require so review scripts get the config automatically.

@@ -328,8 +328,8 @@ fi
 
 if [[ "$RUN_PUSH" = true ]] && command -v git >/dev/null 2>&1; then
   if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
-      ahead=$(git rev-list --count @{u}..HEAD)
+    if git rev-parse --abbrev-ref --symbolic-full-name "@{u}" >/dev/null 2>&1; then
+      ahead=$(git rev-list --count "@{u}"..HEAD)
       if [[ "${ahead:-0}" -gt 0 ]]; then
         echo "Pushing commits to remote..."
         git push

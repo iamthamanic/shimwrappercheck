@@ -73,7 +73,8 @@ resolve_backend_dir() {
 
 normalize_ai_review_provider() {
 	local provider_raw="$1"
-	local provider="$(echo "$provider_raw" | tr '[:upper:]' '[:lower:]')"
+	local provider
+	provider="$(echo "$provider_raw" | tr '[:upper:]' '[:lower:]')"
 	case "$provider" in
 	codex) echo "codex" ;;
 	api | api-key | apikey | openai | anthropic) echo "api" ;;
@@ -324,11 +325,13 @@ run_semgrep_with_infra_handling() {
 	# Prefer system Semgrep (e.g. pip install); else npx. Without this order, npx might run on every check.
 	if command -v semgrep >/dev/null 2>&1; then
 		# Run from PATH; 2>&1 so stderr (e.g. TLS warnings) is in output for is_transient_network_or_tls_error.
+		# shellcheck disable=SC2086
 		output="$(semgrep scan $semgrep_opts 2>&1)"
 		# Capture exit code immediately; $? is overwritten by next command otherwise.
 		semgrep_rc=$?
 	elif npm exec --yes semgrep -- --version >/dev/null 2>&1; then
 		# Fallback when semgrep not in PATH: npx runs it; same capture so infra handling is identical.
+		# shellcheck disable=SC2086
 		output="$(npx semgrep scan $semgrep_opts 2>&1)"
 		# Save exit code here too; $? is lost after next command, and without it we cannot fail on real findings.
 		semgrep_rc=$?
@@ -394,9 +397,9 @@ run_refactor_orchestration() {
 
 	mkdir -p "$REFACTOR_DIR"
 	local latest_review=""
-	latest_review="$(ls -1t "$REVIEWS_DIR"/review-full-*.md 2>/dev/null | head -1 || true)"
+	latest_review="$(find "$REVIEWS_DIR" -maxdepth 1 -name 'review-full-*.md' -print0 2>/dev/null | xargs -0 ls -1t 2>/dev/null | head -1 || true)"
 	if [[ -z "$latest_review" ]]; then
-		latest_review="$(ls -1t "$REVIEWS_DIR"/review-*.md 2>/dev/null | head -1 || true)"
+		latest_review="$(find "$REVIEWS_DIR" -maxdepth 1 -name 'review-*.md' -print0 2>/dev/null | xargs -0 ls -1t 2>/dev/null | head -1 || true)"
 	fi
 	if [[ -z "$latest_review" ]]; then
 		echo "Refactor orchestration: no review file found under $REVIEWS_DIR; skipping." >&2

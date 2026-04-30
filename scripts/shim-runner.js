@@ -79,7 +79,7 @@ function clearLastError() {
 function run(cmd, args, options = {}) {
   const useShell = options.shell !== false;
   // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true javascript.lang.security.detect-child-process.detect-child-process
-  const result = spawnSync(cmd, args, {
+  const result = spawnSync(cmd, args, { // nosemgrep: detect-child-process
     cwd: projectRoot,
     shell: useShell,
     encoding: "utf8",

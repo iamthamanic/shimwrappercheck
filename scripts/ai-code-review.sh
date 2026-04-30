@@ -468,7 +468,7 @@ else
 
   if [[ ! -s "$DIFF_FILE" ]]; then
     RANGE=""
-    if "$GIT_CMD" rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+    if "$GIT_CMD" rev-parse --abbrev-ref --symbolic-full-name "@{u}" >/dev/null 2>&1; then
       RANGE="@{u}...HEAD"
     elif "$GIT_CMD" rev-parse --verify HEAD~1 >/dev/null 2>&1; then
       RANGE="HEAD~1...HEAD"

@@ -53,7 +53,9 @@ function takeOption(args, flag) {
 function printHelp() {
   console.log("shimwrappercheck mcp-setup");
   console.log("");
-  console.log("Configure an MCP client so AI agents can use shimwrappercheck tools.");
+  console.log(
+    "Configure an MCP client so AI agents can use shimwrappercheck tools.",
+  );
   console.log("");
   console.log("Usage:");
   console.log("  npx shimwrappercheck mcp-setup");
@@ -75,7 +77,9 @@ function printResult(result) {
   console.log(`${result.client}:`);
   console.log(`  Config: ${result.configPath}`);
   console.log(`  Format: ${result.format}`);
-  console.log(`  Action: ${result.dryRun ? `would ${result.action}` : result.action}`);
+  console.log(
+    `  Action: ${result.dryRun ? `would ${result.action}` : result.action}`,
+  );
 
   if (result.dryRun) {
     console.log("  Preview:");
@@ -109,11 +113,15 @@ function main(argv = process.argv.slice(2)) {
 
     const serverPath = resolveServerPath(projectRoot, packageRoot);
     if (!serverPath) {
-      console.error("Error: Could not find mcp/server.js. Install shimwrappercheck first.");
+      console.error(
+        "Error: Could not find mcp/server.js. Install shimwrappercheck first.",
+      );
       return 1;
     }
 
-    const clientsToConfigure = targetClient ? [targetClient] : Object.keys(MCP_CLIENT_CONFIGS);
+    const clientsToConfigure = targetClient
+      ? [targetClient]
+      : Object.keys(MCP_CLIENT_CONFIGS);
     console.log("shimwrappercheck MCP Setup");
     console.log("Project:", projectRoot);
     console.log("Server:", serverPath);

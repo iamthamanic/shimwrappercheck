@@ -14,17 +14,25 @@ function printTopLevelHelp() {
   console.log("");
   console.log("Structured CLI commands:");
   console.log("  npx shimwrappercheck config get --json");
-  console.log("  npx shimwrappercheck config set CHECK_MODE=full SHIM_RUN_LINT=1 --json");
+  console.log(
+    "  npx shimwrappercheck config set CHECK_MODE=full SHIM_RUN_LINT=1 --json",
+  );
   console.log("  npx shimwrappercheck checks list --json");
-  console.log("  npx shimwrappercheck checks toggle SHIM_RUN_AI_REVIEW off --json");
+  console.log(
+    "  npx shimwrappercheck checks toggle SHIM_RUN_AI_REVIEW off --json",
+  );
   console.log("  npx shimwrappercheck status last-error --json");
   console.log("  npx shimwrappercheck report latest --json");
   console.log("  npx shimwrappercheck agents-md --json");
   console.log("  npx shimwrappercheck mcp clients --json");
-  console.log("  npx shimwrappercheck mcp configure --client codex-cli --dry-run --json");
+  console.log(
+    "  npx shimwrappercheck mcp configure --client codex-cli --dry-run --json",
+  );
   console.log("  npx shimwrappercheck run --json --check-mode full");
   console.log("");
-  console.log("Use --json on structured commands for stable machine-readable output.");
+  console.log(
+    "Use --json on structured commands for stable machine-readable output.",
+  );
 }
 
 /**
@@ -34,8 +42,10 @@ function printTopLevelHelp() {
  */
 function printCommandHelp(topic) {
   const helpByTopic = {
-    config: "Usage: shimwrappercheck config get [--json]\n       shimwrappercheck config set KEY=VALUE [KEY=VALUE ...] [--json]",
-    checks: "Usage: shimwrappercheck checks list [--json]\n       shimwrappercheck checks toggle <ENV_KEY> <on|off> [--json]",
+    config:
+      "Usage: shimwrappercheck config get [--json]\n       shimwrappercheck config set KEY=VALUE [KEY=VALUE ...] [--json]",
+    checks:
+      "Usage: shimwrappercheck checks list [--json]\n       shimwrappercheck checks toggle <ENV_KEY> <on|off> [--json]",
     status: "Usage: shimwrappercheck status last-error [--json]",
     report: "Usage: shimwrappercheck report latest [--json]",
     mcp: "Usage: shimwrappercheck mcp clients [--json]\n       shimwrappercheck mcp configure --client <cursor|claude-desktop|codex-cli> [--server-path /abs/path] [--dry-run] [--json]",
@@ -91,9 +101,13 @@ function takeOption(args, flag) {
  * Input: rawValue (string). Output: boolean.
  */
 function parseToggleValue(rawValue) {
-  const normalized = String(rawValue || "").trim().toLowerCase();
-  if (["1", "true", "on", "enable", "enabled", "yes"].includes(normalized)) return true;
-  if (["0", "false", "off", "disable", "disabled", "no"].includes(normalized)) return false;
+  const normalized = String(rawValue || "")
+    .trim()
+    .toLowerCase();
+  if (["1", "true", "on", "enable", "enabled", "yes"].includes(normalized))
+    return true;
+  if (["0", "false", "off", "disable", "disabled", "no"].includes(normalized))
+    return false;
   throw new Error(`Invalid toggle value: ${rawValue}`);
 }
 
@@ -122,7 +136,10 @@ function parseRunCommand(args) {
   const excludeFrontend = takeFlag(args, "--no-frontend");
   const includeBackend = takeFlag(args, "--backend");
   const excludeBackend = takeFlag(args, "--no-backend");
-  if ((includeFrontend && excludeFrontend) || (includeBackend && excludeBackend)) {
+  if (
+    (includeFrontend && excludeFrontend) ||
+    (includeBackend && excludeBackend)
+  ) {
     throw new Error("Conflicting frontend/backend flags.");
   }
 
