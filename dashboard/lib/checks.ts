@@ -182,17 +182,34 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     techStack: "Alle (Code-Review unabhängig von Sprache)",
     settings: [
       { key: "enabled", label: "Aktiv", type: "boolean", default: true },
-      { key: "timeoutSec", label: "Timeout (Sekunden)", type: "number", default: 180 },
+      {
+        key: "timeoutSec",
+        label: "Timeout (Sekunden)",
+        type: "number",
+        default: 180,
+      },
       {
         key: "checkMode",
         label: "AI review scope",
         type: "select",
         default: "commit",
         options: [
-          { value: "commit", label: "commit — only last commit (HEAD~1..HEAD), stable" },
-          { value: "mix", label: "mix — refactor loop: full scan, push uses commit/snippet" },
-          { value: "snippet", label: "snippet — changed code (staged/unstaged or push range)" },
-          { value: "full", label: "full — whole codebase (chunked per directory)" },
+          {
+            value: "commit",
+            label: "commit — only last commit (HEAD~1..HEAD), stable",
+          },
+          {
+            value: "mix",
+            label: "mix — refactor loop: full scan, push uses commit/snippet",
+          },
+          {
+            value: "snippet",
+            label: "snippet — changed code (staged/unstaged or push range)",
+          },
+          {
+            value: "full",
+            label: "full — whole codebase (chunked per directory)",
+          },
         ],
       },
       {
@@ -201,9 +218,64 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
         type: "select",
         default: "auto",
         options: [
-          { value: "auto", label: "auto — prefer Codex, fallback to API-key review" },
+          {
+            value: "auto",
+            label: "auto — prefer Codex, fallback to API-key review",
+          },
           { value: "codex", label: "codex — force Codex CLI review" },
-          { value: "api", label: "api — force OPENAI/ANTHROPIC API key review" },
+          {
+            value: "api",
+            label: "api — force OPENAI/ANTHROPIC API key review",
+          },
+          {
+            value: "custom",
+            label: "custom — Ollama, OpenRouter, self-hosted endpoint",
+          },
+        ],
+      },
+      {
+        key: "customBaseUrl",
+        label: "Custom endpoint base URL",
+        type: "string",
+        default: "",
+      },
+      {
+        key: "customModel",
+        label: "Custom endpoint model name",
+        type: "string",
+        default: "",
+      },
+      {
+        key: "customFormat",
+        label: "Custom endpoint API format",
+        type: "select",
+        default: "openai",
+        options: [
+          {
+            value: "openai",
+            label: "openai — OpenAI-compatible (/v1/chat/completions)",
+          },
+          { value: "ollama", label: "ollama — Ollama native (/api/chat)" },
+        ],
+      },
+      {
+        key: "providerType",
+        label: "AI provider type",
+        type: "select",
+        default: "ollama-cloud",
+        options: [
+          {
+            value: "ollama-local",
+            label: "ollama-local — localhost:11434, no key",
+          },
+          {
+            value: "ollama-cloud",
+            label: "ollama-cloud — ollama.com, API key",
+          },
+          {
+            value: "custom",
+            label: "custom — OpenRouter, self-hosted, etc.",
+          },
         ],
       },
       {
@@ -213,13 +285,31 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
         default: "off",
         options: [
           { value: "off", label: "off — no refactor item flow" },
-          { value: "interactive", label: "interactive — current item + resume hints" },
+          {
+            value: "interactive",
+            label: "interactive — current item + resume hints",
+          },
           { value: "agent", label: "agent — handoff artifacts per item" },
         ],
       },
-      { key: "diffLimitBytes", label: "Max. Diff-Größe (Bytes)", type: "number", default: 51200 },
-      { key: "minRating", label: "Mindest-Rating für PASS", type: "number", default: 95 },
-      { key: "reviewDir", label: "Ausgabeordner Reviews", type: "string", default: ".shimwrapper/reviews" },
+      {
+        key: "diffLimitBytes",
+        label: "Max. Diff-Größe (Bytes)",
+        type: "number",
+        default: 51200,
+      },
+      {
+        key: "minRating",
+        label: "Mindest-Rating für PASS",
+        type: "number",
+        default: 95,
+      },
+      {
+        key: "reviewDir",
+        label: "Ausgabeordner Reviews",
+        type: "string",
+        default: ".shimwrapper/reviews",
+      },
       REVIEW_MODE_SETTING,
     ],
   },
@@ -362,10 +452,30 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     info: "Zweck: Prüft, ob Functions nach dem Deploy wirklich antworten. Prüft: Konfigurierte Health-URLs der Edge Functions. Bestanden, wenn: Alle Antworten ok sind (z. B. HTTP 200). Nicht bestanden, wenn: Timeouts oder Fehlercodes auftreten. Anpassen: Project Ref, Funktionsnamen und Pfade.",
     techStack: "Supabase Edge Functions, Backend",
     settings: [
-      { key: "defaultFunction", label: "Standard-Funktion", type: "string", default: "server" },
-      { key: "healthFunctions", label: "Zusätzliche Funktionen (kommasepariert)", type: "string", default: "" },
-      { key: "healthPaths", label: "Health-Pfade (kommasepariert, {fn})", type: "string", default: "" },
-      { key: "projectRef", label: "Supabase Project Ref", type: "string", default: "" },
+      {
+        key: "defaultFunction",
+        label: "Standard-Funktion",
+        type: "string",
+        default: "server",
+      },
+      {
+        key: "healthFunctions",
+        label: "Zusätzliche Funktionen (kommasepariert)",
+        type: "string",
+        default: "",
+      },
+      {
+        key: "healthPaths",
+        label: "Health-Pfade (kommasepariert, {fn})",
+        type: "string",
+        default: "",
+      },
+      {
+        key: "projectRef",
+        label: "Supabase Project Ref",
+        type: "string",
+        default: "",
+      },
       REVIEW_MODE_SETTING,
     ],
   },
@@ -378,9 +488,24 @@ export const CHECK_DEFINITIONS: CheckDef[] = [
     info: "Zweck: Schnelle Sichtprüfung nach dem Deploy. Prüft: Ruft die neuesten Logzeilen der Functions ab. Bestanden/Nicht bestanden: Kein hartes Urteil; Logs dienen der manuellen Bewertung. Anpassen: Funktionsnamen und Log-Limit.",
     techStack: "Supabase Edge Functions, Backend",
     settings: [
-      { key: "defaultFunction", label: "Standard-Funktion", type: "string", default: "server" },
-      { key: "logFunctions", label: "Funktionen für Logs (kommasepariert)", type: "string", default: "" },
-      { key: "logLimit", label: "Anzahl Log-Zeilen", type: "number", default: 30 },
+      {
+        key: "defaultFunction",
+        label: "Standard-Funktion",
+        type: "string",
+        default: "server",
+      },
+      {
+        key: "logFunctions",
+        label: "Funktionen für Logs (kommasepariert)",
+        type: "string",
+        default: "",
+      },
+      {
+        key: "logLimit",
+        label: "Anzahl Log-Zeilen",
+        type: "number",
+        default: 30,
+      },
       REVIEW_MODE_SETTING,
     ],
   },

@@ -10,3 +10,15 @@ dashboard/.next
 dashboard/out
 *.tsbuildinfo
 .shimwrappercheck-dashboard.lock
+
+# Agent / editor artifacts
+.pi/
+.pi-lens/
+dashboard/.pi-lens/
+mcp/.pi-lens/
+
+# Generated reports
+reports/
+
+# Temp files
+dashboard/u00261
