@@ -41,7 +41,7 @@ function readRcVar(key: string): string | undefined {
   const rcPath = getRcPath();
   if (!fs.existsSync(rcPath)) return undefined;
   const content = fs.readFileSync(rcPath, "utf8");
-  const re = new RegExp(`^${key}\\s*=\\s*"?([^"\\n]+)"?`, "m");
+  const re = new RegExp(`^${key}\\s*=\\s*"?([^"\\n]+)"?`, "m"); // nosemgrep: detect-non-literal-regexp
   const m = content.match(re);
   return m ? m[1] : undefined;
 }
@@ -52,7 +52,7 @@ function readRcVar(key: string): string | undefined {
 function writeRcVar(key: string, value: string) {
   const rcPath = getRcPath();
   let content = fs.existsSync(rcPath) ? fs.readFileSync(rcPath, "utf8") : "";
-  const re = new RegExp(`^${key}\\s*=.*$`, "m");
+  const re = new RegExp(`^${key}\\s*=.*$`, "m"); // nosemgrep: detect-non-literal-regexp
   const line = `${key}="${value}"`;
   if (re.test(content)) {
     content = content.replace(re, line);

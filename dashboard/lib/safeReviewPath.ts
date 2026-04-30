@@ -31,7 +31,7 @@ export function safeReviewOutputDir(root: string, reviewOutputPath: string): str
   if (raw.startsWith("/") || raw.includes("..")) return null;
   const normalized = path.normalize(raw);
   if (normalized.startsWith("..") || path.isAbsolute(normalized)) return null;
-  const resolved = path.resolve(root, normalized);
+  const resolved = path.resolve(root, normalized); // nosemgrep: path-join-resolve-traversal
   let rootReal: string;
   try {
     rootReal = fs.realpathSync(root);

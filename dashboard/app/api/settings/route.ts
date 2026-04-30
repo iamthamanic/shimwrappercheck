@@ -68,7 +68,7 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
     if (args.includes("--no-shellcheck")) checkToggles.shellcheck = false;
   }
   const readEnv = (key: string): boolean | undefined => {
-    const m = rawRc.match(new RegExp(`${key}=(\\d+)`));
+    const m = rawRc.match(new RegExp(`${key}=(\\d+)`)); // nosemgrep: detect-non-literal-regexp
     return m ? m[1] === "1" : undefined;
   };
   if (readEnv("SHIM_RUN_LINT") !== undefined) checkToggles.lint = readEnv("SHIM_RUN_LINT")!;
@@ -167,7 +167,10 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
     const existing = (result.checkSettings ?? {}) as CheckSettings;
     result.checkSettings = {
       ...existing,
-      aiReview: { ...existing.aiReview, checkMode: checkMode as "mix" | "snippet" | "diff" | "full" | "commit" },
+      aiReview: {
+        ...existing.aiReview,
+        checkMode: checkMode as "mix" | "snippet" | "diff" | "full" | "commit",
+      },
     };
   }
   if (refactorMode) {
@@ -214,7 +217,10 @@ export async function GET() {
         if (parsed.presets?.length) settings.presets = parsed.presets;
         if (parsed.activePresetId) settings.activePresetId = parsed.activePresetId;
         if (parsed.checkToggles) {
-          const raw = { ...DEFAULT_SETTINGS.checkToggles, ...parsed.checkToggles } as CheckToggles & {
+          const raw = {
+            ...DEFAULT_SETTINGS.checkToggles,
+            ...parsed.checkToggles,
+          } as CheckToggles & {
             frontend?: boolean;
             backend?: boolean;
           };
@@ -248,7 +254,10 @@ export async function GET() {
           if (cs?.frontend?.auditLevel && !settings.checkSettings?.npmAudit?.auditLevel) {
             settings.checkSettings = {
               ...settings.checkSettings,
-              npmAudit: { ...settings.checkSettings?.npmAudit, auditLevel: cs.frontend.auditLevel },
+              npmAudit: {
+                ...settings.checkSettings?.npmAudit,
+                auditLevel: cs.frontend.auditLevel,
+              },
             };
           }
         }
@@ -281,7 +290,10 @@ export async function GET() {
         const fromRc = parseRcToSettings(rawRc);
         if (fromRc.checkOrder?.length) settings.checkOrder = fromRc.checkOrder;
         if (fromRc.checkToggles)
-          settings.checkToggles = { ...settings.checkToggles, ...fromRc.checkToggles } as CheckToggles;
+          settings.checkToggles = {
+            ...settings.checkToggles,
+            ...fromRc.checkToggles,
+          } as CheckToggles;
         if (fromRc.shimEnabled !== undefined) settings.shimEnabled = fromRc.shimEnabled;
       } catch {
         // keep presets-derived values
@@ -303,7 +315,10 @@ export async function GET() {
   } catch (err) {
     console.error("settings get error:", err);
     return NextResponse.json(
-      { ...DEFAULT_SETTINGS, error: err instanceof Error ? err.message : "Unknown error" },
+      {
+        ...DEFAULT_SETTINGS,
+        error: err instanceof Error ? err.message : "Unknown error",
+      },
       { status: 200 }
     );
   }

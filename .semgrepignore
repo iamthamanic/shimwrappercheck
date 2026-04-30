@@ -1,0 +1,10 @@
+# Semgrep ignore patterns (independent of --no-git-ignore)
+.next/
+node_modules/
+dist/
+build/
+coverage/
+.stryker-tmp/
+.shim/
+.shimwrapper/
+.codex-home/

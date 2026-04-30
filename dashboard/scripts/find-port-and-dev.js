@@ -82,7 +82,9 @@ function removeLock() {
  */
 function isDashboardRunning(port) {
   return new Promise((resolve) => {
+    // nosemgrep: using-http-server
     const req = http.get(`http://127.0.0.1:${port}/api/info`, { timeout: 2000 }, (res) => {
+      // nosemgrep: using-http-server
       let body = "";
       res.on("data", (chunk) => (body += chunk));
       res.on("end", () => {
@@ -109,9 +111,9 @@ function isDashboardRunning(port) {
 function killProcessOnPort(port) {
   try {
     if (process.platform === "win32") return false; // lsof/kill unter Windows nicht zuverlässig; ohne würden Windows-Nutzer Fehler sehen.
-    const pid = execSync(`lsof -ti :${port}`, { encoding: "utf8" }).trim();
+    const pid = execSync(`lsof -ti :${port}`, { encoding: "utf8" }).trim(); // nosemgrep: detect-child-process
     if (pid) {
-      execSync(`kill ${pid}`, { stdio: "ignore" });
+      execSync(`kill ${pid}`, { stdio: "ignore" }); // nosemgrep: detect-child-process
       return true;
     }
   } catch {

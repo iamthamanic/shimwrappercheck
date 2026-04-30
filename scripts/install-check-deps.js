@@ -209,7 +209,8 @@ function collectInstalledDeps(packageJsonPath) {
 
 function installPackages(targetDir, packages) {
   if (packages.length === 0) return 0;
-  const result = cp.spawnSync("npm", ["install", "--save-dev", ...packages], { // nosemgrep: spawn-shell-true
+  const result = cp.spawnSync("npm", ["install", "--save-dev", ...packages], {
+    // nosemgrep: spawn-shell-true
     cwd: targetDir,
     stdio: "inherit",
     shell: true,

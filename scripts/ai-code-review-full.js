@@ -97,8 +97,8 @@ async function runReviewChunk(cfg, chunkDir) {
  * @returns {Promise<number>} exit code
  */
 async function runFullReview(cfg) {
-  const chunks = ["src", "supabase", "scripts", "dashboard"].filter((d) =>
-    require("fs").existsSync(path.join(cfg.rootDir, d)), // nosemgrep: path-join-resolve-traversal
+  const chunks = ["src", "supabase", "scripts", "dashboard"].filter(
+    (d) => require("fs").existsSync(path.join(cfg.rootDir, d)), // nosemgrep: path-join-resolve-traversal
   );
   if (chunks.length === 0) {
     console.error(
