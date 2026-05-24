@@ -5,7 +5,7 @@
 New checks appear in the **Check Library** and can be added to **My Checks** once they are defined.
 
 1. **Define the check** in `dashboard/lib/checks.ts`:
-   - Add an entry to `CHECK_DEFINITIONS` with `id`, `label`, `summary`, `info`, `settings`, `tags` (frontend/backend), and `role` (`"enforce"` = before command, or `"hook"` = after deploy).
+   - Add an entry to `packages/core/src/catalog/check-descriptions.ts` (`CHECK_DESCRIPTIONS`) with `id`, `label`, `summary`, `info`, `settings`, `tags` (frontend/backend), and `role` (`"enforce"` = before command, or `"hook"` = after deploy). Dashboard re-exports via `@shimwrappercheck/core/catalog`.
    - Add the same `id` to the `CheckId` type and, if the backend uses it, to `CheckToggles` and `DEFAULT_CHECK_TOGGLES` in `dashboard/lib/presets.ts`.
 2. **Backend (optional):** If the check is run by `scripts/run-checks.sh`, add the corresponding env/flag handling in the dashboard API (e.g. `app/api/settings/route.ts` and `buildRcContent` in `lib/presets.ts`) so the generated `.shimwrappercheckrc` includes it.
 3. **i18n:** Add label/summary/info in `dashboard/messages/de.json` and `en.json` under `checks.<id>.label`, etc., if you use translation keys.

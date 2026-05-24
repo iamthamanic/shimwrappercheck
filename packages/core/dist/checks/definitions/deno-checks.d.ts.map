@@ -1,0 +1,1 @@
+{"version":3,"file":"deno-checks.d.ts","sourceRoot":"","sources":["../../../src/checks/definitions/deno-checks.ts"],"names":[],"mappings":"AAEA,OAAO,KAAK,EAAE,eAAe,EAAE,MAAM,aAAa,CAAC;AA2BnD,eAAO,MAAM,YAAY,EAAE,eAsB1B,CAAC;AAEF,eAAO,MAAM,aAAa,EAAE,eAiB3B,CAAC;AAEF,eAAO,MAAM,cAAc,EAAE,eA0B5B,CAAC"}

@@ -1,0 +1,192 @@
+/**
+ * Browser-safe check catalog metadata (ids, labels, env keys).
+ * Dashboard and MCP import this subpath — no Node-only deps.
+ */
+export type CheckCatalogEntry = {
+  id: string;
+  label: string;
+  envKey: string;
+  defaultEnabled: boolean;
+  category: "frontend" | "backend" | "security" | "ai" | "other";
+};
+
+/** Canonical metadata shared with dashboard Check Library ids. */
+export const CHECK_CATALOG_METADATA: CheckCatalogEntry[] = [
+  {
+    id: "updateReadme",
+    label: "Update README",
+    envKey: "SHIM_RUN_UPDATE_README",
+    defaultEnabled: true,
+    category: "frontend",
+  },
+  {
+    id: "prettier",
+    label: "Prettier",
+    envKey: "SHIM_RUN_PRETTIER",
+    defaultEnabled: true,
+    category: "frontend",
+  },
+  {
+    id: "lint",
+    label: "ESLint",
+    envKey: "SHIM_RUN_LINT",
+    defaultEnabled: true,
+    category: "frontend",
+  },
+  {
+    id: "typecheck",
+    label: "TypeScript Check",
+    envKey: "SHIM_RUN_TYPECHECK",
+    defaultEnabled: true,
+    category: "frontend",
+  },
+  {
+    id: "projectRules",
+    label: "Project Rules",
+    envKey: "SHIM_RUN_PROJECT_RULES",
+    defaultEnabled: true,
+    category: "frontend",
+  },
+  {
+    id: "ruff",
+    label: "Ruff",
+    envKey: "SHIM_RUN_RUFF",
+    defaultEnabled: false,
+    category: "other",
+  },
+  {
+    id: "shellcheck",
+    label: "Shellcheck",
+    envKey: "SHIM_RUN_SHELLCHECK",
+    defaultEnabled: false,
+    category: "other",
+  },
+  {
+    id: "i18nCheck",
+    label: "i18n Check",
+    envKey: "SHIM_RUN_I18N_CHECK",
+    defaultEnabled: true,
+    category: "frontend",
+  },
+  {
+    id: "checkMockData",
+    label: "Mock Data Check",
+    envKey: "SHIM_RUN_CHECK_MOCK_DATA",
+    defaultEnabled: true,
+    category: "frontend",
+  },
+  {
+    id: "viteBuild",
+    label: "Vite Build",
+    envKey: "SHIM_RUN_VITE_BUILD",
+    defaultEnabled: true,
+    category: "frontend",
+  },
+  {
+    id: "testRun",
+    label: "Test Run",
+    envKey: "SHIM_RUN_TEST_RUN",
+    defaultEnabled: true,
+    category: "frontend",
+  },
+  {
+    id: "npmAudit",
+    label: "npm Audit",
+    envKey: "SHIM_RUN_NPM_AUDIT",
+    defaultEnabled: true,
+    category: "frontend",
+  },
+  {
+    id: "snyk",
+    label: "Snyk",
+    envKey: "SHIM_RUN_SNYK",
+    defaultEnabled: true,
+    category: "security",
+  },
+  {
+    id: "denoFmt",
+    label: "Deno Format",
+    envKey: "SHIM_RUN_DENO_FMT",
+    defaultEnabled: true,
+    category: "backend",
+  },
+  {
+    id: "denoLint",
+    label: "Deno Lint",
+    envKey: "SHIM_RUN_DENO_LINT",
+    defaultEnabled: true,
+    category: "backend",
+  },
+  {
+    id: "denoAudit",
+    label: "Deno Audit",
+    envKey: "SHIM_RUN_DENO_AUDIT",
+    defaultEnabled: true,
+    category: "backend",
+  },
+  {
+    id: "aiReview",
+    label: "AI Review",
+    envKey: "SHIM_RUN_AI_REVIEW",
+    defaultEnabled: true,
+    category: "ai",
+  },
+  {
+    id: "explanationCheck",
+    label: "Full Explanation",
+    envKey: "SHIM_RUN_EXPLANATION_CHECK",
+    defaultEnabled: true,
+    category: "ai",
+  },
+  {
+    id: "sast",
+    label: "Semgrep",
+    envKey: "SHIM_RUN_SAST",
+    defaultEnabled: false,
+    category: "security",
+  },
+  {
+    id: "gitleaks",
+    label: "Gitleaks",
+    envKey: "SHIM_RUN_GITLEAKS",
+    defaultEnabled: false,
+    category: "security",
+  },
+  {
+    id: "licenseChecker",
+    label: "License Checker",
+    envKey: "SHIM_RUN_LICENSE_CHECKER",
+    defaultEnabled: false,
+    category: "other",
+  },
+  {
+    id: "architecture",
+    label: "Architecture",
+    envKey: "SHIM_RUN_ARCHITECTURE",
+    defaultEnabled: false,
+    category: "other",
+  },
+  {
+    id: "complexity",
+    label: "Complexity",
+    envKey: "SHIM_RUN_COMPLEXITY",
+    defaultEnabled: false,
+    category: "other",
+  },
+  {
+    id: "mutation",
+    label: "Mutation Testing",
+    envKey: "SHIM_RUN_MUTATION",
+    defaultEnabled: false,
+    category: "other",
+  },
+  {
+    id: "e2e",
+    label: "E2E Tests",
+    envKey: "SHIM_RUN_E2E",
+    defaultEnabled: false,
+    category: "other",
+  },
+];
+
+export { DEFAULT_CHECK_ORDER } from "../config/schema.js";

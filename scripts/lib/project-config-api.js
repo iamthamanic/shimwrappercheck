@@ -3,11 +3,10 @@ const path = require("path");
 
 const { CHECK_CATALOG } = require("./check-catalog");
 const { readRcFile, writeRcFile } = require("./rc-utils");
+const { getCoreIfReady } = require("./core-bridge");
 
 /**
  * Preferred key ordering for .shimwrappercheckrc writes.
- * Purpose: Keep machine-written config files stable and easy to diff.
- * Problem solved: Without a shared order, different commands rewrite the same file with noisy key shuffling.
  */
 const CONFIG_KEY_ORDER = [
   "SHIM_ENFORCE_COMMANDS",
@@ -25,26 +24,21 @@ const CONFIG_KEY_ORDER = [
   ...CHECK_CATALOG.map((entry) => entry.envKey),
 ];
 
-/**
- * Resolve the core project file paths from an optional root override.
- * Purpose: Give all config-oriented helpers one canonical path lookup.
- * Input: projectRootInput (string|undefined). Output: object with absolute paths.
- */
 function getProjectPaths(projectRootInput) {
+  const core = getCoreIfReady();
+  if (core?.getProjectPaths) {
+    return core.getProjectPaths(projectRootInput);
+  }
+
   const projectRoot =
     projectRootInput || process.env.SHIM_PROJECT_ROOT || process.cwd();
   return {
     projectRoot,
-    rcPath: path.join(projectRoot, ".shimwrappercheckrc"), // nosemgrep: path-join-resolve-traversal
-    presetsPath: path.join(projectRoot, ".shimwrappercheck-presets.json"), // nosemgrep: path-join-resolve-traversal
+    rcPath: path.join(projectRoot, ".shimwrappercheckrc"),
+    presetsPath: path.join(projectRoot, ".shimwrappercheck-presets.json"),
   };
 }
 
-/**
- * Preserve the existing rc header comment when rewriting the file.
- * Purpose: Programmatic config writes should not drop the first human-facing explanation line.
- * Input: rcPath (string). Output: header line string.
- */
 function readRcHeaderLine(rcPath) {
   if (!fs.existsSync(rcPath)) {
     return "# shimwrappercheck config (managed by shimwrappercheck CLI)";
@@ -57,15 +51,10 @@ function readRcHeaderLine(rcPath) {
   );
 }
 
-/**
- * Load the local check catalog when available, otherwise use the packaged one.
- * Purpose: Repo development and installed package usage should both see the correct check definitions.
- * Input: projectRoot (string). Output: array of catalog entries.
- */
 function loadCheckCatalog(projectRoot) {
   const candidatePaths = [
     ...new Set([
-      path.join(projectRoot, "scripts", "lib", "check-catalog.js"), // nosemgrep: path-join-resolve-traversal
+      path.join(projectRoot, "scripts", "lib", "check-catalog.js"),
       path.join(__dirname, "check-catalog.js"),
     ]),
   ];
@@ -84,12 +73,12 @@ function loadCheckCatalog(projectRoot) {
   return [];
 }
 
-/**
- * Read .shimwrappercheckrc as a structured object with its absolute path.
- * Purpose: Mirror the MCP get_config behavior for non-interactive CLI callers.
- * Input: projectRootInput (string|undefined). Output: { path, config }.
- */
 function getConfig(projectRootInput) {
+  const core = getCoreIfReady();
+  if (core?.getLegacyConfig) {
+    return core.getLegacyConfig(projectRootInput);
+  }
+
   const { rcPath } = getProjectPaths(projectRootInput);
   return {
     path: rcPath,
@@ -97,12 +86,12 @@ function getConfig(projectRootInput) {
   };
 }
 
-/**
- * Update one or more rc keys without dropping other settings.
- * Purpose: Provide the CLI equivalent of the MCP set_config tool.
- * Inputs: projectRootInput (string|undefined), values (object). Output: structured success result.
- */
 function setConfig(projectRootInput, values) {
+  const core = getCoreIfReady();
+  if (core?.setLegacyConfig) {
+    return core.setLegacyConfig(values, projectRootInput);
+  }
+
   const { rcPath } = getProjectPaths(projectRootInput);
   const currentConfig = readRcFile(rcPath);
   const nextConfig = { ...currentConfig };
@@ -121,12 +110,12 @@ function setConfig(projectRootInput, values) {
   };
 }
 
-/**
- * Enable or disable one rc-backed check flag by env key.
- * Purpose: Keep toggle behavior shared between human CLI and machine automation.
- * Inputs: projectRootInput (string|undefined), envKey (string), enabled (boolean). Output: structured success result.
- */
 function toggleCheck(projectRootInput, envKey, enabled) {
+  const core = getCoreIfReady();
+  if (core?.toggleLegacyCheck) {
+    return core.toggleLegacyCheck(envKey, enabled, projectRootInput);
+  }
+
   const result = setConfig(projectRootInput, {
     [envKey]: enabled ? "1" : "0",
   });
@@ -139,12 +128,12 @@ function toggleCheck(projectRootInput, envKey, enabled) {
   };
 }
 
-/**
- * List known checks with their current enabled state.
- * Purpose: Provide a stable check inventory for CLI wrappers and agents.
- * Input: projectRootInput (string|undefined). Output: { source, checks }.
- */
 function listChecks(projectRootInput) {
+  const core = getCoreIfReady();
+  if (core?.listChecksWithState) {
+    return core.listChecksWithState(projectRootInput);
+  }
+
   const { projectRoot, rcPath } = getProjectPaths(projectRootInput);
   const config = readRcFile(rcPath);
   const catalog = loadCheckCatalog(projectRoot);

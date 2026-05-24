@@ -49,6 +49,13 @@ CLI shim that runs project checks before a real CLI command runs (for example Su
 - **Env & RC**: All options configurable via environment variables or `.shimwrappercheckrc`.
 - **Check tools (per project):** Optional `.shimwrapper/checktools/` with its own `package.json` (ESLint, Prettier, TypeScript, Vitest, Vite). Can be created during `init`; then use `npx shimwrappercheck install-tools` or include active check dependencies via `npx shimwrappercheck install-tools --with-check-deps`. `run-checks.sh` uses these binaries if present, so tools stay isolated per project (variant B).
 
+### Architecture (Phase 4)
+
+- **`@shimwrappercheck/core`:** Config, check registry, runners, refactor orchestration, structured CLI helpers. See `packages/core/README.md`.
+- **`@shimwrappercheck/cli`:** Thin `run-checks` entry invoked by `scripts/run-checks.sh` (core engine; run `npm run build` first).
+- **AI subprocesses:** Full-mode AI review chunking and Full Explanation still invoke `scripts/ai-code-review.sh` and `scripts/ai-explanation-check.sh` from core check definitions.
+- **Publish layout:** npm package ships `packages/core/dist` and `packages/cli/dist` (see root `package.json` `files`).
+
 ---
 
 ## Guide: Using shimwrappercheck

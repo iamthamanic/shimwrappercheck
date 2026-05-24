@@ -71,7 +71,7 @@ SHIM_PROJECT_ROOT = "/path/to/your/project"
 
 | Tool                | Description                                                              |
 | ------------------- | ------------------------------------------------------------------------ |
-| `run_checks`        | Run checks with structured pass/fail results, stdout, stderr, last error |
+| `run_checks`        | Run checks via **@shimwrappercheck/core** when built (`engine: "core"`); legacy bash fallback (`engine: "legacy"`) |
 | `get_check_status`  | Get last check error from `.shim/last_error.json` for self-healing       |
 | `get_config`        | Read `.shimwrappercheckrc` as structured key-value pairs                 |
 | `set_config`        | Update config keys in `.shimwrappercheckrc`                              |
@@ -109,7 +109,9 @@ Supported clients and formats:
 
 - **Zero dependencies**: Uses only Node.js builtins (no `@modelcontextprotocol/sdk` needed)
 - **JSON-RPC 2.0 over stdio**: Standard MCP protocol
-- **Reuses internal modules**: Loads `scripts/lib/check-catalog.js` when available
+- **Core engine**: All config/check tools and `run_checks` require `@shimwrappercheck/core` (`npm run build`). The server is split into `mcp/tools/*` modules; `mcp/server.js` is a thin JSON-RPC dispatcher.
+- **AI Review**: Commit/snippet + Codex runs in TypeScript (`SHIM_AI_REVIEW_ENGINE=core`, default). Full-mode chunking still uses `scripts/ai-code-review.sh`. Full Explanation uses `scripts/ai-explanation-check.sh`.
+- **MCP run_checks**: Returns per-check `status` (including `infra_error`), `infraErrorIds`, `warningIds`, and `summary` counts. Calls `runChecksFromMcpOptions` → `runAllChecks` or `runChecksWithRefactorLoop` (no bash orchestration).
 - **TOML support**: Codex CLI config.toml is read/written correctly (preserves other sections)
 
 ## CLI-Anything Integration

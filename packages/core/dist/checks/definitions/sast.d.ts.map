@@ -1,0 +1,1 @@
+{"version":3,"file":"sast.d.ts","sourceRoot":"","sources":["../../../src/checks/definitions/sast.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,eAAe,EAAE,MAAM,aAAa,CAAC;AAKnD,kFAAkF;AAClF,wBAAsB,4BAA4B,CAChD,WAAW,EAAE,MAAM,EACnB,WAAW,EAAE,MAAM,EACnB,GAAG,EAAE,MAAM,CAAC,UAAU,GACrB,OAAO,CAAC,MAAM,GAAG,SAAS,CAAC,CAuB7B;AAED,eAAO,MAAM,SAAS,EAAE,eA8CvB,CAAC"}

@@ -3,15 +3,16 @@ const fs = require("fs");
 const path = require("path");
 
 const { getProjectPaths } = require("./project-config-api");
+const { getCoreIfReady } = require("./core-bridge");
 
-/**
- * Read .shim/last_error.json in a safe way.
- * Purpose: Expose the most recent failing check for status queries and self-healing flows.
- * Input: projectRootInput (string|undefined). Output: parsed object or null.
- */
 function readLastError(projectRootInput) {
+  const core = getCoreIfReady();
+  if (core?.readLastErrorEntry) {
+    return core.readLastErrorEntry(projectRootInput);
+  }
+
   const { projectRoot } = getProjectPaths(projectRootInput);
-  const lastErrorPath = path.join(projectRoot, ".shim", "last_error.json"); // nosemgrep: path-join-resolve-traversal
+  const lastErrorPath = path.join(projectRoot, ".shim", "last_error.json");
   if (!fs.existsSync(lastErrorPath)) return null;
 
   try {
@@ -21,12 +22,12 @@ function readLastError(projectRootInput) {
   }
 }
 
-/**
- * Resolve the review output directory from dashboard presets with a safe fallback.
- * Purpose: "report latest" should follow the same reviewOutputPath users configure in the dashboard.
- * Input: projectRootInput (string|undefined). Output: absolute review directory path.
- */
 function resolveReviewDirectory(projectRootInput) {
+  const core = getCoreIfReady();
+  if (core?.resolveReviewDirectory) {
+    return core.resolveReviewDirectory(projectRootInput);
+  }
+
   const { projectRoot, presetsPath } = getProjectPaths(projectRootInput);
   let configuredDirectory = "reports";
 
@@ -44,7 +45,7 @@ function resolveReviewDirectory(projectRootInput) {
     }
   }
 
-  const resolvedDirectory = path.resolve(projectRoot, configuredDirectory); // nosemgrep: path-join-resolve-traversal
+  const resolvedDirectory = path.resolve(projectRoot, configuredDirectory);
   const safePrefix = projectRoot.endsWith(path.sep)
     ? projectRoot
     : `${projectRoot}${path.sep}`;
@@ -52,18 +53,18 @@ function resolveReviewDirectory(projectRootInput) {
     resolvedDirectory !== projectRoot &&
     !resolvedDirectory.startsWith(safePrefix)
   ) {
-    return path.join(projectRoot, "reports"); // nosemgrep: path-join-resolve-traversal
+    return path.join(projectRoot, "reports");
   }
 
   return resolvedDirectory;
 }
 
-/**
- * Find the newest markdown review report for the current project.
- * Purpose: Mirror the MCP get_latest_report behavior for shell automation.
- * Input: projectRootInput (string|undefined). Output: { found, path?, name?, content? }.
- */
 function findLatestReport(projectRootInput) {
+  const core = getCoreIfReady();
+  if (core?.findLatestReviewReport) {
+    return core.findLatestReviewReport(projectRootInput);
+  }
+
   const reviewDirectory = resolveReviewDirectory(projectRootInput);
   if (!fs.existsSync(reviewDirectory)) {
     return { found: false, directory: reviewDirectory };
@@ -74,8 +75,8 @@ function findLatestReport(projectRootInput) {
     .filter((fileName) => fileName.endsWith(".md"))
     .map((fileName) => ({
       name: fileName,
-      fullPath: path.join(reviewDirectory, fileName), // nosemgrep: path-join-resolve-traversal
-      mtimeMs: fs.statSync(path.join(reviewDirectory, fileName)).mtimeMs, // nosemgrep: path-join-resolve-traversal
+      fullPath: path.join(reviewDirectory, fileName),
+      mtimeMs: fs.statSync(path.join(reviewDirectory, fileName)).mtimeMs,
     }))
     .sort((left, right) => right.mtimeMs - left.mtimeMs);
 
@@ -93,14 +94,14 @@ function findLatestReport(projectRootInput) {
   };
 }
 
-/**
- * Read AGENTS.md from the current project root.
- * Purpose: Structured CLI callers should be able to inspect project instructions without opening files manually.
- * Input: projectRootInput (string|undefined). Output: { found, path?, content? }.
- */
 function getAgentsMd(projectRootInput) {
+  const core = getCoreIfReady();
+  if (core?.getAgentsMdContent) {
+    return core.getAgentsMdContent(projectRootInput);
+  }
+
   const { projectRoot } = getProjectPaths(projectRootInput);
-  const agentsPath = path.join(projectRoot, "AGENTS.md"); // nosemgrep: path-join-resolve-traversal
+  const agentsPath = path.join(projectRoot, "AGENTS.md");
   if (!fs.existsSync(agentsPath)) {
     return { found: false, message: "No AGENTS.md found in project root." };
   }
@@ -116,14 +117,9 @@ function getAgentsMd(projectRootInput) {
   }
 }
 
-/**
- * Resolve the check runner entrypoint from the project first, then from the installed package.
- * Purpose: A local project override should win, but the package fallback keeps commands usable before init copies scripts.
- * Inputs: projectRoot (string). Output: { command, args } or null.
- */
 function resolveCheckRunner(projectRoot) {
   const runChecksCandidates = [
-    path.join(projectRoot, "scripts", "run-checks.sh"), // nosemgrep: path-join-resolve-traversal
+    path.join(projectRoot, "scripts", "run-checks.sh"),
     path.join(__dirname, "..", "run-checks.sh"),
   ];
   for (const candidate of runChecksCandidates) {
@@ -133,7 +129,7 @@ function resolveCheckRunner(projectRoot) {
   }
 
   const shimRunnerCandidates = [
-    path.join(projectRoot, "scripts", "shim-runner.js"), // nosemgrep: path-join-resolve-traversal
+    path.join(projectRoot, "scripts", "shim-runner.js"),
     path.join(__dirname, "..", "shim-runner.js"),
   ];
   for (const candidate of shimRunnerCandidates) {
@@ -145,11 +141,6 @@ function resolveCheckRunner(projectRoot) {
   return null;
 }
 
-/**
- * Execute the configured check runner and return a structured result.
- * Purpose: Provide a JSON-friendly command runner for CLI parity and future automation.
- * Inputs: projectRootInput (string|undefined), opts (object). Output: structured run result.
- */
 function runChecks(projectRootInput, opts = {}) {
   const { projectRoot } = getProjectPaths(projectRootInput);
   const runner = resolveCheckRunner(projectRoot);
@@ -179,12 +170,15 @@ function runChecks(projectRootInput, opts = {}) {
   if (opts.refactor) args.push("--refactor");
   if (opts.until95) args.push("--until-95");
 
-  const env = { ...process.env, SHIM_PROJECT_ROOT: projectRoot };
+  const env = {
+    ...process.env,
+    SHIM_PROJECT_ROOT: projectRoot,
+    SHIM_ENGINE: process.env.SHIM_ENGINE || "core",
+  };
   if (opts.checkMode) {
     env.CHECK_MODE = opts.checkMode;
   }
 
-  // nosemgrep: detect-child-process
   const result = spawnSync(runner.command, args, {
     cwd: projectRoot,
     env,

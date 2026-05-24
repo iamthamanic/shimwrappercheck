@@ -5,6 +5,7 @@
  * Problem: Ohne dieses Dispatch-Script müssten Nutzer einzelne Skripte direkt aufrufen und die Argumentlogik selbst handhaben.
  * Location: scripts/cli.js
  */
+const fs = require("fs");
 const path = require("path"); // Pfad-Operationen für Script-Pfade nutzen; ohne können wir __dirname nicht zu relativen Modulpfaden zusammensetzen.
 
 /**
@@ -115,6 +116,22 @@ if (cmd === "config" || cmd === "configure") {
   ];
   require(path.join(__dirname, "configure")); // Konfigurationsmodul ausführen; ohne bleibt config/configure ohne Funktion.
   return; // Nach Delegation beenden; ohne würde "Unknown command" ausgegeben.
+}
+
+if (cmd === "run-checks") {
+  const { spawnSync } = require("child_process");
+  const cliDist = path.join(__dirname, "..", "packages", "cli", "dist", "index.js");
+  if (fs.existsSync(cliDist)) {
+    const result = spawnSync(process.execPath, [cliDist, "run-checks", ...restArgs], {
+      stdio: "inherit",
+      cwd: process.cwd(),
+      env: { ...process.env, SHIM_PROJECT_ROOT: process.cwd(), SHIM_ENGINE: "core" },
+    });
+    process.exit(result.status != null ? result.status : 1);
+    return;
+  }
+  console.error("Core CLI not built. Run: npm run build");
+  process.exit(1);
 }
 
 if (cmd === "run") {

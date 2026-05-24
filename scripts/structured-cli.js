@@ -17,6 +17,7 @@ const {
   takeFlag,
   takeOption,
 } = require("./lib/structured-cli-helpers");
+const { preloadCore } = require("./lib/core-bridge");
 const {
   getConfig,
   getProjectPaths,
@@ -91,6 +92,13 @@ async function main(argv = process.argv.slice(2), options = {}) {
   const projectRoot = options.projectRoot || getProjectPaths().projectRoot;
   const packageRoot = path.join(__dirname, "..");
   const command = args.shift();
+
+  try {
+    await preloadCore();
+  } catch (error) {
+    console.error(error.message);
+    return 1;
+  }
 
   if (
     !command ||
@@ -330,7 +338,12 @@ async function main(argv = process.argv.slice(2), options = {}) {
 }
 
 if (require.main === module) {
-  process.exit(main(process.argv.slice(2)));
+  main(process.argv.slice(2))
+    .then((code) => process.exit(code))
+    .catch((error) => {
+      console.error(error instanceof Error ? error.message : error);
+      process.exit(1);
+    });
 }
 
 module.exports = {

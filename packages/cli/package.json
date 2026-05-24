@@ -1,0 +1,30 @@
+{
+  "name": "@shimwrappercheck/cli",
+  "version": "0.4.19",
+  "description": "CLI for shimwrappercheck (thin layer over @shimwrappercheck/core)",
+  "type": "module",
+  "bin": {
+    "shimwrappercheck-core": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --config ../../vitest.config.ts packages/cli/tests"
+  },
+  "dependencies": {
+    "@shimwrappercheck/core": "0.4.19"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "^5.9.3",
+    "vitest": "^3.0.9"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

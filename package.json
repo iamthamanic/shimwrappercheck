@@ -1,6 +1,10 @@
 {
   "name": "shimwrappercheck",
   "version": "0.4.19",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "description": "CLI-Shim, der Projekt-Checks ausführt, bevor ein echtes CLI-Kommando (z. B. Supabase, Git) läuft. Optional: Web-Dashboard zum Konfigurieren von Presets, Trigger-Befehlen, Checks und AGENTS.md.",
   "license": "MIT",
   "bin": {
@@ -11,6 +15,8 @@
   },
   "files": [
     "bin",
+    "packages/core/dist",
+    "packages/cli/dist",
     "scripts",
     "templates",
     "docs",
@@ -31,6 +37,8 @@
     "AGENTS.md",
     "mcp/package.json",
     "mcp/server.js",
+    "mcp/core-bridge.js",
+    "mcp/tools",
     "mcp/README.md",
     "scripts/mcp-setup.js",
     "scripts/structured-cli.js",
@@ -39,13 +47,16 @@
     "scripts/lib/project-api.js",
     "scripts/lib/project-config-api.js",
     "scripts/lib/project-runtime-api.js",
-    "scripts/lib/structured-cli-helpers.js"
+    "scripts/lib/structured-cli-helpers.js",
+    "scripts/lib/core-bridge.js"
   ],
   "engines": {
     "node": ">=18"
   },
   "scripts": {
     "prepublishOnly": "node scripts/prepublish-clean.js",
+    "build": "npm run build -w @shimwrappercheck/core && npm run build -w @shimwrappercheck/cli",
+    "build:dashboard": "npm run build --prefix dashboard",
     "dev": "npm run dashboard",
     "dashboard": "npm install --prefix dashboard && npm run dev --prefix dashboard",
     "setup": "node bin/shimwrappercheck setup",
@@ -56,11 +67,14 @@
     "mcp-setup": "node scripts/mcp-setup.js",
     "dashboard:check": "npm run check --prefix dashboard",
     "lint": "npm run lint --prefix dashboard",
-    "format:check": "npm run format:check --prefix dashboard",
-    "typecheck": "npm run typecheck --prefix dashboard",
-    "build": "npm run build --prefix dashboard",
+    "format:check": "prettier --check \"packages/**/*.{ts,json}\" \"scripts/**/*.{js,sh}\" \"*.{json,md}\" && npm run format:check --prefix dashboard",
+    "shellcheck": "command -v shellcheck >/dev/null && shellcheck scripts/*.sh bin/*.sh || echo 'shellcheck not installed, skip'",
+    "typecheck": "npm run build -w @shimwrappercheck/core && npm run typecheck -w @shimwrappercheck/core && npm run typecheck -w @shimwrappercheck/cli && npm run typecheck --prefix dashboard",
+    "test": "npm run build && vitest run",
+    "test:unit": "vitest run",
     "test:run": "npm run build --prefix dashboard",
     "test:mutation": "npm run build --prefix dashboard -- --no-lint",
+    "checks": "npm run build && ./scripts/run-checks.sh",
     "check:mock-data": "true"
   },
   "dependencies": {
@@ -68,9 +82,12 @@
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.5.1",
+    "@types/node": "^22.13.10",
     "prettier": "^3.8.1",
     "shimwrappercheck": "^0.4.7",
     "snyk": "^1.1302.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.0.9",
+    "zod": "^3.24.2"
   }
 }
