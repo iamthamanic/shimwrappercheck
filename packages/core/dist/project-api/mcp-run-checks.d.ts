@@ -12,6 +12,7 @@ export type McpRunChecksOptions = {
     noI18nCheck?: boolean;
     noSast?: boolean;
     noGitleaks?: boolean;
+    noFallow?: boolean;
     noRuff?: boolean;
     noShellcheck?: boolean;
     refactor?: boolean;

@@ -1,6 +1,6 @@
 {
   "name": "@shimwrappercheck/core",
-  "version": "0.4.19",
+  "version": "0.4.20",
   "description": "Core library for shimwrappercheck: config, checks, runners",
   "type": "module",
   "main": "./dist/index.js",

@@ -50,7 +50,7 @@ function printCommandHelp(topic) {
     status: "Usage: shimwrappercheck status last-error [--json]",
     report: "Usage: shimwrappercheck report latest [--json]",
     mcp: "Usage: shimwrappercheck mcp clients [--json]\n       shimwrappercheck mcp configure --client <cursor|claude-desktop|codex-cli> [--server-path /abs/path] [--dry-run] [--json]",
-    run: "Usage: shimwrappercheck run --json [--check-mode <full|snippet|commit>] [--frontend|--no-frontend] [--backend|--no-backend] [--no-ai-review] [--no-explanation-check] [--no-i18n-check] [--no-sast] [--no-gitleaks] [--no-ruff] [--no-shellcheck] [--refactor] [--until-95] [--timeout-sec <n>]",
+    run: "Usage: shimwrappercheck run --json [--check-mode <full|snippet|commit>] [--frontend|--no-frontend] [--backend|--no-backend] [--no-ai-review] [--no-explanation-check] [--no-i18n-check] [--no-sast] [--no-gitleaks] [--no-fallow] [--no-ruff] [--no-shellcheck] [--refactor] [--until-95] [--timeout-sec <n>]",
     "agents-md": "Usage: shimwrappercheck agents-md [--json]",
   };
 
@@ -154,6 +154,7 @@ function parseRunCommand(args) {
     noI18nCheck: takeFlag(args, "--no-i18n-check"),
     noSast: takeFlag(args, "--no-sast"),
     noGitleaks: takeFlag(args, "--no-gitleaks"),
+    noFallow: takeFlag(args, "--no-fallow"),
     noRuff: takeFlag(args, "--no-ruff"),
     noShellcheck: takeFlag(args, "--no-shellcheck"),
     refactor: takeFlag(args, "--refactor"),

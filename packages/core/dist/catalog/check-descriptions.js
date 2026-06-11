@@ -353,6 +353,16 @@ export const CHECK_DESCRIPTIONS = [
         settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: true }, REVIEW_MODE_SETTING],
     },
     {
+        id: "fallow",
+        label: "Fallow",
+        tags: ["frontend", "backend"],
+        role: "enforce",
+        summary: "Findet ungenutzten Code, Duplikate und strukturelle Probleme im Projekt.",
+        info: "Zweck: Hält die Codebase schlank und verhindert technische Schulden auf Graph-Ebene. Prüft: `npx fallow` (Dead Code, Duplikation, Komplexität). Bestanden, wenn: Fallow endet ohne Fehler (Exit 0). Nicht bestanden, wenn: Fallow Findings mit Fehler-Schwere meldet (Exit 1). Anpassen: `.fallowrc.json` oder `fallow.toml` und Fallow-Regeln. Hinweis: Wird übersprungen, wenn kein package.json vorhanden ist; erster Lauf kann länger dauern.",
+        techStack: "JavaScript, TypeScript",
+        settings: [{ key: "enabled", label: "Aktiv", type: "boolean", default: false }, REVIEW_MODE_SETTING],
+    },
+    {
         id: "complexity",
         label: "Complexity",
         tags: ["frontend", "backend"],

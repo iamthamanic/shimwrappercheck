@@ -167,6 +167,13 @@ export const CHECK_CATALOG_METADATA: CheckCatalogEntry[] = [
     category: "other",
   },
   {
+    id: "fallow",
+    label: "Fallow",
+    envKey: "SHIM_RUN_FALLOW",
+    defaultEnabled: false,
+    category: "other",
+  },
+  {
     id: "complexity",
     label: "Complexity",
     envKey: "SHIM_RUN_COMPLEXITY",

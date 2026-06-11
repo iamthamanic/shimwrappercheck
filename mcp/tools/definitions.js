@@ -20,6 +20,7 @@ const TOOLS = [
         noI18nCheck: { type: "boolean", description: "Skip i18n check" },
         noSast: { type: "boolean", description: "Skip Semgrep SAST scan" },
         noGitleaks: { type: "boolean", description: "Skip Gitleaks secret scan" },
+        noFallow: { type: "boolean", description: "Skip Fallow codebase intelligence check" },
         noRuff: { type: "boolean", description: "Skip Ruff Python linter" },
         noShellcheck: { type: "boolean", description: "Skip Shellcheck" },
         refactor: { type: "boolean", description: "Force CHECK_MODE=full for refactor loop" },

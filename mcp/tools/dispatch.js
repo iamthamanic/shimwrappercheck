@@ -33,6 +33,7 @@ async function handleToolCall(toolName, args, ctx) {
         noI18nCheck: args.noI18nCheck,
         noSast: args.noSast,
         noGitleaks: args.noGitleaks,
+        noFallow: args.noFallow,
         noRuff: args.noRuff,
         noShellcheck: args.noShellcheck,
         refactor: args.refactor,

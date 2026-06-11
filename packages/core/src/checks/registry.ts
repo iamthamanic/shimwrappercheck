@@ -28,6 +28,7 @@ import {
   mutationCheck,
   e2eCheck,
 } from "./definitions/optional-checks.js";
+import { fallowCheck } from "./definitions/fallow.js";
 import { DEFAULT_CHECK_ORDER } from "../config/schema.js";
 import { CHECK_CATALOG_METADATA } from "./catalog-metadata.js";
 
@@ -55,6 +56,7 @@ export const CHECK_REGISTRY: CheckDefinition[] = [
   gitleaksCheck,
   licenseCheckerCheck,
   architectureCheck,
+  fallowCheck,
   complexityCheck,
   mutationCheck,
   e2eCheck,

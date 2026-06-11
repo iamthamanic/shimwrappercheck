@@ -21,6 +21,7 @@ export type McpRunChecksOptions = {
   noI18nCheck?: boolean;
   noSast?: boolean;
   noGitleaks?: boolean;
+  noFallow?: boolean;
   noRuff?: boolean;
   noShellcheck?: boolean;
   refactor?: boolean;
@@ -65,6 +66,7 @@ export async function runChecksFromMcpOptions(
     noI18nCheck: opts.noI18nCheck,
     noSast: opts.noSast,
     noGitleaks: opts.noGitleaks,
+    noFallow: opts.noFallow,
     noRuff: opts.noRuff,
     noShellcheck: opts.noShellcheck,
     refactor: opts.refactor,

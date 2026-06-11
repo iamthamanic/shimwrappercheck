@@ -61,6 +61,7 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
     if (args.includes("--no-gitleaks")) checkToggles.gitleaks = false;
     if (args.includes("--no-license-checker")) checkToggles.licenseChecker = false;
     if (args.includes("--no-architecture")) checkToggles.architecture = false;
+    if (args.includes("--no-fallow")) checkToggles.fallow = false;
     if (args.includes("--no-complexity")) checkToggles.complexity = false;
     if (args.includes("--no-mutation")) checkToggles.mutation = false;
     if (args.includes("--no-e2e")) checkToggles.e2e = false;
@@ -93,6 +94,7 @@ function parseRcToSettings(rawRc: string): Partial<SettingsData> {
   if (readEnv("SHIM_RUN_LICENSE_CHECKER") !== undefined)
     checkToggles.licenseChecker = readEnv("SHIM_RUN_LICENSE_CHECKER")!;
   if (readEnv("SHIM_RUN_ARCHITECTURE") !== undefined) checkToggles.architecture = readEnv("SHIM_RUN_ARCHITECTURE")!;
+  if (readEnv("SHIM_RUN_FALLOW") !== undefined) checkToggles.fallow = readEnv("SHIM_RUN_FALLOW")!;
   if (readEnv("SHIM_RUN_COMPLEXITY") !== undefined) checkToggles.complexity = readEnv("SHIM_RUN_COMPLEXITY")!;
   if (readEnv("SHIM_RUN_MUTATION") !== undefined) checkToggles.mutation = readEnv("SHIM_RUN_MUTATION")!;
   if (readEnv("SHIM_RUN_E2E") !== undefined) checkToggles.e2e = readEnv("SHIM_RUN_E2E")!;

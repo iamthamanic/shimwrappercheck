@@ -23,6 +23,7 @@ const FLAG_SKIP_MAP = {
     i18nCheck: "noI18nCheck",
     sast: "noSast",
     gitleaks: "noGitleaks",
+    fallow: "noFallow",
     ruff: "noRuff",
     shellcheck: "noShellcheck",
 };
@@ -51,6 +52,7 @@ export function parseRunChecksFlags(argv) {
         noI18nCheck: has("--no-i18n-check") || process.env.SKIP_I18N_CHECK === "1",
         noSast: has("--no-sast"),
         noGitleaks: has("--no-gitleaks"),
+        noFallow: has("--no-fallow"),
         noRuff: has("--no-ruff"),
         noShellcheck: has("--no-shellcheck"),
         refactor: has("--refactor") || has("--until-95"),
@@ -74,6 +76,8 @@ export function buildRunChecksArgv(opts) {
         argv.push("--no-sast");
     if (opts.noGitleaks)
         argv.push("--no-gitleaks");
+    if (opts.noFallow)
+        argv.push("--no-fallow");
     if (opts.noRuff)
         argv.push("--no-ruff");
     if (opts.noShellcheck)

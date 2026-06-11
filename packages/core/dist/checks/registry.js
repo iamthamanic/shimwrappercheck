@@ -17,6 +17,7 @@ import { sastCheck } from "./definitions/sast.js";
 import { ruffCheck } from "./definitions/ruff.js";
 import { shellcheckCheck } from "./definitions/shellcheck.js";
 import { licenseCheckerCheck, architectureCheck, complexityCheck, mutationCheck, e2eCheck, } from "./definitions/optional-checks.js";
+import { fallowCheck } from "./definitions/fallow.js";
 import { DEFAULT_CHECK_ORDER } from "../config/schema.js";
 import { CHECK_CATALOG_METADATA } from "./catalog-metadata.js";
 /** Canonical check registry (Phase 2 — parity with scripts/lib/check-catalog.js). */
@@ -43,6 +44,7 @@ export const CHECK_REGISTRY = [
     gitleaksCheck,
     licenseCheckerCheck,
     architectureCheck,
+    fallowCheck,
     complexityCheck,
     mutationCheck,
     e2eCheck,

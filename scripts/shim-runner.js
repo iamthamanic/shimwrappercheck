@@ -29,6 +29,7 @@ function parseArgs() {
     full,
     sast: !args.includes("--no-sast"),
     gitleaks: !args.includes("--no-gitleaks"),
+    fallow: !args.includes("--no-fallow"),
     licenseChecker: !args.includes("--no-license-checker"),
     architecture: !args.includes("--no-architecture"),
     complexity: !args.includes("--no-complexity"),
@@ -335,6 +336,7 @@ function runFrontendBackendBase(opts) {
     if (!opts.i18nCheck) args.push("--no-i18n-check");
     if (!opts.sast) args.push("--no-sast");
     if (!opts.gitleaks) args.push("--no-gitleaks");
+    if (!opts.fallow) args.push("--no-fallow");
     if (!opts.licenseChecker) args.push("--no-license-checker");
     const res = run("bash", [runChecksPath, ...args], { shell: false });
     if (res.status !== 0 && res.status !== null) {

@@ -165,6 +165,7 @@ function runChecks(projectRootInput, opts = {}) {
   if (opts.noI18nCheck) args.push("--no-i18n-check");
   if (opts.noSast) args.push("--no-sast");
   if (opts.noGitleaks) args.push("--no-gitleaks");
+  if (opts.noFallow) args.push("--no-fallow");
   if (opts.noRuff) args.push("--no-ruff");
   if (opts.noShellcheck) args.push("--no-shellcheck");
   if (opts.refactor) args.push("--refactor");

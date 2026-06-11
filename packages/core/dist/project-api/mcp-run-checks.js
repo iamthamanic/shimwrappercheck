@@ -21,6 +21,7 @@ export async function runChecksFromMcpOptions(opts) {
         noI18nCheck: opts.noI18nCheck,
         noSast: opts.noSast,
         noGitleaks: opts.noGitleaks,
+        noFallow: opts.noFallow,
         noRuff: opts.noRuff,
         noShellcheck: opts.noShellcheck,
         refactor: opts.refactor,

@@ -12,6 +12,8 @@ New checks appear in the **Check Library** and can be added to **My Checks** onc
 
 After that, the new check shows up in the Check Library and can be dragged into My Checks. **Enforce** vs **Hooks** in the UI is determined by each check’s `role`: enforce checks run before the command, hook checks run after deploy.
 
+Optional graph-level checks (e.g. **Fallow** via `npx fallow`, `SHIM_RUN_FALLOW=1`) follow the same registry + `check-descriptions.ts` pattern with `defaultEnabled: false`.
+
 ## Check descriptions
 
 Check texts must be understandable for non-experts and still precise for experts. Use the fixed structure and wording rules described in `docs/CHECK_DESCRIPTION_STYLE.md`.

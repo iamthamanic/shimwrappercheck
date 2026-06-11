@@ -50,6 +50,7 @@ export interface CheckToggles {
   gitleaks: boolean;
   licenseChecker: boolean;
   architecture: boolean;
+  fallow: boolean;
   complexity: boolean;
   mutation: boolean;
   e2e: boolean;
@@ -109,6 +110,7 @@ export const DEFAULT_CHECK_TOGGLES: CheckToggles = {
   gitleaks: false,
   licenseChecker: false,
   architecture: false,
+  fallow: false,
   complexity: false,
   mutation: false,
   e2e: false,
@@ -180,6 +182,7 @@ export function buildRcContent(settings: SettingsData): string {
   if (!t.gitleaks) args.push("--no-gitleaks");
   if (!t.licenseChecker) args.push("--no-license-checker");
   if (!t.architecture) args.push("--no-architecture");
+  if (!t.fallow) args.push("--no-fallow");
   if (!t.complexity) args.push("--no-complexity");
   if (!t.mutation) args.push("--no-mutation");
   if (!t.e2e) args.push("--no-e2e");
@@ -213,6 +216,7 @@ export function buildRcContent(settings: SettingsData): string {
   lines.push(`SHIM_RUN_GITLEAKS=${t.gitleaks ? 1 : 0}`);
   lines.push(`SHIM_RUN_LICENSE_CHECKER=${t.licenseChecker ? 1 : 0}`);
   lines.push(`SHIM_RUN_ARCHITECTURE=${t.architecture ? 1 : 0}`);
+  lines.push(`SHIM_RUN_FALLOW=${t.fallow ? 1 : 0}`);
   lines.push(`SHIM_RUN_COMPLEXITY=${t.complexity ? 1 : 0}`);
   lines.push(`SHIM_RUN_MUTATION=${t.mutation ? 1 : 0}`);
   lines.push(`SHIM_RUN_E2E=${t.e2e ? 1 : 0}`);

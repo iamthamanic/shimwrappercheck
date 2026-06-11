@@ -19,7 +19,7 @@ async function main(): Promise<void> {
     console.log(`Usage: shimwrappercheck-core run-checks [options]
 Options: --frontend --backend --no-frontend --no-backend
   --no-ai-review --no-explanation-check --no-i18n-check
-  --no-sast --no-gitleaks --no-ruff --no-shellcheck --refactor|--until-95
+  --no-sast --no-gitleaks --no-fallow --no-ruff --no-shellcheck --refactor|--until-95
 Env: SHIM_PROJECT_ROOT, CHECK_MODE`);
     process.exit(0);
   }

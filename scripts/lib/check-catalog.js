@@ -127,6 +127,12 @@ const CHECK_CATALOG = [
     defaultEnabled: 0,
   },
   {
+    id: "fallow",
+    label: "Fallow",
+    envKey: "SHIM_RUN_FALLOW",
+    defaultEnabled: 0,
+  },
+  {
     id: "complexity",
     label: "Complexity",
     envKey: "SHIM_RUN_COMPLEXITY",
@@ -182,6 +188,7 @@ const DEFAULT_CHECK_ORDER = [
   "gitleaks",
   "licenseChecker",
   "architecture",
+  "fallow",
   "complexity",
   "mutation",
   "e2e", // E2E typisch am Ende; ohne könnten schnelle Checks nach langen E2E-Läufen erscheinen.
